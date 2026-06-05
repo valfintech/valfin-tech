@@ -21,14 +21,14 @@
         "documentId": {
           "__rl": true,
           "mode": "id",
-          "value": "YOUR_GOOGLE_SHEET_ID"
+          "value": "1G-yjm2vR3Qoo3NEmImDejGrmc5mww8-l"
         },
         "sheetName": {
           "__rl": true,
           "mode": "name",
           "value": "Leads"
         },
-        "options": {}
+        "options": { "headerRow": 1 }
       },
       "id": "node-getleads",
       "name": "Get Leads",
@@ -61,7 +61,7 @@
         "documentId": {
           "__rl": true,
           "mode": "id",
-          "value": "YOUR_GOOGLE_SHEET_ID"
+          "value": "1G-yjm2vR3Qoo3NEmImDejGrmc5mww8-l"
         },
         "sheetName": {
           "__rl": true,
@@ -74,7 +74,7 @@
           "schema": [],
           "value": {}
         },
-        "options": {}
+        "options": { "headerRow": 1 }
       },
       "id": "node-upsert",
       "name": "Upsert Lead",
@@ -107,7 +107,7 @@
         "documentId": {
           "__rl": true,
           "mode": "id",
-          "value": "YOUR_GOOGLE_SHEET_ID"
+          "value": "1G-yjm2vR3Qoo3NEmImDejGrmc5mww8-l"
         },
         "sheetName": {
           "__rl": true,
@@ -120,7 +120,7 @@
           "schema": [],
           "value": {}
         },
-        "options": {}
+        "options": { "headerRow": 1 }
       },
       "id": "node-applog",
       "name": "Append Comm Log",

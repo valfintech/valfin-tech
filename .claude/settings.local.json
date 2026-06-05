@@ -6,7 +6,16 @@
       "Bash(claude mcp *)",
       "Bash(which claude *)",
       "Bash(git add *)",
-      "Bash(git commit -m ' *)"
+      "Bash(git commit -m ' *)",
+      "Bash(git push *)",
+      "Bash(gh repo *)",
+      "Bash(python3 -c \"import sys,json; d=json.load\\(sys.stdin\\); print\\('default:', d['defaultBranchRef']['name']\\)\")",
+      "mcp__n8n__search_workflows",
+      "mcp__n8n__get_sdk_reference",
+      "mcp__n8n__get_node_types",
+      "mcp__n8n__list_credentials",
+      "mcp__n8n__validate_workflow",
+      "mcp__n8n__create_workflow_from_code"
     ]
   }
 }
