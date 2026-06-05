@@ -1,0 +1,171 @@
+{
+  "name": "CRM Adapter (Google Sheets)",
+  "active": false,
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "nodes": [
+    {
+      "parameters": {
+        "inputSource": "passthrough"
+      },
+      "id": "node-input",
+      "name": "Input",
+      "type": "n8n-nodes-base.executeWorkflowTrigger",
+      "typeVersion": 1.1,
+      "position": [0, 300]
+    },
+    {
+      "parameters": {
+        "operation": "read",
+        "documentId": {
+          "__rl": true,
+          "mode": "id",
+          "value": "YOUR_GOOGLE_SHEET_ID"
+        },
+        "sheetName": {
+          "__rl": true,
+          "mode": "name",
+          "value": "Leads"
+        },
+        "options": {}
+      },
+      "id": "node-getleads",
+      "name": "Get Leads",
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.5,
+      "position": [220, 300],
+      "retryOnFail": true,
+      "maxTries": 3,
+      "waitBetweenTries": 2000,
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "",
+          "name": "Google Sheets account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "const input = $('Input').first().json;\nconst existing = $('Get Leads').all().map(i => i.json);\nconst norm = s => String(s || '').replace(/\\D/g, '');\nconst pad = n => 'LEAD-' + String(n).padStart(4, '0');\n\nlet row = null;\nif (input.leadId) {\n  row = existing.find(r => String(r['Lead ID'] || '').trim() === String(input.leadId).trim());\n}\nif (!row && input.phone) {\n  row = existing.find(r => norm(r['Phone']) && norm(r['Phone']) === norm(input.phone));\n}\n\nlet leadId, isNew, dateCreated;\nif (row) {\n  leadId = row['Lead ID'];\n  isNew = false;\n  dateCreated = row['Date Created'] || new Date().toISOString();\n} else {\n  isNew = true;\n  const nums = existing.map(r => parseInt(String(r['Lead ID'] || '').replace(/\\D/g, ''), 10)).filter(n => !isNaN(n));\n  leadId = pad((nums.length ? Math.max(...nums) : 0) + 1);\n  dateCreated = new Date().toISOString();\n}\n\nconst prev = row || {};\nconst pick = (a, b) => (a !== undefined && a !== null && String(a).trim() !== '') ? a : (b || '');\nconst now = new Date().toISOString();\n\nconst leadRow = {\n  'Lead ID': leadId,\n  'Date Created': dateCreated,\n  'Source': pick(input.source, prev['Source']),\n  'First Name': pick(input.firstName, prev['First Name']),\n  'Last Name': pick(input.lastName, prev['Last Name']),\n  'Phone': pick(input.phone, prev['Phone']),\n  'Email': pick(input.email, prev['Email']),\n  'Address': pick(input.address, prev['Address']),\n  'Service Needed': pick(input.serviceNeeded, prev['Service Needed']),\n  'Description': pick(input.description, prev['Description']),\n  'Photos Link': pick(input.photosLink, prev['Photos Link']),\n  'Preferred Time': pick(input.preferredTime, prev['Preferred Time']),\n  'Lead Score': pick(input.leadScore, prev['Lead Score']),\n  'Temperature': pick(input.temperature, prev['Temperature']),\n  'Urgency': pick(input.urgency, prev['Urgency']),\n  'Status': pick(input.status, prev['Status'] || 'New'),\n  'Last Contact': now,\n  'Follow-up Count': pick(prev['Follow-up Count'], '0'),\n  'Assigned To': pick(input.assignedTo, prev['Assigned To']),\n  'Notes': pick(input.notes, prev['Notes'])\n};\n\nreturn [{ json: { ...leadRow, _isNew: isNew } }];"
+      },
+      "id": "node-resolve",
+      "name": "Resolve & Build Lead Row",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [440, 300]
+    },
+    {
+      "parameters": {
+        "operation": "appendOrUpdate",
+        "documentId": {
+          "__rl": true,
+          "mode": "id",
+          "value": "YOUR_GOOGLE_SHEET_ID"
+        },
+        "sheetName": {
+          "__rl": true,
+          "mode": "name",
+          "value": "Leads"
+        },
+        "columns": {
+          "mappingMode": "autoMapInputData",
+          "matchingColumns": ["Lead ID"],
+          "schema": [],
+          "value": {}
+        },
+        "options": {}
+      },
+      "id": "node-upsert",
+      "name": "Upsert Lead",
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.5,
+      "position": [660, 300],
+      "retryOnFail": true,
+      "maxTries": 3,
+      "waitBetweenTries": 2000,
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "",
+          "name": "Google Sheets account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "const leadRow = $('Resolve & Build Lead Row').first().json;\nconst input = $('Input').first().json;\nconst name = [leadRow['First Name'], leadRow['Last Name']].filter(Boolean).join(' ').trim();\nconst ts = new Date().toISOString();\nconst logId = 'LOG-' + ts.replace(/[-:T.Z]/g, '').slice(0, 14) + '-' + Math.floor(Math.random() * 1000);\nreturn [{ json: {\n  'Log ID': logId,\n  'Date/Time': ts,\n  'Lead ID': leadRow['Lead ID'],\n  'Customer Name': name,\n  'Channel': input.logChannel || input.source || '',\n  'Direction': input.logDirection || 'Inbound',\n  'Handler': input.logHandler || 'AI',\n  'Message Summary': input.logSummary || '',\n  'Notes': input.logNotes || ''\n}}];"
+      },
+      "id": "node-buildlog",
+      "name": "Build Log Row",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [880, 300]
+    },
+    {
+      "parameters": {
+        "operation": "append",
+        "documentId": {
+          "__rl": true,
+          "mode": "id",
+          "value": "YOUR_GOOGLE_SHEET_ID"
+        },
+        "sheetName": {
+          "__rl": true,
+          "mode": "name",
+          "value": "Communication Log"
+        },
+        "columns": {
+          "mappingMode": "autoMapInputData",
+          "matchingColumns": [],
+          "schema": [],
+          "value": {}
+        },
+        "options": {}
+      },
+      "id": "node-applog",
+      "name": "Append Comm Log",
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.5,
+      "position": [1100, 300],
+      "retryOnFail": true,
+      "maxTries": 3,
+      "waitBetweenTries": 2000,
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "",
+          "name": "Google Sheets account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "const r = $('Resolve & Build Lead Row').first().json;\nreturn [{ json: { leadId: r['Lead ID'], isNew: r._isNew, temperature: r['Temperature'] || '', leadScore: r['Lead Score'] || '', status: r['Status'] || '' } }];"
+      },
+      "id": "node-return",
+      "name": "Return",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [1320, 300]
+    }
+  ],
+  "connections": {
+    "Input": {
+      "main": [[{ "node": "Get Leads", "type": "main", "index": 0 }]]
+    },
+    "Get Leads": {
+      "main": [[{ "node": "Resolve & Build Lead Row", "type": "main", "index": 0 }]]
+    },
+    "Resolve & Build Lead Row": {
+      "main": [[{ "node": "Upsert Lead", "type": "main", "index": 0 }]]
+    },
+    "Upsert Lead": {
+      "main": [[{ "node": "Build Log Row", "type": "main", "index": 0 }]]
+    },
+    "Build Log Row": {
+      "main": [[{ "node": "Append Comm Log", "type": "main", "index": 0 }]]
+    },
+    "Append Comm Log": {
+      "main": [[{ "node": "Return", "type": "main", "index": 0 }]]
+    }
+  }
+}

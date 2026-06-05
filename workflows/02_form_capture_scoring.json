@@ -1,0 +1,288 @@
+{
+  "name": "Form Capture + AI Scoring",
+  "active": false,
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "nodes": [
+    {
+      "parameters": {
+        "formTitle": "Request Your Free Roof Inspection",
+        "formDescription": "Tell us what is going on and we will get right back to you.",
+        "formFields": {
+          "values": [
+            { "fieldLabel": "First Name", "fieldType": "text", "requiredField": true },
+            { "fieldLabel": "Last Name", "fieldType": "text", "requiredField": true },
+            { "fieldLabel": "Phone", "fieldType": "text", "requiredField": true },
+            { "fieldLabel": "Email", "fieldType": "email", "requiredField": false },
+            { "fieldLabel": "Address", "fieldType": "text", "requiredField": true },
+            {
+              "fieldLabel": "Service Needed",
+              "fieldType": "dropdown",
+              "requiredField": true,
+              "fieldOptions": {
+                "values": [
+                  { "option": "Roof Repair" },
+                  { "option": "Roof Replacement" },
+                  { "option": "Storm or Leak Emergency" },
+                  { "option": "Inspection / Quote" },
+                  { "option": "Gutters" },
+                  { "option": "Other" }
+                ]
+              }
+            },
+            { "fieldLabel": "Description", "fieldType": "textarea", "requiredField": false },
+            { "fieldLabel": "Photos Link", "fieldType": "text", "requiredField": false },
+            { "fieldLabel": "Preferred Time", "fieldType": "text", "requiredField": false }
+          ]
+        },
+        "responseMode": "onReceived",
+        "options": {
+          "formSubmittedText": "Thanks! Your request is in. We will text or call you shortly to lock in your free inspection."
+        }
+      },
+      "id": "node-form",
+      "name": "Website Form",
+      "type": "n8n-nodes-base.formTrigger",
+      "typeVersion": 2.2,
+      "position": [0, 200],
+      "webhookId": "roofing-intake-form"
+    },
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "roofing-intake",
+        "responseMode": "onReceived",
+        "options": {}
+      },
+      "id": "node-webhook",
+      "name": "Website Webhook (optional)",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [0, 420],
+      "webhookId": "roofing-intake-hook"
+    },
+    {
+      "parameters": {
+        "jsCode": "const src = ($json.body && typeof $json.body === 'object') ? $json.body : $json;\nconst g = k => (src[k] !== undefined && src[k] !== null) ? src[k] : '';\nreturn [{ json: {\n  source: 'Website Form',\n  firstName: g('First Name') || g('firstName'),\n  lastName: g('Last Name') || g('lastName'),\n  phone: g('Phone') || g('phone'),\n  email: g('Email') || g('email'),\n  address: g('Address') || g('address'),\n  serviceNeeded: g('Service Needed') || g('serviceNeeded'),\n  description: g('Description') || g('description'),\n  photosLink: g('Photos Link') || g('photosLink'),\n  preferredTime: g('Preferred Time') || g('preferredTime'),\n  status: 'New'\n}}];"
+      },
+      "id": "node-normalize",
+      "name": "Normalize Lead",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [240, 300]
+    },
+    {
+      "parameters": {
+        "jsCode": "const lead = $json;\nconst systemPrompt = `You are the lead-scoring engine for a roofing company in the Boston, Massachusetts area.\nScore each inbound lead from 1 to 100 and classify temperature and urgency.\n\nScoring factors (weigh all):\n- Urgency: an active leak, storm damage, or emergency is the highest signal. A routine inspection or general question is the lowest.\n- Timeline: ASAP or this week is hot; within a month is warm; someday or just researching is cold.\n- Service type: full roof replacement and storm or leak emergencies score highest; repairs are mid; inspections, gutters, and general inquiries are lower.\n- Budget and ownership signals: a homeowner ready to move, an insurance claim, or any budget mention raises the score; renters or pure price-shopping lower it.\n- Completeness: a full address plus phone plus a clear description is a stronger lead than a sparse one.\n\nTemperature mapping: Hot = 80-100, Warm = 50-79, Cold = 1-49. Keep the number and the temperature consistent.\nUrgency: Emergency, High, Medium, or Low.\n\nBe decisive and realistic. Base the score only on the lead data provided. Do not invent facts. The summary and recommended_next_step are for the internal sales team, not the customer.`;\nconst schema = {\n  type: 'object',\n  additionalProperties: false,\n  properties: {\n    lead_score: { type: 'integer' },\n    temperature: { type: 'string', enum: ['Hot', 'Warm', 'Cold'] },\n    urgency: { type: 'string', enum: ['Emergency', 'High', 'Medium', 'Low'] },\n    detected_service: { type: 'string' },\n    summary: { type: 'string' },\n    recommended_next_step: { type: 'string' }\n  },\n  required: ['lead_score', 'temperature', 'urgency', 'detected_service', 'summary', 'recommended_next_step']\n};\nconst userContent = `New roofing lead submitted via the website form. Score it.\\n\\n${JSON.stringify(lead, null, 2)}`;\nreturn [{ json: { ...lead, systemPrompt, schema, userContent } }];"
+      },
+      "id": "node-buildscore",
+      "name": "Build Scoring Request",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [460, 300]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://api.anthropic.com/v1/messages",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            { "name": "anthropic-version", "value": "2023-06-01" },
+            { "name": "content-type", "value": "application/json" }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify({ model: 'claude-sonnet-4-6', max_tokens: 600, system: $json.systemPrompt, output_config: { format: { type: 'json_schema', schema: $json.schema } }, messages: [ { role: 'user', content: $json.userContent } ] }) }}",
+        "options": {}
+      },
+      "id": "node-claudescore",
+      "name": "Claude - Score Lead",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [680, 300],
+      "retryOnFail": true,
+      "maxTries": 3,
+      "waitBetweenTries": 3000,
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "",
+          "name": "Anthropic API"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "const resp = $json;\nlet txt = '';\nif (Array.isArray(resp.content)) { const t = resp.content.find(b => b.type === 'text'); txt = t ? t.text : ''; }\nlet parsed = {};\ntry { parsed = JSON.parse(txt); } catch (e) { parsed = {}; }\nconst lead = $('Normalize Lead').first().json;\nreturn [{ json: {\n  ...lead,\n  leadScore: parsed.lead_score !== undefined ? parsed.lead_score : '',\n  temperature: parsed.temperature || '',\n  urgency: parsed.urgency || '',\n  serviceNeeded: lead.serviceNeeded || parsed.detected_service || '',\n  logChannel: 'Website Form',\n  logDirection: 'Inbound',\n  logHandler: 'AI',\n  logSummary: parsed.summary || 'Website form submitted',\n  logNotes: 'Score ' + (parsed.lead_score !== undefined ? parsed.lead_score : 'n/a') + ' / ' + (parsed.temperature || '') + ' / Next: ' + (parsed.recommended_next_step || '')\n}}];"
+      },
+      "id": "node-parsescore",
+      "name": "Parse Score",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [900, 300]
+    },
+    {
+      "parameters": {
+        "source": "database",
+        "workflowId": {
+          "__rl": true,
+          "mode": "id",
+          "value": "YOUR_CRM_ADAPTER_WORKFLOW_ID",
+          "cachedResultName": "CRM Adapter (Google Sheets)"
+        },
+        "options": {}
+      },
+      "id": "node-crm1",
+      "name": "CRM: Upsert + Log Inbound",
+      "type": "n8n-nodes-base.executeWorkflow",
+      "typeVersion": 1.2,
+      "position": [1120, 300]
+    },
+    {
+      "parameters": {
+        "jsCode": "const lead = $('Parse Score').first().json;\nconst leadId = $json.leadId || '';\nconst systemPrompt = `You write the instant confirmation text message a roofing company sends a customer right after they submit the website inspection-request form.\nRules:\n- Warm, friendly, professional. Sound like a local Boston-area roofer, not a robot.\n- Under 320 characters. One short paragraph.\n- Greet them by first name if one is available.\n- Confirm we received their request and reference their service need if it helps.\n- Tell them a team member will reach out shortly to schedule their free inspection.\n- No emojis. No links. Do not promise a specific price or appointment time.`;\nconst schema = { type: 'object', additionalProperties: false, properties: { message: { type: 'string' } }, required: ['message'] };\nconst userContent = JSON.stringify({ firstName: lead.firstName, serviceNeeded: lead.serviceNeeded, temperature: lead.temperature, company: 'YOUR_COMPANY_NAME' });\nreturn [{ json: { ...lead, leadId, systemPrompt, schema, userContent } }];"
+      },
+      "id": "node-buildconfirm",
+      "name": "Build Confirmation Request",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [1340, 300]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://api.anthropic.com/v1/messages",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            { "name": "anthropic-version", "value": "2023-06-01" },
+            { "name": "content-type", "value": "application/json" }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify({ model: 'claude-haiku-4-5', max_tokens: 300, system: $json.systemPrompt, output_config: { format: { type: 'json_schema', schema: $json.schema } }, messages: [ { role: 'user', content: $json.userContent } ] }) }}",
+        "options": {}
+      },
+      "id": "node-claudeconfirm",
+      "name": "Claude - Confirmation SMS",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [1560, 300],
+      "retryOnFail": true,
+      "maxTries": 3,
+      "waitBetweenTries": 3000,
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "",
+          "name": "Anthropic API"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "const resp = $json;\nlet txt = '';\nif (Array.isArray(resp.content)) { const t = resp.content.find(b => b.type === 'text'); txt = t ? t.text : ''; }\nlet msg = '';\ntry { msg = (JSON.parse(txt).message) || ''; } catch (e) { msg = txt || ''; }\nconst lead = $('Build Confirmation Request').first().json;\nreturn [{ json: { ...lead, smsMessage: msg } }];"
+      },
+      "id": "node-parseconfirm",
+      "name": "Parse Confirmation",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [1780, 300]
+    },
+    {
+      "parameters": {
+        "operation": "send",
+        "from": "YOUR_TWILIO_NUMBER",
+        "to": "={{ $json.phone }}",
+        "toWhatsapp": false,
+        "message": "={{ $json.smsMessage }}",
+        "options": {}
+      },
+      "id": "node-sendsms",
+      "name": "Send Confirmation SMS",
+      "type": "n8n-nodes-base.twilio",
+      "typeVersion": 1,
+      "position": [2000, 300],
+      "retryOnFail": true,
+      "maxTries": 3,
+      "waitBetweenTries": 3000,
+      "credentials": {
+        "twilioApi": {
+          "id": "",
+          "name": "Twilio account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "const lead = $('Parse Confirmation').first().json;\nreturn [{ json: {\n  source: lead.source,\n  firstName: lead.firstName,\n  lastName: lead.lastName,\n  phone: lead.phone,\n  email: lead.email,\n  address: lead.address,\n  serviceNeeded: lead.serviceNeeded,\n  leadId: lead.leadId,\n  leadScore: lead.leadScore,\n  temperature: lead.temperature,\n  urgency: lead.urgency,\n  logChannel: 'SMS',\n  logDirection: 'Outbound',\n  logHandler: 'AI',\n  logSummary: 'Sent confirmation SMS',\n  logNotes: lead.smsMessage\n}}];"
+      },
+      "id": "node-markout",
+      "name": "Mark Outbound Log",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [2220, 300]
+    },
+    {
+      "parameters": {
+        "source": "database",
+        "workflowId": {
+          "__rl": true,
+          "mode": "id",
+          "value": "YOUR_CRM_ADAPTER_WORKFLOW_ID",
+          "cachedResultName": "CRM Adapter (Google Sheets)"
+        },
+        "options": {}
+      },
+      "id": "node-crm2",
+      "name": "CRM: Log Outbound SMS",
+      "type": "n8n-nodes-base.executeWorkflow",
+      "typeVersion": 1.2,
+      "position": [2440, 300]
+    }
+  ],
+  "connections": {
+    "Website Form": {
+      "main": [[{ "node": "Normalize Lead", "type": "main", "index": 0 }]]
+    },
+    "Website Webhook (optional)": {
+      "main": [[{ "node": "Normalize Lead", "type": "main", "index": 0 }]]
+    },
+    "Normalize Lead": {
+      "main": [[{ "node": "Build Scoring Request", "type": "main", "index": 0 }]]
+    },
+    "Build Scoring Request": {
+      "main": [[{ "node": "Claude - Score Lead", "type": "main", "index": 0 }]]
+    },
+    "Claude - Score Lead": {
+      "main": [[{ "node": "Parse Score", "type": "main", "index": 0 }]]
+    },
+    "Parse Score": {
+      "main": [[{ "node": "CRM: Upsert + Log Inbound", "type": "main", "index": 0 }]]
+    },
+    "CRM: Upsert + Log Inbound": {
+      "main": [[{ "node": "Build Confirmation Request", "type": "main", "index": 0 }]]
+    },
+    "Build Confirmation Request": {
+      "main": [[{ "node": "Claude - Confirmation SMS", "type": "main", "index": 0 }]]
+    },
+    "Claude - Confirmation SMS": {
+      "main": [[{ "node": "Parse Confirmation", "type": "main", "index": 0 }]]
+    },
+    "Parse Confirmation": {
+      "main": [[{ "node": "Send Confirmation SMS", "type": "main", "index": 0 }]]
+    },
+    "Send Confirmation SMS": {
+      "main": [[{ "node": "Mark Outbound Log", "type": "main", "index": 0 }]]
+    },
+    "Mark Outbound Log": {
+      "main": [[{ "node": "CRM: Log Outbound SMS", "type": "main", "index": 0 }]]
+    }
+  }
+}
