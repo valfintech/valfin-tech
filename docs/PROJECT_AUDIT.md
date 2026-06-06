@@ -18,6 +18,7 @@ All Phase 2 workflows inspected via n8n MCP and verified against live execution 
 | Missed-Call Auto-SMS active | `u9I1bqrLW6V5LtLp` — Twilio webhook live |
 | Hot Lead Alert active | `KIpMMKM8H5IZB9wb` — published; called by workflow 02 when Hot or Emergency |
 | Follow-Up Sequence active | `chYfABnQdnPfiHQx` — published; daily 9 AM ET schedule |
+| Appointment Booking active | `ax2sMbvv0lqyJHMg` — published; form live at `https://valfin.app.n8n.cloud/form/eca6bfbb-ef53-4f82-b909-cbd2b818991a` |
 | Google Sheets credential | Set on all Sheets nodes in workflows 01 and 05 |
 | Anthropic credential | Set on all HTTP Request nodes in workflow 02 |
 | Twilio credential | Set on SMS nodes in workflows 02, 03, 04, 05 |
@@ -38,6 +39,10 @@ All Phase 2 workflows inspected via n8n MCP and verified against live execution 
 | Follow-up time thresholds | Count 0 → 24h, Count 1 → 72h, Count 2 → 96h; count ≥ 3 stops |
 | Follow-up status transitions | `Contacted` after count 1–2; `Stale` after count 2 |
 | Follow-up data recovery pattern | `Build CRM Update` reads `$('Filter & Build Messages').item.json` — correct, Twilio replaces `$json` in loop |
+| Appointment Booking data recovery | `Build CRM Update` reads `$('Build Booking Payload').first().json` — correct, Twilio replaces `$json` after SMS |
+| Appointments tab write (direct) | Workflow 06 appends directly to Appointments tab — does not go through CRM Adapter. Correct: Appointments is a pure-append log with no dedup concern. |
+| Invalid Lead ID handling | IF node halts workflow gracefully — nothing written to Appointments or Leads if Lead ID not found |
+| Booked leads excluded from follow-up | Status `Booked` not in qualifying set {New, Contacted} — no code change needed |
 
 ---
 

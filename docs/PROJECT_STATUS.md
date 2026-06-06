@@ -17,6 +17,7 @@ Phase 2 is complete and verified. Phase 3 has delivered Hot Lead Alerting (04) a
 | Missed-Call Auto-SMS | `u9I1bqrLW6V5LtLp` | https://valfin.app.n8n.cloud/workflow/u9I1bqrLW6V5LtLp | ✅ Active — Twilio webhook live |
 | Hot Lead Alert | `KIpMMKM8H5IZB9wb` | https://valfin.app.n8n.cloud/workflow/KIpMMKM8H5IZB9wb | ✅ Active — **owner phone setup required** |
 | Follow-Up Sequence | `chYfABnQdnPfiHQx` | https://valfin.app.n8n.cloud/workflow/chYfABnQdnPfiHQx | ✅ Active — daily 9 AM ET |
+| Appointment Booking | `ax2sMbvv0lqyJHMg` | https://valfin.app.n8n.cloud/workflow/ax2sMbvv0lqyJHMg | ✅ Active — form live |
 
 ---
 
@@ -30,6 +31,7 @@ Phase 2 is complete and verified. Phase 3 has delivered Hot Lead Alerting (04) a
 | Website form — Hot lead | ✅ Created / updated | ✅ Written | Sonnet 4.6 (score) + Haiku 4.5 (SMS) | ✅ Instant SMS to owner |
 | Missed call (no-answer / busy) | ❌ Not created | ✅ Written | None — static SMS | ❌ |
 | Follow-up cadence (daily 9 AM) | ✅ Updated | ✅ Written | None — static templates | ❌ |
+| Owner books appointment (form) | ✅ Updated → Booked | ✅ Written | None — static SMS | ❌ |
 
 ---
 
@@ -145,6 +147,37 @@ Daily 9 AM ET → Get All Leads → Filter & Build Messages
 | Twilio from | `+18889839308` |
 | Data pattern | `Build CRM Update` reads from `Filter & Build Messages` by name (Twilio replaces `$json`) |
 
+> Note: leads with Status `Booked` are automatically excluded. Booking a lead via workflow 06 stops the follow-up sequence with no additional configuration.
+
+---
+
+### Workflow 06 — Appointment Booking (`ax2sMbvv0lqyJHMg`)
+
+**Flow (10 nodes):**
+```
+Booking Form (owner opens URL)
+  → Normalize Booking
+  → Get All Leads (executeOnce)
+  → Find Lead (runOnceForAllItems — matches by Lead ID)
+  → IF: Lead Found?
+      true  → Build Booking Payload → Write Appointment → Send Confirmation SMS
+             → Build CRM Update → CRM: Book Lead + Log
+      false → (stop — form already shows "Submitted")
+```
+
+| Property | Value |
+|---|---|
+| Form URL | `https://valfin.app.n8n.cloud/form/eca6bfbb-ef53-4f82-b909-cbd2b818991a` |
+| Form fields | Lead ID (required), Appointment Date (required), Appointment Time (required), Team Member (optional), Notes (optional) |
+| Appt ID format | `APT-` + 14-char timestamp (e.g. `APT-20260606143052`) |
+| Appointments tab | Direct append — all 15 columns written; Status = `Scheduled` |
+| Lead status after booking | `Booked` (via CRM Adapter) |
+| Assigned To | Set from Team Member field |
+| Customer SMS | Static personalized: `"Hi [Name], your [Service] appointment with Valfin Tech is confirmed for [Date] at [Time]. Questions? Call us anytime."` |
+| Twilio from | `+18889839308` |
+| Data recovery | `Build CRM Update` reads from `Build Booking Payload` by name (Twilio replaces `$json` after SMS) |
+| Invalid Lead ID | Workflow halts at IF node — nothing written |
+
 ---
 
 ## Credentials (Confirmed Set)
@@ -183,8 +216,8 @@ Daily 9 AM ET → Get All Leads → Filter & Build Messages
 |---|---|---|
 | Hot Lead Alerting | ✅ Live | `KIpMMKM8H5IZB9wb` (04) |
 | Automated Follow-Up Sequences | ✅ Live | `chYfABnQdnPfiHQx` (05) |
-| Appointment Booking Workflow | 🔲 Not started | — |
+| Appointment Booking Workflow | ✅ Live | `ax2sMbvv0lqyJHMg` (06) |
 | Pipeline Status Automation | 🔲 Not started | — |
 | Reporting / Dashboarding | 🔲 Not started | — |
 
-**Next:** Appointment Booking Workflow — n8n Form trigger for owner-facing booking, sends customer confirmation SMS, updates lead status to `Booked`.
+**Next:** Pipeline Status Automation — status-change triggered owner notifications, Stale lead escalation, and weekly summary.

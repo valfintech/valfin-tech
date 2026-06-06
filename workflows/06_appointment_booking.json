@@ -1,0 +1,197 @@
+{
+  "_comment": "Local reference copy — created 2026-06-06. Live ID: ax2sMbvv0lqyJHMg. Phase 3 workflow. Form URL: https://valfin.app.n8n.cloud/form/eca6bfbb-ef53-4f82-b909-cbd2b818991a",
+  "name": "Appointment Booking",
+  "active": true,
+  "settings": { "executionOrder": "v1" },
+  "nodes": [
+    {
+      "parameters": {
+        "formTitle": "Book an Appointment",
+        "formDescription": "Enter the Lead ID and appointment details. The customer will receive a confirmation SMS automatically.",
+        "formFields": {
+          "values": [
+            { "fieldLabel": "Lead ID", "fieldType": "text", "requiredField": true, "placeholder": "e.g. LEAD-0001" },
+            { "fieldLabel": "Appointment Date", "fieldType": "text", "requiredField": true, "placeholder": "e.g. Tuesday, June 10" },
+            { "fieldLabel": "Appointment Time", "fieldType": "text", "requiredField": true, "placeholder": "e.g. 2:00 PM" },
+            { "fieldLabel": "Team Member", "fieldType": "text", "requiredField": false, "placeholder": "Technician or rep name" },
+            { "fieldLabel": "Notes", "fieldType": "textarea", "requiredField": false }
+          ]
+        },
+        "responseMode": "onReceived",
+        "options": {
+          "formSubmittedText": "Appointment submitted. The customer will receive a confirmation SMS within seconds."
+        }
+      },
+      "id": "9032549b-1395-4abb-bb8b-b94bc1c852bf",
+      "name": "Booking Form",
+      "type": "n8n-nodes-base.formTrigger",
+      "typeVersion": 2.2,
+      "position": [0, 0],
+      "webhookId": "eca6bfbb-ef53-4f82-b909-cbd2b818991a"
+    },
+    {
+      "parameters": {
+        "jsCode": "const f = $json;\nreturn [{ json: {\n  leadId: (f['Lead ID'] || '').trim().toUpperCase(),\n  apptDate: (f['Appointment Date'] || '').trim(),\n  apptTime: (f['Appointment Time'] || '').trim(),\n  teamMember: (f['Team Member'] || '').trim(),\n  notes: (f['Notes'] || '').trim()\n}}];"
+      },
+      "id": "60d83fa6-49aa-4d86-b26b-df2600ff0871",
+      "name": "Normalize Booking",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [224, 0]
+    },
+    {
+      "parameters": {
+        "documentId": { "__rl": true, "mode": "id", "value": "1MxmJouteZhi1K_-KOwgBlJtBFAXtm2G_0H555otTHBQ" },
+        "sheetName": { "__rl": true, "mode": "name", "value": "Leads" },
+        "options": {}
+      },
+      "id": "14757f3d-5ee7-40bf-a284-6eb0fa96f83f",
+      "name": "Get All Leads",
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.7,
+      "position": [448, 0],
+      "executeOnce": true,
+      "retryOnFail": true,
+      "maxTries": 3,
+      "waitBetweenTries": 2000,
+      "credentials": { "googleSheetsOAuth2Api": { "id": "", "name": "Google Sheets account" } }
+    },
+    {
+      "parameters": {
+        "mode": "runOnceForAllItems",
+        "jsCode": "const booking = $('Normalize Booking').first().json;\nconst leads = $input.all().map(i => i.json);\nconst lead = leads.find(r => String(r['Lead ID'] || '').trim().toUpperCase() === booking.leadId);\nif (!lead) {\n  return [{ json: { found: false, leadId: booking.leadId, apptDate: booking.apptDate, apptTime: booking.apptTime, teamMember: booking.teamMember, notes: booking.notes } }];\n}\nreturn [{ json: {\n  found: true,\n  leadId: lead['Lead ID'],\n  firstName: lead['First Name'] || '',\n  lastName: lead['Last Name'] || '',\n  phone: lead['Phone'] || '',\n  address: lead['Address'] || '',\n  serviceNeeded: lead['Service Needed'] || '',\n  apptDate: booking.apptDate,\n  apptTime: booking.apptTime,\n  teamMember: booking.teamMember,\n  notes: booking.notes\n}}];"
+      },
+      "id": "8c1f3429-37ba-4107-8275-6e24bace0c1f",
+      "name": "Find Lead",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [672, 0]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": { "caseSensitive": true, "leftValue": "", "typeValidation": "strict" },
+          "conditions": [{
+            "id": "found-check",
+            "leftValue": "={{ $json.found }}",
+            "rightValue": "",
+            "operator": { "type": "boolean", "operation": "true", "singleValue": true }
+          }],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "id": "5758a858-5b3a-4817-8213-7cf8ecc39010",
+      "name": "IF: Lead Found?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [896, 0]
+    },
+    {
+      "parameters": {
+        "jsCode": "const d = $json;\nconst ts = new Date().toISOString().replace(/[-:T.Z]/g, '').slice(0, 14);\nconst apptId = 'APT-' + ts;\nconst name = [d.firstName, d.lastName].filter(Boolean).join(' ');\nconst svcDisplay = d.serviceNeeded || 'roofing appointment';\n\n// Normalize phone to E.164 for Twilio\nconst raw = String(d.phone || '').replace(/\\D/g, '');\nconst e164 = raw.length === 11 && raw.startsWith('1') ? '+' + raw\n  : raw.length === 10 ? '+1' + raw : null;\n\n// Static personalized confirmation SMS\nconst greeting = d.firstName ? 'Hi ' + d.firstName + ',' : 'Hi,';\nconst smsText = greeting + ' your ' + svcDisplay + ' appointment with Valfin Tech is confirmed for ' + d.apptDate + ' at ' + d.apptTime + '. Questions? Call us anytime.';\n\nreturn [{ json: {\n  apptId,\n  leadId: d.leadId,\n  customerName: name,\n  phone: d.phone,\n  e164Phone: e164,\n  address: d.address,\n  serviceNeeded: d.serviceNeeded,\n  apptDate: d.apptDate,\n  apptTime: d.apptTime,\n  teamMember: d.teamMember,\n  notes: d.notes,\n  smsText\n}}];"
+      },
+      "id": "4bd42ba1-f7e2-4955-89bc-62d1ebb5b8fc",
+      "name": "Build Booking Payload",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [1120, 0]
+    },
+    {
+      "parameters": {
+        "operation": "append",
+        "documentId": { "__rl": true, "mode": "id", "value": "1MxmJouteZhi1K_-KOwgBlJtBFAXtm2G_0H555otTHBQ" },
+        "sheetName": { "__rl": true, "mode": "name", "value": "Appointments" },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "Appt ID": "={{ $json.apptId }}",
+            "Lead ID": "={{ $json.leadId }}",
+            "Customer Name": "={{ $json.customerName }}",
+            "Phone": "={{ $json.phone }}",
+            "Address": "={{ $json.address }}",
+            "Service Type": "={{ $json.serviceNeeded }}",
+            "Appt Date": "={{ $json.apptDate }}",
+            "Appt Time": "={{ $json.apptTime }}",
+            "Status": "Scheduled",
+            "Team Member": "={{ $json.teamMember }}",
+            "Team Approval": "",
+            "Calendar Event ID": "",
+            "Reminder 24h": "",
+            "Reminder 2h": "",
+            "Notes": "={{ $json.notes }}"
+          },
+          "matchingColumns": [],
+          "schema": []
+        },
+        "options": {}
+      },
+      "id": "552e5320-a653-474a-8764-c19bc279a2aa",
+      "name": "Write Appointment",
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.7,
+      "position": [1344, 0],
+      "retryOnFail": true,
+      "maxTries": 3,
+      "waitBetweenTries": 2000,
+      "credentials": { "googleSheetsOAuth2Api": { "id": "", "name": "Google Sheets account" } }
+    },
+    {
+      "parameters": {
+        "from": "+18889839308",
+        "to": "={{ $('Build Booking Payload').first().json.e164Phone }}",
+        "message": "={{ $('Build Booking Payload').first().json.smsText }}",
+        "options": {}
+      },
+      "id": "f4edd461-6802-4314-939b-73afeca9c497",
+      "name": "Send Confirmation SMS",
+      "type": "n8n-nodes-base.twilio",
+      "typeVersion": 1,
+      "position": [1568, 0],
+      "retryOnFail": true,
+      "maxTries": 3,
+      "waitBetweenTries": 3000,
+      "credentials": { "twilioApi": { "id": "", "name": "Twilio account" } }
+    },
+    {
+      "parameters": {
+        "jsCode": "const d = $('Build Booking Payload').first().json;\nreturn [{ json: {\n  leadId: d.leadId,\n  status: 'Booked',\n  assignedTo: d.teamMember,\n  logChannel: 'Phone',\n  logDirection: 'Outbound',\n  logHandler: 'System',\n  logSummary: 'Appointment booked — ' + d.apptDate + ' at ' + d.apptTime,\n  logNotes: d.apptId + '. Confirmation SMS sent: ' + d.smsText\n}}];"
+      },
+      "id": "4c943c84-4290-472a-814e-f4148d689ae0",
+      "name": "Build CRM Update",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [1792, 0]
+    },
+    {
+      "parameters": {
+        "workflowId": { "__rl": true, "mode": "id", "value": "wVRHChyFrUNRaH4M" },
+        "workflowInputs": {
+          "mappingMode": "defineBelow",
+          "value": {},
+          "matchingColumns": [],
+          "schema": [],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": true
+        },
+        "options": {}
+      },
+      "id": "f58ce7be-ce78-4153-a2f2-9048d058adc2",
+      "name": "CRM: Book Lead + Log",
+      "type": "n8n-nodes-base.executeWorkflow",
+      "typeVersion": 1.3,
+      "position": [2016, 0]
+    }
+  ],
+  "connections": {
+    "Booking Form": { "main": [[{ "node": "Normalize Booking", "type": "main", "index": 0 }]] },
+    "Normalize Booking": { "main": [[{ "node": "Get All Leads", "type": "main", "index": 0 }]] },
+    "Get All Leads": { "main": [[{ "node": "Find Lead", "type": "main", "index": 0 }]] },
+    "Find Lead": { "main": [[{ "node": "IF: Lead Found?", "type": "main", "index": 0 }]] },
+    "IF: Lead Found?": { "main": [[{ "node": "Build Booking Payload", "type": "main", "index": 0 }], []] },
+    "Build Booking Payload": { "main": [[{ "node": "Write Appointment", "type": "main", "index": 0 }]] },
+    "Write Appointment": { "main": [[{ "node": "Send Confirmation SMS", "type": "main", "index": 0 }]] },
+    "Send Confirmation SMS": { "main": [[{ "node": "Build CRM Update", "type": "main", "index": 0 }]] },
+    "Build CRM Update": { "main": [[{ "node": "CRM: Book Lead + Log", "type": "main", "index": 0 }]] }
+  }
+}

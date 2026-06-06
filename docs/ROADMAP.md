@@ -48,25 +48,21 @@ Verified against live n8n on 2026-06-06.
 | Workflow | n8n ID | What It Does |
 |---|---|---|
 | Hot Lead Alert | `KIpMMKM8H5IZB9wb` | Sub-workflow called by 02 when score is Hot or urgency is Emergency. Sends instant SMS to owner with lead name, service, address, and phone. |
-| Follow-Up Sequence | `chYfABnQdnPfiHQx` | Daily 9 AM ET. Reads all New/Contacted leads, filters by time thresholds (Day 1/3/7), sends personalized static SMS templates, updates lead status + Follow-up Count via CRM Adapter. Stops at 3 attempts or status change. |
+| Follow-Up Sequence | `chYfABnQdnPfiHQx` | Daily 9 AM ET. Reads all New/Contacted leads, filters by time thresholds (Day 1/3/7), sends personalized static SMS templates, updates lead status + Follow-up Count via CRM Adapter. Stops at 3 attempts or status change. Booked leads auto-excluded. |
+| Appointment Booking | `ax2sMbvv0lqyJHMg` | Owner-facing n8n form. Looks up lead by ID, writes row to Appointments tab, sends customer confirmation SMS, updates lead status to Booked via CRM Adapter. |
 
 ### Phase 3 Completion Criteria
 - [x] Hot leads trigger immediate owner SMS notification
 - [x] Automated Day 1 / Day 3 / Day 7 follow-up sequence running
+- [x] Appointment Booking Workflow live — form, Appointments tab write, customer SMS, lead status update
 - [x] Every interaction logged to Communication Log
 - [x] CRM Adapter supports `followUpCount` from callers
+- [x] Booked leads automatically excluded from follow-up sequence
 - [ ] **SETUP REQUIRED:** Replace `OWNER_PHONE_HERE` in workflow 04 `Build Alert Message` node with real E.164 phone number
-- [ ] Appointment Booking Workflow (06)
 - [ ] Pipeline Status Automation (07)
 - [ ] Reporting / Dashboarding (08)
 
 ### Remaining Phase 3 Work
-
-**Workflow 06 — Appointment Booking:**
-- n8n Form trigger (owner-facing booking interface)
-- Owner selects lead + time slot → workflow fires
-- Customer gets confirmation SMS with appointment details
-- Lead status updated to `Booked` via CRM Adapter
 
 **Workflow 07 — Pipeline Status Automation:**
 - Status change triggers → team notification
@@ -118,7 +114,7 @@ Verified against live n8n on 2026-06-06.
 ## Recommended Build Order
 
 ```
-Phase 2 ✅ → Phase 3 (Hot Alert ✅ + Follow-Up ✅ + Booking 🔲) → Phase 4 → Phase 5
+Phase 2 ✅ → Phase 3 (Hot Alert ✅ + Follow-Up ✅ + Booking ✅) → Phase 4 → Phase 5
 ```
 
 **Rule of thumb:** Each phase must be live and tested before building the next.
