@@ -24,7 +24,7 @@ docs/        setup + operating guides
 |---|---|---|
 | `01_crm_adapter_google_sheets` | `wVRHChyFrUNRaH4M` | CRM Adapter — only workflow that touches Google Sheets. Upserts leads, mints LEAD-####, logs to Communication Log. GoHighLevel swap point. |
 | `02_form_capture_scoring` | `HdJc5cy8cmqMBfGR` | Form Capture + AI Scoring. n8n Form + parallel webhook → Sonnet 4.6 scores → CRM → Haiku 4.5 confirmation SMS → logged. |
-| `03_missed_call_auto_sms` | `u9I1bqrLW6V5LtLp` | Missed-Call Auto-SMS. Twilio call-status → no-answer/busy filter → Haiku 4.5 SMS within 30s → CRM creates lead + logs. |
+| `03_missed_call_auto_sms` | `u9I1bqrLW6V5LtLp` | Missed-Call Auto-SMS. Twilio call-status → no-answer/busy filter → static SMS within seconds → CRM logs Comm entry only (no Lead). |
 
 **Credentials still needed in n8n UI:** Google Sheets OAuth2 · Anthropic Header Auth · Twilio API.
 See `docs/PROJECT_STATUS.md` for the full 11-step credential + activation checklist.

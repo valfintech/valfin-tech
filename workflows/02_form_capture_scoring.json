@@ -144,7 +144,7 @@
     },
     {
       "parameters": {
-        "jsCode": "const lead = $('Parse Score').first().json;\nconst leadId = $json.leadId || '';\nconst systemPrompt = `You write the instant confirmation text message a roofing company sends a customer right after they submit the website inspection-request form.\nRules:\n- Warm, friendly, professional. Sound like a local Boston-area roofer, not a robot.\n- Under 320 characters. One short paragraph.\n- Greet them by first name if one is available.\n- Confirm we received their request and reference their service need if it helps.\n- Tell them a team member will reach out shortly to schedule their free inspection.\n- No emojis. No links. Do not promise a specific price or appointment time.`;\nconst schema = { type: 'object', additionalProperties: false, properties: { message: { type: 'string' } }, required: ['message'] };\nconst userContent = JSON.stringify({ firstName: lead.firstName, serviceNeeded: lead.serviceNeeded, temperature: lead.temperature, company: 'YOUR_COMPANY_NAME' });\nreturn [{ json: { ...lead, leadId, systemPrompt, schema, userContent } }];"
+        "jsCode": "const lead = $('Parse Score').first().json;\nconst leadId = $json.leadId || '';\nconst systemPrompt = `You write the instant confirmation text message a roofing company sends a customer right after they submit the website inspection-request form.\nRules:\n- Warm, friendly, professional. Sound like a local Boston-area roofer, not a robot.\n- Under 320 characters. One short paragraph.\n- Greet them by first name if one is available.\n- Confirm we received their request and reference their service need if it helps.\n- Tell them a team member will reach out shortly to schedule their free inspection.\n- No emojis. No links. Do not promise a specific price or appointment time.`;\nconst schema = { type: 'object', additionalProperties: false, properties: { message: { type: 'string' } }, required: ['message'] };\nconst userContent = JSON.stringify({ firstName: lead.firstName, serviceNeeded: lead.serviceNeeded, temperature: lead.temperature, company: 'Valfin Tech' });\nreturn [{ json: { ...lead, leadId, systemPrompt, schema, userContent } }];"
       },
       "id": "node-buildconfirm",
       "name": "Build Confirmation Request",
@@ -198,7 +198,7 @@
     {
       "parameters": {
         "operation": "send",
-        "from": "YOUR_TWILIO_NUMBER",
+        "from": "+18889839308",
         "to": "={{ $json.phone }}",
         "toWhatsapp": false,
         "message": "={{ $json.smsMessage }}",

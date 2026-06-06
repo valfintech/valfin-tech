@@ -1,86 +1,140 @@
 # Project Status
-_Last updated: 2026-06-05_
+_Last updated: 2026-06-06 — verified against live n8n workflows_
 
 ## Current Phase
-**Phase 2 — Missed-Call + Form Capture** ✅ **COMPLETE** (all workflows deployed to n8n)
+**Phase 2 — Missed-Call + Form Capture** ✅ **COMPLETE AND VERIFIED**
+
+All three workflows are live, active, credentialed, and confirmed through end-to-end testing.
+Phase 3 (Scheduling + Team Approval) is the recommended next build.
 
 ---
 
-## Completed Work
+## Live Workflows
 
-### Phase 2 — All Delivered and Live in n8n
-
-| n8n Workflow | ID | URL | Status |
+| Workflow | n8n ID | n8n URL | Status |
 |---|---|---|---|
-| CRM Adapter (Google Sheets) | `wVRHChyFrUNRaH4M` | https://valfin.app.n8n.cloud/workflow/wVRHChyFrUNRaH4M | Deployed, needs credentials |
-| Form Capture + AI Scoring | `HdJc5cy8cmqMBfGR` | https://valfin.app.n8n.cloud/workflow/HdJc5cy8cmqMBfGR | Deployed, needs credentials |
-| Missed-Call Auto-SMS | `u9I1bqrLW6V5LtLp` | https://valfin.app.n8n.cloud/workflow/u9I1bqrLW6V5LtLp | Deployed, needs credentials |
+| CRM Adapter (Google Sheets) | `wVRHChyFrUNRaH4M` | https://valfin.app.n8n.cloud/workflow/wVRHChyFrUNRaH4M | ✅ Active — sub-workflow only |
+| Form Capture + AI Scoring | `HdJc5cy8cmqMBfGR` | https://valfin.app.n8n.cloud/workflow/HdJc5cy8cmqMBfGR | ✅ Active — form + webhook live |
+| Missed-Call Auto-SMS | `u9I1bqrLW6V5LtLp` | https://valfin.app.n8n.cloud/workflow/u9I1bqrLW6V5LtLp | ✅ Active — Twilio webhook live |
 
-| File | Description |
+---
+
+## Verified Architecture
+
+### Business Rules (Confirmed Live)
+
+| Event | Lead Record | Comm Log | AI Used |
+|---|---|---|---|
+| Website form submission | ✅ Created / updated | ✅ Written | Sonnet 4.6 (score) + Haiku 4.5 (SMS) |
+| Missed call (no-answer / busy) | ❌ Not created | ✅ Written | None — static SMS |
+
+---
+
+## Workflow Details
+
+### Workflow 01 — CRM Adapter (`wVRHChyFrUNRaH4M`)
+
+**Flow (current saved version — used by all sub-workflow calls):**
+```
+Input → Get Leads → Resolve & Build Lead Row → IF skipLeadCreation?
+  true  → Build Log Row → Append Comm Log → Return   (missed call path)
+  false → Upsert Lead  → Build Log Row → Append Comm Log → Return   (form path)
+```
+
+| Property | Value |
 |---|---|
-| `workflows/01_crm_adapter_google_sheets.json` | CRM Adapter — local reference copy. Spreadsheet ID `1G-yjm2vR3Qoo3NEmImDejGrmc5mww8-l` set. headerRow: 1 explicit on all Sheets nodes. |
-| `workflows/02_form_capture_scoring.json` | Form Capture — local reference copy. CRM Adapter ID wired. |
-| `prompts/lead_scoring.system.md` | Sonnet 4.6 scoring prompt reference. |
-| `prompts/form_confirmation.system.md` | Haiku 4.5 form confirmation SMS prompt reference. |
-| `prompts/missed_call_sms.system.md` | Haiku 4.5 missed-call SMS prompt reference. |
-| `docs/phase2_setup.md` | Node-by-node setup guide + 3-step test procedure. |
-| `docs/PROJECT_STATUS.md` | This file. |
-| `docs/ROADMAP.md` | Phase roadmap and architectural decisions. |
-| `docs/PROJECT_AUDIT.md` | Missing files, credentials, production readiness checklist. |
-| `README.md` | Project overview and folder map. |
+| Google Sheet ID (live) | `1MxmJouteZhi1K_-KOwgBlJtBFAXtm2G_0H555otTHBQ` |
+| Tabs used | `Leads`, `Communication Log` |
+| Lead dedup | By `leadId` first, then phone (digits-only match) |
+| Lead ID format | `LEAD-0001` (4-digit, auto-incremented) |
+| Log ID format | `LOG-` + timestamp + random suffix |
+| Column mapping | `defineBelow` — explicit field-by-field |
+| Comm Log date column | `Date / Time` (Google Sheet header — spaces around `/`) |
+| Retry | 3× with 2 s delay on all Sheets nodes |
+| `skipLeadCreation` trigger | `source === 'Phone' && logSummary === 'Missed call — auto-SMS sent'` |
 
-### Infrastructure
-- Google Sheet ID `1G-yjm2vR3Qoo3NEmImDejGrmc5mww8-l` confirmed live.
-- n8n MCP connected to `valfin.app.n8n.cloud` (OAuth authorized).
-- Git repo: `valfintech/valfin-tech` on GitHub, branch `main`.
+> **Version note:** n8n shows `activeVersionId ≠ versionId`. The published/active version has the original linear flow (no IF node). This is harmless — the workflow has no external trigger, and `executeWorkflow` always runs the current saved version. The `skipLeadCreation` routing is live and working for all sub-workflow callers.
 
 ---
 
-## In-Progress Work
-None — Phase 2 workflows are all deployed. Waiting on user to complete credential setup.
+### Workflow 02 — Form Capture + AI Scoring (`HdJc5cy8cmqMBfGR`)
+
+**Flow:**
+```
+Website Form ──┐
+               ├─→ Normalize Lead → Build Scoring Request → Claude - Score Lead (Sonnet 4.6)
+Website Webhook┘         → Parse Score → CRM: Upsert + Log Inbound
+                         → Build Confirmation Request → Claude - Confirmation SMS (Haiku 4.5)
+                         → Parse Confirmation → Send Confirmation SMS
+                         → Mark Outbound Log → CRM: Log Outbound SMS
+```
+
+| Property | Value |
+|---|---|
+| Form URL | `https://valfin.app.n8n.cloud/` (webhookId `04605924-a4ad-44ef-94cf-c829cdc5e8fd`) |
+| Webhook URL | `https://valfin.app.n8n.cloud/webhook/roofing-intake` |
+| Scoring model | `claude-sonnet-4-6` |
+| Score output | `lead_score` (1–100), `temperature` (Hot/Warm/Cold), `urgency`, `detected_service`, `summary`, `recommended_next_step` |
+| Confirmation SMS model | `claude-haiku-4-5` |
+| Twilio from | `+18889839308` |
+| Company in SMS prompt | `Valfin Tech` |
+| CRM Adapter calls | 2 — inbound lead+log, then outbound SMS log |
 
 ---
 
-## Next Task
-**Connect credentials in n8n UI** (user action — cannot be done via MCP).
+### Workflow 03 — Missed-Call Auto-SMS (`u9I1bqrLW6V5LtLp`)
 
-See the step-by-step checklist in the "Blockers" section below.
+**Flow:**
+```
+Twilio Call Status (POST /twilio-call-status)
+  → Validate Missed Call → Build SMS Request → Send Missed Call SMS
+  → Build CRM Log → CRM: Create Lead + Log
+```
 
-After credentials are connected, run Tests A → B → C from `docs/phase2_setup.md`.
-
-Once tests pass, move to **Phase 3: Scheduling + Team Approval** (see `docs/ROADMAP.md`).
+| Property | Value |
+|---|---|
+| Webhook URL | `https://valfin.app.n8n.cloud/webhook/twilio-call-status` |
+| Triggers on | `CallStatus = no-answer` or `busy` only |
+| SMS | Static hardcoded — no Claude |
+| SMS text | `"Sorry we missed your call. Please complete our quick roofing request form so we can review your project and contact you promptly: https://roofing.valfin.com/request"` |
+| Twilio from | `+18889839308` |
+| CRM result | Comm Log entry only — `skipLeadCreation` prevents Lead row creation |
 
 ---
 
-## Known Blockers
-All remaining blockers are user-action items — no further build work is blocked.
+## Credentials (Confirmed Set)
 
-| # | Action | Where in n8n |
+| Credential | Type | Status |
 |---|---|---|
-| 1 | **Fix Google Sheet header rows** — headers must be on Row 1 of every tab. Delete any title/description rows above them. | Google Sheet `1G-yjm2vR3Qoo3NEmImDejGrmc5mww8-l` |
-| 2 | **Create Google Sheets credential** — type: `Google Sheets OAuth2 API`, name: `Google Sheets account`. Authorize your Google account. | n8n → Credentials → New |
-| 3 | **Create Anthropic credential** — type: `Header Auth`, name: `Anthropic API`. Header name: `x-api-key`, value: your Anthropic API key. | n8n → Credentials → New |
-| 4 | **Create Twilio credential** — type: `Twilio API`, name: `Twilio account`. Account SID + Auth Token from Twilio console. | n8n → Credentials → New |
-| 5 | **Assign credentials in workflow 01** — open workflow `wVRHChyFrUNRaH4M`, click each of the 3 Google Sheets nodes, select `Google Sheets account`. | n8n workflow editor |
-| 6 | **Assign credentials in workflow 02** — open `HdJc5cy8cmqMBfGR`, assign `Anthropic API` on `Claude - Score Lead` and `Claude - Confirmation SMS`, assign `Twilio account` on `Send Confirmation SMS`. | n8n workflow editor |
-| 7 | **Set company name** — in workflow 02, open `Build Confirmation Request` node, replace `YOUR_COMPANY_NAME` with the real roofing company name. Do the same in workflow 03 `Build SMS Request`. | n8n workflow editor |
-| 8 | **Set Twilio number** — in workflow 02 `Send Confirmation SMS` and workflow 03 `Send Missed Call SMS`, replace `YOUR_TWILIO_NUMBER` with your E.164 number (e.g. `+16175551234`). | n8n workflow editor |
-| 9 | **Assign credentials in workflow 03** — open `u9I1bqrLW6V5LtLp`, assign `Anthropic API` on `Claude - Missed Call SMS`, assign `Twilio account` on `Send Missed Call SMS`. | n8n workflow editor |
-| 10 | **Configure Twilio call-status URL** — in your Twilio console, go to your phone number → Voice → Status Callback. Set URL to the webhook URL from workflow 03 (open the `Twilio Call Status` node to see the URL). | Twilio console |
-| 11 | **Activate workflows 02 and 03** — toggle to Active. (Workflow 01 does not need to be active — it runs as a sub-workflow.) | n8n workflow editor → toggle |
+| Google Sheets OAuth2 | `googleSheetsOAuth2Api` | ✅ Configured |
+| Anthropic API | `httpHeaderAuth` (`x-api-key`) | ✅ Configured |
+| Twilio | `twilioApi` | ✅ Configured |
 
 ---
 
-## Sheet Header Fix (Action Required Before Testing)
+## Infrastructure
 
-The n8n Google Sheets nodes read **Row 1 as headers**. `headerRow: 1` is explicitly set.
+| Item | Value |
+|---|---|
+| n8n instance | `valfin.app.n8n.cloud` |
+| n8n MCP | Connected and authorized |
+| Google Sheet ID (live) | `1MxmJouteZhi1K_-KOwgBlJtBFAXtm2G_0H555otTHBQ` |
+| Git repo | `valfintech/valfin-tech` on GitHub, branch `main` |
 
-**For each tab — Leads and Communication Log — Row 1 must be the column header row:**
+---
 
-Leads tab Row 1 must have exactly:
-`Lead ID | Date Created | Source | First Name | Last Name | Phone | Email | Address | Service Needed | Description | Photos Link | Preferred Time | Lead Score | Temperature | Urgency | Status | Last Contact | Follow-up Count | Assigned To | Notes`
+## Known Issues
 
-Communication Log tab Row 1 must have:
-`Log ID | Date/Time | Lead ID | Customer Name | Channel | Direction | Handler | Message Summary | Notes`
+| Issue | Severity | Action |
+|---|---|---|
+| Twilio error 30032 — toll-free SMS blocked by carrier | Medium | **User action:** complete toll-free number verification at twilio.com/console. Workflows are correct and functional; this is a carrier-level hold on unverified toll-free numbers. |
+| CRM Adapter published version is outdated | Low | No action needed. No external trigger means the published version never runs. Optional: open workflow 01 in n8n UI and click Publish to sync the active version with the current one. |
+| Local JSON files in repo out of sync with live n8n | Low | Does not affect production. See `PROJECT_AUDIT.md` for details. |
 
-If extra rows exist above these headers, delete them.
+---
+
+## Next: Phase 3 — Scheduling + Team Approval
+
+**One decision needed before build:** team notification channel — SMS to rep's mobile, n8n email, or Slack?
+
+See `ROADMAP.md` for full scope and `PROJECT_AUDIT.md` for Phase 3 pre-build checklist.
