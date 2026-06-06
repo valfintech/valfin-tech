@@ -1,11 +1,10 @@
 # Project Status
-_Last updated: 2026-06-06 — verified against live n8n workflows_
+_Last updated: 2026-06-06 — Phase 3 in progress_
 
 ## Current Phase
-**Phase 2 — Missed-Call + Form Capture** ✅ **COMPLETE AND VERIFIED**
+**Phase 3 — Scheduling + Automation** 🔄 **IN PROGRESS**
 
-All three workflows are live, active, credentialed, and confirmed through end-to-end testing.
-Phase 3 (Scheduling + Team Approval) is the recommended next build.
+Phase 2 is complete and verified. Phase 3 has delivered Hot Lead Alerting (04) and Automated Follow-Up Sequences (05). Appointment Booking is next.
 
 ---
 
@@ -14,19 +13,23 @@ Phase 3 (Scheduling + Team Approval) is the recommended next build.
 | Workflow | n8n ID | n8n URL | Status |
 |---|---|---|---|
 | CRM Adapter (Google Sheets) | `wVRHChyFrUNRaH4M` | https://valfin.app.n8n.cloud/workflow/wVRHChyFrUNRaH4M | ✅ Active — sub-workflow only |
-| Form Capture + AI Scoring | `HdJc5cy8cmqMBfGR` | https://valfin.app.n8n.cloud/workflow/HdJc5cy8cmqMBfGR | ✅ Active — form + webhook live |
+| Form Capture + AI Scoring | `HdJc5cy8cmqMBfGR` | https://valfin.app.n8n.cloud/workflow/HdJc5cy8cmqMBfGR | ✅ Active — 16 nodes, hot lead branch live |
 | Missed-Call Auto-SMS | `u9I1bqrLW6V5LtLp` | https://valfin.app.n8n.cloud/workflow/u9I1bqrLW6V5LtLp | ✅ Active — Twilio webhook live |
+| Hot Lead Alert | `KIpMMKM8H5IZB9wb` | https://valfin.app.n8n.cloud/workflow/KIpMMKM8H5IZB9wb | ✅ Active — **owner phone setup required** |
+| Follow-Up Sequence | `chYfABnQdnPfiHQx` | https://valfin.app.n8n.cloud/workflow/chYfABnQdnPfiHQx | ✅ Active — daily 9 AM ET |
 
 ---
 
 ## Verified Architecture
 
-### Business Rules (Confirmed Live)
+### Business Rules (Current)
 
-| Event | Lead Record | Comm Log | AI Used |
-|---|---|---|---|
-| Website form submission | ✅ Created / updated | ✅ Written | Sonnet 4.6 (score) + Haiku 4.5 (SMS) |
-| Missed call (no-answer / busy) | ❌ Not created | ✅ Written | None — static SMS |
+| Event | Lead Record | Comm Log | AI Used | Owner Alert |
+|---|---|---|---|---|
+| Website form — Cold/Warm lead | ✅ Created / updated | ✅ Written | Sonnet 4.6 (score) + Haiku 4.5 (SMS) | ❌ |
+| Website form — Hot lead | ✅ Created / updated | ✅ Written | Sonnet 4.6 (score) + Haiku 4.5 (SMS) | ✅ Instant SMS to owner |
+| Missed call (no-answer / busy) | ❌ Not created | ✅ Written | None — static SMS | ❌ |
+| Follow-up cadence (daily 9 AM) | ✅ Updated | ✅ Written | None — static templates | ❌ |
 
 ---
 
@@ -34,11 +37,11 @@ Phase 3 (Scheduling + Team Approval) is the recommended next build.
 
 ### Workflow 01 — CRM Adapter (`wVRHChyFrUNRaH4M`)
 
-**Flow (current saved version — used by all sub-workflow calls):**
+**Flow:**
 ```
 Input → Get Leads → Resolve & Build Lead Row → IF skipLeadCreation?
   true  → Build Log Row → Append Comm Log → Return   (missed call path)
-  false → Upsert Lead  → Build Log Row → Append Comm Log → Return   (form path)
+  false → Upsert Lead  → Build Log Row → Append Comm Log → Return   (form / follow-up path)
 ```
 
 | Property | Value |
@@ -52,14 +55,13 @@ Input → Get Leads → Resolve & Build Lead Row → IF skipLeadCreation?
 | Comm Log date column | `Date / Time` (Google Sheet header — spaces around `/`) |
 | Retry | 3× with 2 s delay on all Sheets nodes |
 | `skipLeadCreation` trigger | `source === 'Phone' && logSummary === 'Missed call — auto-SMS sent'` |
-
-> **Version note:** n8n shows `activeVersionId ≠ versionId`. The published/active version has the original linear flow (no IF node). This is harmless — the workflow has no external trigger, and `executeWorkflow` always runs the current saved version. The `skipLeadCreation` routing is live and working for all sub-workflow callers.
+| Phase 3 patch | `followUpCount` accepted from callers — CRM Adapter now increments Follow-up Count when provided |
 
 ---
 
 ### Workflow 02 — Form Capture + AI Scoring (`HdJc5cy8cmqMBfGR`)
 
-**Flow:**
+**Flow (16 nodes):**
 ```
 Website Form ──┐
                ├─→ Normalize Lead → Build Scoring Request → Claude - Score Lead (Sonnet 4.6)
@@ -67,6 +69,9 @@ Website Webhook┘         → Parse Score → CRM: Upsert + Log Inbound
                          → Build Confirmation Request → Claude - Confirmation SMS (Haiku 4.5)
                          → Parse Confirmation → Send Confirmation SMS
                          → Mark Outbound Log → CRM: Log Outbound SMS
+                         → Prep Alert Data → IF: Hot Lead?
+                              Hot / Emergency → Alert: Hot Lead (calls workflow 04)
+                              Warm / Cold     → (end)
 ```
 
 | Property | Value |
@@ -77,8 +82,8 @@ Website Webhook┘         → Parse Score → CRM: Upsert + Log Inbound
 | Score output | `lead_score` (1–100), `temperature` (Hot/Warm/Cold), `urgency`, `detected_service`, `summary`, `recommended_next_step` |
 | Confirmation SMS model | `claude-haiku-4-5` |
 | Twilio from | `+18889839308` |
-| Company in SMS prompt | `Valfin Tech` |
-| CRM Adapter calls | 2 — inbound lead+log, then outbound SMS log |
+| Hot lead threshold | `temperature === 'Hot'` OR `urgency === 'Emergency'` (OR combinator) |
+| Phase 3 additions | `Prep Alert Data`, `IF: Hot Lead?`, `Alert: Hot Lead` nodes added at end |
 
 ---
 
@@ -99,6 +104,46 @@ Twilio Call Status (POST /twilio-call-status)
 | SMS text | `"Sorry we missed your call. Please complete our quick roofing request form so we can review your project and contact you promptly: https://roofing.valfin.com/request"` |
 | Twilio from | `+18889839308` |
 | CRM result | Comm Log entry only — `skipLeadCreation` prevents Lead row creation |
+
+---
+
+### Workflow 04 — Hot Lead Alert (`KIpMMKM8H5IZB9wb`)
+
+**Flow:**
+```
+Input (executeWorkflowTrigger) → Build Alert Message → Send Owner Alert (Twilio) → Return
+```
+
+**Called by:** Workflow 02 `Alert: Hot Lead` node when `temperature === 'Hot'` or `urgency === 'Emergency'`.
+
+| Property | Value |
+|---|---|
+| SMS format | `🔥 HOT LEAD (Score: 87/100) / John Smith — Roof Replacement / 14 Oak St / Call: 617-555-0142 \| LEAD-0001` |
+| Emergency prefix | `🚨 EMERGENCY` instead of `🔥 HOT LEAD` |
+| Owner phone | **⚠️ SETUP REQUIRED** — edit `Build Alert Message` node, replace `OWNER_PHONE_HERE` with E.164 number |
+| Twilio from | `+18889839308` |
+
+---
+
+### Workflow 05 — Follow-Up Sequence (`chYfABnQdnPfiHQx`)
+
+**Flow:**
+```
+Daily 9 AM ET → Get All Leads → Filter & Build Messages
+  → Loop Over Leads (batch=1)
+      → Send Follow-Up SMS → Build CRM Update → CRM: Update Lead + Log → (next)
+```
+
+| Property | Value |
+|---|---|
+| Schedule | Daily at 14:00 UTC (9 AM ET) |
+| Qualifying leads | Status `New` or `Contacted`, Follow-up Count < 3, time threshold met |
+| Time thresholds | Count 0 → 24h, Count 1 → 72h, Count 2 → 96h |
+| Messages | Static templates — Day 1, Day 3, Day 7. Personalized with name + service. |
+| Status after count 2 | Set to `Stale` |
+| Comm log | Each SMS logged with `logSummary: 'Follow-up N SMS — Day X'` |
+| Twilio from | `+18889839308` |
+| Data pattern | `Build CRM Update` reads from `Filter & Build Messages` by name (Twilio replaces `$json`) |
 
 ---
 
@@ -123,18 +168,23 @@ Twilio Call Status (POST /twilio-call-status)
 
 ---
 
-## Known Issues
+## Known Issues / Setup Required
 
 | Issue | Severity | Action |
 |---|---|---|
 | Twilio error 30032 — toll-free SMS blocked by carrier | Medium | **User action:** complete toll-free number verification at twilio.com/console. Workflows are correct and functional; this is a carrier-level hold on unverified toll-free numbers. |
-| CRM Adapter published version is outdated | Low | No action needed. No external trigger means the published version never runs. Optional: open workflow 01 in n8n UI and click Publish to sync the active version with the current one. |
-| Local JSON files in repo out of sync with live n8n | Low | Does not affect production. See `PROJECT_AUDIT.md` for details. |
+| Workflow 04 — `OWNER_PHONE_HERE` placeholder | **High — must be set before 04 fires** | Open workflow `KIpMMKM8H5IZB9wb` in n8n. Edit `Build Alert Message` node. Replace `OWNER_PHONE_HERE` with the owner/rep's E.164 number (e.g. `+16175550100`). |
 
 ---
 
-## Next: Phase 3 — Scheduling + Team Approval
+## Phase 3 Progress
 
-**One decision needed before build:** team notification channel — SMS to rep's mobile, n8n email, or Slack?
+| Component | Status | n8n ID |
+|---|---|---|
+| Hot Lead Alerting | ✅ Live | `KIpMMKM8H5IZB9wb` (04) |
+| Automated Follow-Up Sequences | ✅ Live | `chYfABnQdnPfiHQx` (05) |
+| Appointment Booking Workflow | 🔲 Not started | — |
+| Pipeline Status Automation | 🔲 Not started | — |
+| Reporting / Dashboarding | 🔲 Not started | — |
 
-See `ROADMAP.md` for full scope and `PROJECT_AUDIT.md` for Phase 3 pre-build checklist.
+**Next:** Appointment Booking Workflow — n8n Form trigger for owner-facing booking, sends customer confirmation SMS, updates lead status to `Booked`.

@@ -7,9 +7,9 @@ _Last updated: 2026-06-06_
 |---|---|---|---|---|
 | 1 | Google Sheets CRM | — | ✅ Done (pre-existing) | — |
 | 2 | Missed-Call + Form Capture | 🔴 DEMO | ✅ **Complete — verified live** | Phase 1 |
-| 3 | Scheduling + Team Approval | High | Not started | Phase 2 |
-| 4 | Reminders / Reschedule / Cancel | High | Not started | Phase 3 |
-| 5 | Quote Follow-up Sequence | Medium | Not started | Phase 3 |
+| 3 | Lead Response + Follow-Up Automation | High | 🔄 **In Progress (2/5 complete)** | Phase 2 |
+| 4 | Appointment Booking + Pipeline | High | Not started | Phase 3 |
+| 5 | Reminders / Reschedule / Cancel | High | Not started | Phase 4 |
 | 6 | Retention (reviews, referrals, seasonal) | Low | Not started | Phase 5 |
 
 ---
@@ -39,30 +39,43 @@ Verified against live n8n on 2026-06-06.
 
 ---
 
-## Phase 3 — Scheduling + Team Approval
+## Phase 3 — Lead Response + Follow-Up Automation 🔄 IN PROGRESS
 
-### Scope
-- AI agent collects qualifying details one question at a time
-- Scheduling: pull available slots from `Team Schedule` tab → AI proposes → customer confirms
-- Team approval: write appointment to `Appointments` tab as `Pending` → notify assigned team member → they confirm or decline
+**Goals:** Reduce lead response time, ensure no qualified lead is forgotten, increase appointment booking rate.
+
+### Delivered
+
+| Workflow | n8n ID | What It Does |
+|---|---|---|
+| Hot Lead Alert | `KIpMMKM8H5IZB9wb` | Sub-workflow called by 02 when score is Hot or urgency is Emergency. Sends instant SMS to owner with lead name, service, address, and phone. |
+| Follow-Up Sequence | `chYfABnQdnPfiHQx` | Daily 9 AM ET. Reads all New/Contacted leads, filters by time thresholds (Day 1/3/7), sends personalized static SMS templates, updates lead status + Follow-up Count via CRM Adapter. Stops at 3 attempts or status change. |
+
+### Phase 3 Completion Criteria
+- [x] Hot leads trigger immediate owner SMS notification
+- [x] Automated Day 1 / Day 3 / Day 7 follow-up sequence running
+- [x] Every interaction logged to Communication Log
+- [x] CRM Adapter supports `followUpCount` from callers
+- [ ] **SETUP REQUIRED:** Replace `OWNER_PHONE_HERE` in workflow 04 `Build Alert Message` node with real E.164 phone number
+- [ ] Appointment Booking Workflow (06)
+- [ ] Pipeline Status Automation (07)
+- [ ] Reporting / Dashboarding (08)
+
+### Remaining Phase 3 Work
+
+**Workflow 06 — Appointment Booking:**
+- n8n Form trigger (owner-facing booking interface)
+- Owner selects lead + time slot → workflow fires
 - Customer gets confirmation SMS with appointment details
+- Lead status updated to `Booked` via CRM Adapter
 
-### Key Workflows
-- `04_ai_qualifier_agent` — multi-turn qualifying conversation
-- `05_scheduling_flow` — slot availability check → book → confirm
-- `06_team_approval` — notification to team member on new appointment
+**Workflow 07 — Pipeline Status Automation:**
+- Status change triggers → team notification
+- Stale lead escalation
+- Booked → job created workflow
 
-### Decision Required Before Build
-**Team notification channel** — choose one:
-- SMS to rep's mobile number (simplest, uses existing Twilio)
-- n8n email node (no extra cost)
-- Slack (requires Slack integration credential)
-
-### Dependencies
-- Phase 2 complete ✅
-- `Team Schedule` tab populated with available slots
-- `Appointments` tab column structure defined
-- Team notification channel decision made
+**Workflow 08 — Reporting:**
+- Weekly summary: new leads, appointments booked, follow-up counts
+- Delivered via SMS or email to owner
 
 ---
 
@@ -75,33 +88,16 @@ Verified against live n8n on 2026-06-06.
 - Cancel flow: confirmation + optional rebooking offer
 
 ### Key Workflows
-- `07_appointment_reminders` — scheduled 24h + 2h triggers before appointment
-- `08_reschedule_cancel` — inbound SMS keyword routing
+- `09_appointment_reminders` — scheduled 24h + 2h triggers before appointment
+- `10_reschedule_cancel` — inbound SMS keyword routing
 
 ### Dependencies
-- Phase 3 complete
+- Phase 3 appointment booking complete
 - Inbound SMS webhook (Twilio → n8n) configured
 
 ---
 
-## Phase 5 — Quote Follow-up Sequence
-
-### Scope
-- Automated follow-up at Day 1, 3, 7, 14 after quote is sent
-- AI-personalized messages referencing the specific service need
-- Stop sequence on customer reply or status change to `Closed Won` / `Closed Lost`
-- Escalation to team after Day 14 with no response
-
-### Key Workflows
-- `09_quote_followup_sequence` — scheduled sequence with stop logic
-
-### Dependencies
-- Phase 3 complete
-- Quote generation process defined
-
----
-
-## Phase 6 — Retention
+## Phase 5 — Retention
 
 ### Scope
 - Post-job review request SMS at Day 3 and 14 after job completion
@@ -110,8 +106,8 @@ Verified against live n8n on 2026-06-06.
 - Re-engagement for cold/dormant leads
 
 ### Key Workflows
-- `10_post_job_retention`
-- `11_seasonal_campaigns`
+- `11_post_job_retention`
+- `12_seasonal_campaigns`
 
 ### Dependencies
 - Phase 4 complete
@@ -122,8 +118,7 @@ Verified against live n8n on 2026-06-06.
 ## Recommended Build Order
 
 ```
-Phase 2 ✅ → Phase 3 → Phase 4 → Phase 5 → Phase 6
-              [Now]    [Week 2–3]  [Week 4]
+Phase 2 ✅ → Phase 3 (Hot Alert ✅ + Follow-Up ✅ + Booking 🔲) → Phase 4 → Phase 5
 ```
 
 **Rule of thumb:** Each phase must be live and tested before building the next.
@@ -139,9 +134,13 @@ The CRM Adapter (`wVRHChyFrUNRaH4M`) is the foundation — all workflows call it
 | AI scoring | Claude Sonnet 4.6 | Judgment calls warrant mid-tier model |
 | AI SMS copy — form confirmation | Claude Haiku 4.5 | Volume/speed, lower cost |
 | AI SMS copy — missed call | None — static message | User decision after testing: simpler, faster, zero cost |
+| AI SMS copy — follow-up sequences | None — static templates | Reliability, zero cost, consistent batch behavior |
 | JSON enforcement | `output_config.format` (API-level JSON schema) | Guaranteed parseable JSON, not prompt-dependent |
 | Form hosting | n8n Form Trigger + parallel POST webhook | Demo now, website embed later at zero cost |
 | Missed-call detection | n8n side only (Twilio call-status webhook) | Clean separation; Twilio only notifies, n8n decides |
 | Workflow structure | Sub-workflow pattern for all CRM I/O | Modularity for future CRM swap |
 | Lead creation rule | Form submission only | Missed calls → Comm Log only. No phantom leads from unanswered calls. |
 | `skipLeadCreation` detection | `source === 'Phone' && logSummary === 'Missed call — auto-SMS sent'` | Keep this string identical in workflow 01 and 03 or routing breaks |
+| Owner notification channel | SMS via Twilio (Phase 3) | Simplest, uses existing credentials. Designed for future Slack/email expansion. |
+| Hot lead threshold | `temperature === 'Hot'` OR `urgency === 'Emergency'` | Captures both scored and keyword-emergency leads |
+| Follow-up stop conditions | Count ≥ 3 OR status not in {New, Contacted} | Prevents over-messaging; status change by any path stops the sequence |
