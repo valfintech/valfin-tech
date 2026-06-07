@@ -1,10 +1,10 @@
 # Project Status
-_Last updated: 2026-06-07 — Phase 3 in progress_
+_Last updated: 2026-06-07 — Phase 3 complete_
 
 ## Current Phase
-**Phase 3 — Scheduling + Automation** 🔄 **IN PROGRESS**
+**Phase 3 — Scheduling + Automation** ✅ **COMPLETE — all 5 components live**
 
-Phase 2 is complete and verified. Phase 3 has delivered Hot Lead Alerting (04), Automated Follow-Up Sequences (05), Appointment Booking (06, tested end-to-end in production), and Pipeline Status Digest (07). Reporting/Dashboarding is next.
+Phase 2 is complete and verified. Phase 3 has delivered all five planned components: Hot Lead Alerting (04), Automated Follow-Up Sequences (05), Appointment Booking (06, tested end-to-end in production), Pipeline Status Digest (07), and Weekly Pipeline Report (08, tested live — execution 54 succeeded with real data). Owner phone numbers are configured and synced across all SMS-sending workflows (`+18575261499`). Phase 4 (Reminders / Reschedule / Cancel) is next.
 
 ---
 
@@ -15,10 +15,11 @@ Phase 2 is complete and verified. Phase 3 has delivered Hot Lead Alerting (04), 
 | CRM Adapter (Google Sheets) | `wVRHChyFrUNRaH4M` | https://valfin.app.n8n.cloud/workflow/wVRHChyFrUNRaH4M | ✅ Active — sub-workflow only |
 | Form Capture + AI Scoring | `HdJc5cy8cmqMBfGR` | https://valfin.app.n8n.cloud/workflow/HdJc5cy8cmqMBfGR | ✅ Active — 16 nodes, hot lead branch live |
 | Missed-Call Auto-SMS | `u9I1bqrLW6V5LtLp` | https://valfin.app.n8n.cloud/workflow/u9I1bqrLW6V5LtLp | ✅ Active — Twilio webhook live |
-| Hot Lead Alert | `KIpMMKM8H5IZB9wb` | https://valfin.app.n8n.cloud/workflow/KIpMMKM8H5IZB9wb | ✅ Active — **owner phone setup required** |
+| Hot Lead Alert | `KIpMMKM8H5IZB9wb` | https://valfin.app.n8n.cloud/workflow/KIpMMKM8H5IZB9wb | ✅ Active — owner phone set (`+18575261499`) |
 | Follow-Up Sequence | `chYfABnQdnPfiHQx` | https://valfin.app.n8n.cloud/workflow/chYfABnQdnPfiHQx | ✅ Active — daily 9 AM ET |
 | Appointment Booking | `ax2sMbvv0lqyJHMg` | https://valfin.app.n8n.cloud/workflow/ax2sMbvv0lqyJHMg | ✅ Active — form live, tested end-to-end |
-| Pipeline Status Digest | `ehqNYjZRirX5L3sX` | https://valfin.app.n8n.cloud/workflow/ehqNYjZRirX5L3sX | ✅ Active — daily 6 PM ET, **owner phone setup required** |
+| Pipeline Status Digest | `ehqNYjZRirX5L3sX` | https://valfin.app.n8n.cloud/workflow/ehqNYjZRirX5L3sX | ✅ Active — daily 6 PM ET, owner phone set |
+| Weekly Pipeline Report | `Y7ruzhYGMhE001fr` | https://valfin.app.n8n.cloud/workflow/Y7ruzhYGMhE001fr | ✅ Active — Monday 8 AM ET, owner phone set, **tested live (execution 54)** |
 
 ---
 
@@ -34,6 +35,7 @@ Phase 2 is complete and verified. Phase 3 has delivered Hot Lead Alerting (04), 
 | Follow-up cadence (daily 9 AM) | ✅ Updated | ✅ Written | None — static templates | ❌ |
 | Owner books appointment (form) | ✅ Updated → Booked | ✅ Written | None — static SMS | ❌ |
 | Daily pipeline digest (6 PM) | — (read only) | — (read only) | None — static aggregation | ✅ SMS digest + Stale/Hot escalation |
+| Weekly pipeline report (Mon 8 AM) | — (read only) | — (read only) | None — static aggregation | ✅ SMS report — new leads, bookings, sources, ratio |
 
 ---
 
@@ -209,6 +211,33 @@ Daily 6 PM ET (scheduleTrigger)
 
 ---
 
+### Workflow 08 — Weekly Pipeline Report (`Y7ruzhYGMhE001fr`)
+
+**Flow (4 nodes):**
+```
+Weekly Monday 8 AM ET (scheduleTrigger)
+  → Get All Leads (googleSheets — reads Leads tab directly)
+  → Build Weekly Report (Code, runOnceForAllItems — aggregates trailing 7-day window + builds SMS text)
+  → Send Owner Weekly Report SMS (Twilio)
+```
+
+| Property | Value |
+|---|---|
+| Schedule | Weekly, Monday at 13:00 UTC (8 AM ET) |
+| Reads | `Leads` tab directly (read-only, same precedent as workflows 05 and 07) |
+| Window | Trailing 7 days — `Date Created` for new-lead metrics, `Last Contact` for status-change metrics (Booked/Stale) |
+| Metrics reported | New leads (+ Hot/Emergency breakdown), Booked count, Stale count, Bookings/New ratio (%), top 2 lead sources |
+| Bookings/New ratio | **Approximation, not true cohort conversion** — compares leads booked-this-week against leads created-this-week, two overlapping but distinct populations (a lead created 3 weeks ago could be booked this week). Documented as a trend indicator, not a precise funnel metric. |
+| Owner phone | `+18575261499` — synced directly from workflow 04's `Build Alert Message` via `update_workflow` (no placeholder, no manual step needed) |
+| Twilio from | `+18889839308` |
+| Message format | Plain text, no emojis (GSM-7 encoding) — confirmed 2 SMS segments in test execution |
+| **Tested live** | Execution `54` (manual run, 2026-06-07): 7 new leads, 0 Hot/Emergency, 1 booked, 0 stale, 14% ratio, top sources `Phone 3, Unknown 2` — SMS queued successfully to `+18575261499` |
+| Architecture note | Read-only — no Sheets writes, no CRM Adapter calls; fully independent of all other workflows |
+
+> Why this workflow: completes the visibility stack — workflow 07 gives daily snapshots, workflow 08 gives the weekly trend view (volume, source mix, booking activity) the owner needs to judge whether marketing/ops adjustments are working.
+
+---
+
 ## Credentials (Confirmed Set)
 
 | Credential | Type | Status |
@@ -234,20 +263,20 @@ Daily 6 PM ET (scheduleTrigger)
 
 | Issue | Severity | Action |
 |---|---|---|
-| Twilio error 30032 — toll-free SMS blocked by carrier | Medium | **User action:** complete toll-free number verification at twilio.com/console. Workflows are correct and functional; this is a carrier-level hold on unverified toll-free numbers. Explicitly treated as a non-blocking external infrastructure item per user direction (2026-06-07). |
-| Workflow 04 — `OWNER_PHONE_HERE` placeholder | **High — must be set before 04 fires** | Open workflow `KIpMMKM8H5IZB9wb` in n8n. Edit `Build Alert Message` node. Replace `OWNER_PHONE_HERE` with the owner/rep's E.164 number (e.g. `+16175550100`). |
-| Workflow 07 — `OWNER_PHONE_HERE` placeholder | **High — must be set before 07 fires** | Open workflow `ehqNYjZRirX5L3sX` in n8n. Edit `Build Pipeline Digest` node. Replace `OWNER_PHONE_HERE` with the same E.164 number used in workflow 04. |
+| Twilio error 30032 — toll-free SMS blocked by carrier | Medium | **User action:** complete toll-free number verification at twilio.com/console. Workflows are correct and functional; this is a carrier-level hold on unverified toll-free numbers. Explicitly treated as a non-blocking external infrastructure item per user direction (2026-06-07) — Twilio account remains intentionally on trial/unverified status. |
+
+> All `OWNER_PHONE_HERE` placeholders are now resolved. Owner phone `+18575261499` is live and confirmed working in workflows 04, 07, and 08 (set by user in 04/07; synced programmatically into 08 via `update_workflow`).
 
 ---
 
-## Phase 3 Progress
+## Phase 3 Progress — ✅ COMPLETE (5/5)
 
 | Component | Status | n8n ID |
 |---|---|---|
-| Hot Lead Alerting | ✅ Live | `KIpMMKM8H5IZB9wb` (04) |
+| Hot Lead Alerting | ✅ Live — owner phone set | `KIpMMKM8H5IZB9wb` (04) |
 | Automated Follow-Up Sequences | ✅ Live | `chYfABnQdnPfiHQx` (05) |
 | Appointment Booking Workflow | ✅ Live — tested end-to-end in production | `ax2sMbvv0lqyJHMg` (06) |
-| Pipeline Status Digest | ✅ Live | `ehqNYjZRirX5L3sX` (07) |
-| Reporting / Dashboarding | 🔲 Not started | — |
+| Pipeline Status Digest | ✅ Live — owner phone set | `ehqNYjZRirX5L3sX` (07) |
+| Weekly Pipeline Report | ✅ Live — owner phone set, tested live (execution 54) | `Y7ruzhYGMhE001fr` (08) |
 
-**Next:** Reporting / Dashboarding (08) — weekly summary of new leads, appointments booked, and follow-up activity. Daily pipeline visibility is now covered by workflow 07; workflow 08 would add a longer-horizon (weekly/monthly) trend view, likely via email given the larger payload size.
+**Phase 3 is complete.** All five planned components are published, active, and (where applicable) tested against live data. **Next:** Phase 4 — Reminders / Reschedule / Cancel (24h + 2h appointment reminder SMS, inbound-SMS-keyword reschedule/cancel flows). This requires a Twilio inbound SMS webhook, which is compatible with the current trial-account status (inbound doesn't require toll-free verification — only outbound to unverified numbers is blocked).

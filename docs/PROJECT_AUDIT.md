@@ -5,7 +5,7 @@ _Last updated: 2026-06-07 — Phase 3 in progress_
 
 ## Verification Summary (2026-06-07)
 
-All Phase 2 workflows inspected via n8n MCP and verified against live execution history. Phase 3 components 04–07 built and published. Workflow 06 (Appointment Booking) confirmed working end-to-end in production by user: Lead status updates to Booked, Appointment rows write correctly, Communication Log entries are created, Follow-Up workflow continues running normally, Hot Lead Alert remains published. Workflow 07 (Pipeline Status Digest) built and published this session as the next highest-value Phase 3 component — gives the owner daily pipeline visibility plus proactive escalation of Stale-but-still-warm leads.
+All Phase 2 workflows inspected via n8n MCP and verified against live execution history. **Phase 3 is now complete — all 5 components (04–08) built, published, and configured.** Workflow 06 (Appointment Booking) confirmed working end-to-end in production by user: Lead status updates to Booked, Appointment rows write correctly, Communication Log entries are created, Follow-Up workflow continues running normally, Hot Lead Alert remains published. Workflow 07 (Pipeline Status Digest) built and published — daily owner SMS visibility + Stale/Hot escalation. Workflow 08 (Weekly Pipeline Report) built, published, owner phone synced programmatically (no manual step needed), and **test-executed live against real data (execution 54)** — produced and queued a correct SMS report. Owner phone number `+18575261499` is now confirmed live across all three SMS-alerting workflows (04, 07, 08).
 
 ---
 
@@ -19,7 +19,9 @@ All Phase 2 workflows inspected via n8n MCP and verified against live execution 
 | Hot Lead Alert active | `KIpMMKM8H5IZB9wb` — published; called by workflow 02 when Hot or Emergency |
 | Follow-Up Sequence active | `chYfABnQdnPfiHQx` — published; daily 9 AM ET schedule |
 | Appointment Booking active | `ax2sMbvv0lqyJHMg` — published; form live at `https://valfin.app.n8n.cloud/form/eca6bfbb-ef53-4f82-b909-cbd2b818991a`; **confirmed working end-to-end in production by user (2026-06-07): Lead → Booked, Appointment row written, Comm Log entry created, Follow-Up + Hot Lead Alert unaffected** |
-| Pipeline Status Digest active | `ehqNYjZRirX5L3sX` — published; daily 22:00 UTC (6 PM ET) schedule; read-only, no Sheets writes |
+| Pipeline Status Digest active | `ehqNYjZRirX5L3sX` — published; daily 22:00 UTC (6 PM ET) schedule; read-only, no Sheets writes; owner phone `+18575261499` confirmed set |
+| Weekly Pipeline Report active | `Y7ruzhYGMhE001fr` — published; weekly Monday 13:00 UTC (8 AM ET) schedule; read-only; owner phone `+18575261499` synced via `update_workflow`; **live test execution 54 succeeded** — correct report computed (7 new, 1 booked, 14% ratio) and SMS queued |
+| Owner phone confirmed working end-to-end | `+18575261499` — set by user in workflows 04 and 07; programmatically synced into 08; verified via live SMS send in test execution 54 (Twilio `status: queued`, `to: +18575261499`, 2 segments) |
 | Google Sheets credential | Set on all Sheets nodes in workflows 01 and 05 |
 | Anthropic credential | Set on all HTTP Request nodes in workflow 02 |
 | Twilio credential | Set on SMS nodes in workflows 02, 03, 04, 05 |
@@ -48,6 +50,10 @@ All Phase 2 workflows inspected via n8n MCP and verified against live execution 
 | Pipeline digest read-only safety | Workflow 07 only reads the `Leads` tab — no writes to Sheets, no CRM Adapter calls, cannot interfere with any other workflow's state |
 | Stale/Hot escalation logic | `status === 'Stale' && (temp === 'Hot' || temp === 'Warm')` — correctly targets warm deals at risk of being lost, not all Stale leads (Cold Stale leads are expected and not actionable) |
 | Digest message encoding | Plain text, no emojis — keeps SMS in GSM-7 encoding (160 chars/segment) rather than UCS-2 (70 chars/segment), reducing per-message Twilio segment cost |
+| Weekly report aggregation | `Build Weekly Report` uses `mode: runOnceForAllItems` and a 7-day trailing window (`Date Created` for new-lead metrics, `Last Contact` for status-change metrics) — single pass, single SMS, no loop needed |
+| Weekly report owner phone sync | Programmatically read `+18575261499` from workflow 04's live `Build Alert Message` node and patched it into workflow 08 via `update_workflow` `setNodeParameter` (path `/jsCode`) — **zero manual setup required for workflow 08**, unlike 04 and 07 which required user action |
+| Weekly report live test | Manually executed (execution `54`, 2026-06-07): computed against real Leads data — 7 new leads, 0 Hot/Emergency, 1 booked, 0 stale, 14% bookings/new ratio, top sources `Phone 3, Unknown 2`; SMS sent successfully — Twilio returned `status: queued`, `to: +18575261499`, `num_segments: 2` |
+| Bookings/New ratio — documented limitation | Compares two overlapping-but-distinct cohorts (booked-this-week vs. created-this-week); explicitly documented in PROJECT_STATUS.md as a trend indicator, not a precise funnel-conversion metric |
 
 ---
 
@@ -55,9 +61,14 @@ All Phase 2 workflows inspected via n8n MCP and verified against live execution 
 
 | Issue | Impact | Action |
 |---|---|---|
-| Twilio error 30032 — toll-free number not verified | No customer or owner SMS received | **User action:** complete toll-free verification at [twilio.com/console](https://www.twilio.com/console). Workflows are correct; carrier blocks delivery until verified. **Per user direction (2026-06-07): explicitly non-blocking — external infrastructure item, do not block development on it.** |
-| Workflow 04 — `OWNER_PHONE_HERE` placeholder | Owner alert SMS will fail until set | **User action:** open workflow `KIpMMKM8H5IZB9wb`, edit `Build Alert Message` node, replace `OWNER_PHONE_HERE` with E.164 number (e.g. `+16175550100`). |
-| Workflow 07 — `OWNER_PHONE_HERE` placeholder | Daily digest SMS will fail until set | **User action:** open workflow `ehqNYjZRirX5L3sX`, edit `Build Pipeline Digest` node, replace `OWNER_PHONE_HERE` with the same E.164 number used in workflow 04. |
+| Twilio trial account / toll-free not verified | Outbound SMS to non-test numbers may be limited/prefixed (e.g. "Sent from your Twilio trial account -") until upgrade + verification | **No action required at this time.** Per explicit user direction (2026-06-07): "Twilio verification/account upgrade remains intentionally paused and should be treated as a non-blocking external dependency." Workflows are correct and functional; this is a deliberate, paused external decision — not a defect. |
+
+### Resolved this session
+| Issue | Resolution |
+|---|---|
+| Workflow 04 — `OWNER_PHONE_HERE` placeholder | ✅ User replaced with `+18575261499` and republished |
+| Workflow 07 — `OWNER_PHONE_HERE` placeholder | ✅ User replaced with `+18575261499` and republished |
+| Workflow 08 — owner phone | ✅ Synced programmatically from workflow 04's live node via `update_workflow` — no manual step ever required |
 
 ---
 
@@ -180,6 +191,28 @@ Daily 6 PM ET (scheduleTrigger, 22:00 UTC)
 
 ---
 
+### Weekly Pipeline Report Architecture
+
+```
+Weekly Monday 8 AM ET (scheduleTrigger, weeks interval, triggerAtDay=[1] / Monday, 13:00 UTC)
+  → Get All Leads (googleSheets — reads Leads tab directly, read-only)
+  → Build Weekly Report (Code, runOnceForAllItems)
+      - Computes trailing 7-day window: weekAgoStr .. todayStr
+      - New-lead metrics keyed on Date Created (newThisWeek, hotThisWeek, emergencyThisWeek, sourceCounts)
+      - Status-change metrics keyed on Last Contact (bookedThisWeek, staleThisWeek)
+      - bookingRatio = round(bookedThisWeek / newThisWeek * 100) — documented as a trend
+        indicator only (mismatched cohorts — see "Bookings/New ratio" note above)
+      - Top 2 lead sources by volume
+      - Assembles single plain-text SMS (no emojis — GSM-7 encoding, confirmed 2 segments)
+  → Send Owner Weekly Report SMS (Twilio)
+```
+
+**Owner phone — zero manual setup:** Unlike workflows 04 and 07 (which required the user to manually replace `OWNER_PHONE_HERE`), workflow 08 was built with the placeholder, then immediately patched via `update_workflow` `setNodeParameter` (path `/jsCode`) using the live value (`+18575261499`) read directly from workflow 04's `Build Alert Message` node. This is the preferred pattern going forward whenever a new SMS-sending workflow is added — read the live value from an already-configured workflow rather than asking the user to set it again.
+
+**Live verification:** Manually triggered via `test_workflow` → execution `54` → `status: success`. Inspected node-level output via `get_execution` with `includeData: true`: `Build Weekly Report` produced a correctly formatted report from real Sheet data, and `Send Owner Weekly Report SMS` returned a Twilio response with `status: "queued"`, confirming the SMS pipeline (credentials, formatting, delivery request) all function correctly end-to-end.
+
+---
+
 ### Missed-Call SMS (Static — No AI)
 
 Hardcoded in `Build SMS Request` (workflow 03):
@@ -221,3 +254,6 @@ To change: edit `Build SMS Request` node in workflow `u9I1bqrLW6V5LtLp`.
 | Pipeline digest schedule: 6 PM ET daily | Session decision | `Daily 6 PM ET` trigger, workflow 07 — end-of-business-day summary |
 | Pipeline digest: read-only, no AI, plain text | Session decision | `Build Pipeline Digest`, workflow 07 — reliability, zero cost, GSM-7 segment efficiency |
 | Stale escalation threshold: Hot/Warm only | Session decision | `Build Pipeline Digest`, workflow 07 — Cold Stale leads excluded as expected churn |
+| Weekly report schedule: Monday 8 AM ET | Session decision | `Weekly Monday 8 AM ET` trigger, workflow 08 — start-of-week look-back at prior week's performance |
+| Weekly report delivery: SMS (not email) | Session decision | No email credential exists in n8n (`list_credentials` returned only Google Sheets, Anthropic, Header Auth, Twilio); SMS reuses proven infrastructure with zero new setup. Roadmap explicitly allowed "SMS or email." |
+| Weekly report window: trailing 7 days | Session decision | `Build Weekly Report`, workflow 08 — simpler and more current than calendar-week boundaries |

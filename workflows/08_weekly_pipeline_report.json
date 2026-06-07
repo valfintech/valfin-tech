@@ -1,0 +1,69 @@
+{
+  "_comment": "Local reference copy — created 2026-06-07. Live ID: Y7ruzhYGMhE001fr. Phase 3 workflow. Weekly owner SMS report — trailing 7-day pipeline summary. Tested live (execution 54): 7 new leads, 1 booking, 14% bookings/new ratio, SMS queued (2 segments).",
+  "name": "Weekly Pipeline Report",
+  "active": true,
+  "settings": { "executionOrder": "v1" },
+  "nodes": [
+    {
+      "parameters": {
+        "rule": {
+          "interval": [{ "field": "weeks", "weeksInterval": 1, "triggerAtDay": [1], "triggerAtHour": 13, "triggerAtMinute": 0 }]
+        }
+      },
+      "id": "3ad52c10-e38e-4ac9-a41a-185fc50a8558",
+      "name": "Weekly Monday 8 AM ET",
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.3,
+      "position": [0, 0]
+    },
+    {
+      "parameters": {
+        "documentId": { "__rl": true, "mode": "id", "value": "1MxmJouteZhi1K_-KOwgBlJtBFAXtm2G_0H555otTHBQ" },
+        "sheetName": { "__rl": true, "mode": "name", "value": "Leads" },
+        "options": {}
+      },
+      "id": "c73cd912-9015-4ca1-983b-2661ccb6eac0",
+      "name": "Get All Leads",
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.7,
+      "position": [224, 0],
+      "retryOnFail": true,
+      "maxTries": 3,
+      "waitBetweenTries": 2000,
+      "credentials": { "googleSheetsOAuth2Api": { "id": "", "name": "Google Sheets account" } }
+    },
+    {
+      "parameters": {
+        "mode": "runOnceForAllItems",
+        "jsCode": "const now = new Date();\nconst weekAgo = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);\nconst weekAgoStr = weekAgo.toISOString().slice(0, 10);\nconst todayStr = now.toISOString().slice(0, 10);\n\nconst leads = $input.all().map(i => i.json);\n\nlet newThisWeek = 0;\nlet hotThisWeek = 0;\nlet emergencyThisWeek = 0;\nlet bookedThisWeek = 0;\nlet staleThisWeek = 0;\nconst sourceCounts = {};\n\nfor (const lead of leads) {\n  const created = String(lead['Date Created'] || '').slice(0, 10);\n  if (created >= weekAgoStr && created <= todayStr) {\n    newThisWeek++;\n    const temp = (lead['Temperature'] || '').trim();\n    if (temp === 'Hot') hotThisWeek++;\n    const urgency = (lead['Urgency'] || '').trim();\n    if (urgency === 'Emergency') emergencyThisWeek++;\n    const source = (lead['Source'] || '').trim() || 'Unknown';\n    sourceCounts[source] = (sourceCounts[source] || 0) + 1;\n  }\n\n  const status = (lead['Status'] || '').trim();\n  const lastContact = String(lead['Last Contact'] || '').slice(0, 10);\n  const inWindow = lastContact >= weekAgoStr && lastContact <= todayStr;\n  if (status === 'Booked' && inWindow) bookedThisWeek++;\n  if (status === 'Stale' && inWindow) staleThisWeek++;\n}\n\nconst bookingRatio = newThisWeek > 0 ? Math.round((bookedThisWeek / newThisWeek) * 100) : 0;\nconst topSources = Object.entries(sourceCounts).sort((a, b) => b[1] - a[1]).slice(0, 2);\nconst sourceText = topSources.length ? topSources.map(([s, c]) => s + ' ' + c).join(', ') : 'n/a';\n\n// Owner phone — synced from workflow 04 (Build Alert Message) / workflow 07 (Build Pipeline Digest)\nconst OWNER_PHONE = '+18575261499';\n\nlet msg = 'Weekly Report - Valfin Tech (' + weekAgoStr + ' to ' + todayStr + ')\\n';\nmsg += 'New leads: ' + newThisWeek + ' (Hot ' + hotThisWeek + ', Emergency ' + emergencyThisWeek + ')\\n';\nmsg += 'Booked: ' + bookedThisWeek + ' | Stale: ' + staleThisWeek + ' | Bookings/New ratio: ' + bookingRatio + '%\\n';\nmsg += 'Top sources: ' + sourceText;\n\nreturn [{ json: {\n  reportMessage: msg.trim(),\n  ownerPhone: OWNER_PHONE,\n  windowStart: weekAgoStr,\n  windowEnd: todayStr,\n  newThisWeek,\n  hotThisWeek,\n  emergencyThisWeek,\n  bookedThisWeek,\n  staleThisWeek,\n  bookingRatio,\n  sourceCounts\n} }];"
+      },
+      "id": "1d8f45d4-34ed-4a23-a291-994d28de9dbe",
+      "name": "Build Weekly Report",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [448, 0]
+    },
+    {
+      "parameters": {
+        "from": "+18889839308",
+        "to": "={{ $json.ownerPhone }}",
+        "message": "={{ $json.reportMessage }}",
+        "options": {}
+      },
+      "id": "2212d2a0-c4f3-4121-abef-693feb42f14a",
+      "name": "Send Owner Weekly Report SMS",
+      "type": "n8n-nodes-base.twilio",
+      "typeVersion": 1,
+      "position": [672, 0],
+      "retryOnFail": true,
+      "maxTries": 3,
+      "waitBetweenTries": 3000,
+      "credentials": { "twilioApi": { "id": "", "name": "Twilio account" } }
+    }
+  ],
+  "connections": {
+    "Weekly Monday 8 AM ET": { "main": [[{ "node": "Get All Leads", "type": "main", "index": 0 }]] },
+    "Get All Leads": { "main": [[{ "node": "Build Weekly Report", "type": "main", "index": 0 }]] },
+    "Build Weekly Report": { "main": [[{ "node": "Send Owner Weekly Report SMS", "type": "main", "index": 0 }]] }
+  }
+}
