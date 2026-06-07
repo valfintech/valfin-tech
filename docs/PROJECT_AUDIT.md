@@ -1,5 +1,5 @@
 # Project Audit
-_Last updated: 2026-06-07 — Phase 4 underway_
+_Last updated: 2026-06-07 — Phase 4 complete_
 
 ---
 
@@ -7,7 +7,9 @@ _Last updated: 2026-06-07 — Phase 4 underway_
 
 All Phase 2 workflows inspected via n8n MCP and verified against live execution history. **Phase 3 is complete — all 5 components (04–08) built, published, and configured.** Workflow 06 (Appointment Booking) confirmed working end-to-end in production by user: Lead status updates to Booked, Appointment rows write correctly, Communication Log entries are created, Follow-Up workflow continues running normally, Hot Lead Alert remains published. Workflow 07 (Pipeline Status Digest) built and published — daily owner SMS visibility + Stale/Hot escalation. Workflow 08 (Weekly Pipeline Report) built, published, owner phone synced programmatically (no manual step needed), and **test-executed live against real data (execution 54)** — produced and queued a correct SMS report. Owner phone number `+18575261499` is now confirmed live across all three SMS-alerting workflows (04, 07, 08).
 
-**Phase 4 has begun.** Before building workflow 09, workflow 06's Booking Form was patched from free-text date/time fields to structured `date`/`dropdown` fields — a prerequisite fix, since free-text values like "Tuesday, June 10" cannot be reliably parsed for reminder-time math. Workflow 09 (Appointment Reminders) was then built, validated, published, and **test-executed live (execution 55)** — it correctly read the live Appointments tab, recognized the one existing row's legacy pre-fix free-text values as unparseable, and safely skipped it with zero false-positive sends, confirming both the parsing guard and zero-item safety work correctly end-to-end against real data.
+**Phase 4 is now complete.** Before building workflow 09, workflow 06's Booking Form was patched from free-text date/time fields to structured `date`/`dropdown` fields — a prerequisite fix, since free-text values like "Tuesday, June 10" cannot be reliably parsed for reminder-time math. Workflow 09 (Appointment Reminders) was then built, validated, published, and **test-executed live (execution 55)** — it correctly read the live Appointments tab, recognized the one existing row's legacy pre-fix free-text values as unparseable, and safely skipped it with zero false-positive sends, confirming both the parsing guard and zero-item safety work correctly end-to-end against real data.
+
+Workflow 10 (Reschedule/Cancel) was then built, validated, published, and **test-executed live via simulated inbound-SMS pin data (executions 63, 64, 65)** — all three routing branches (reschedule-found, cancel-found, not-found) executed successfully against the shape of live Appointments data, correctly classifying intent, matching the customer's appointment by phone, updating the sheet (`Status` + audit-trail `Notes`), and producing correct customer-reply and owner-alert SMS content. The workflow uses the native `twilioTrigger` node (`com.twilio.messaging.inbound-message.received`) with the existing Twilio credential — **zero manual setup required**, unlike a generic-webhook approach which would have needed the user to paste a URL into the Twilio console. **Phase 4 has zero open setup items.**
 
 ---
 
@@ -61,6 +63,13 @@ All Phase 2 workflows inspected via n8n MCP and verified against live execution 
 | Appointment Reminders active | `bJcO5ox2u190bxTr` — published; hourly schedule (`hoursInterval: 1`); reads Appointments tab (read scope) + writes only `Reminder 24h`/`Reminder 2h` flag columns (scoped write); **live test execution 55 succeeded** — correctly parsed/skipped a legacy unparseable row, emitted 0 reminders, loop no-op'd cleanly on empty input |
 | Reminder idempotency mechanism | `Mark Reminder Sent` writes an ISO timestamp to the just-sent reminder type's column while passing the other column's existing value through unchanged — verified in code logic (`existingReminder24`/`existingReminder2h` round-trip from `Build Reminder Batch`); prevents both duplicate sends and accidental flag overwrites |
 | Reminder send isolation | `splitInBatches(batchSize: 1)` + `retryOnFail` on both `Send Reminder SMS` and `Mark Reminder Sent` — one bad phone number or transient Twilio failure cannot block reminders to other customers in the same hourly run |
+| Reschedule/Cancel active | `Bj5b3sUexa8EeQcK` — published; native `twilioTrigger` (`com.twilio.messaging.inbound-message.received`) using the existing `twilioApi` credential — **zero manual webhook setup**; reads Appointments tab + writes only `Status`/`Notes` on the matched row (scoped write) |
+| Reschedule/Cancel intent classification | `Normalize Inbound SMS` uses keyword regex (no AI) to classify `cancel` / `reschedule` / `other`; unparseable phone numbers are forced to `other` so no reply is attempted to an invalid destination; `other` intents are gated out at `Is Reschedule or Cancel?` — no reply sent, no noise on "thanks"/"ok"/spam |
+| Reschedule/Cancel appointment matching | `Find Customer Appointment` normalizes phone numbers to 10 digits, filters to `Status === 'Scheduled'`, and sorts candidates by `Appt Date`/`Appt Time` ascending to pick the nearest-upcoming match — correctly handles customers with multiple appointments and ignores already-resolved rows |
+| Reschedule/Cancel sheet update + audit trail | `Build Reply Plan` branches on intent: cancel → `Status: 'Cancelled'` (auto-excludes the slot from future reminder sweeps); reschedule → `Status` unchanged (`'Scheduled'`, staff coordinates); both append a `[ISO-timestamp] Customer {action} via SMS reply: "<message>"` entry to `Notes` (existing notes preserved, pipe-separated) — single `googleSheets update` node, `matchingColumns: ['Appt ID']` |
+| Reschedule/Cancel reply + alert content | Customer replies are reassuring and specific (cancel: confirmation + rebooking invite; reschedule: acknowledgment + callback promise); owner alerts carry full context (customer name/phone, appointment ID/date/time/service, requested action) enabling immediate same-day staff follow-up by phone |
+| Reschedule/Cancel not-found handling | Unmatched phone numbers receive a generic "couldn't find an appointment, please call us" reply — graceful dead-end with zero false-positive matches |
+| Reschedule/Cancel live test | Simulated inbound SMS via pinned trigger + sheet data matching the live row (`APT-20260607144823`, phone `+18575261499`) — **executions 63/64/65 all succeeded**: (63) reschedule → found, correct reply/alert/notes, status preserved; (64) cancel → found, status → `Cancelled`, correct reply/alert/notes; (65) unmatched phone → graceful not-found reply. All three routing branches verified end-to-end. |
 
 ---
 
@@ -254,6 +263,59 @@ Hourly Reminder Check (scheduleTrigger, hours interval, hoursInterval=1, trigger
 
 ---
 
+### Reschedule/Cancel Architecture
+
+```
+Inbound SMS Trigger (twilioTrigger, updates: ['com.twilio.messaging.inbound-message.received'])
+  → Normalize Inbound SMS (Code, runOnceForAllItems)
+      - Extracts From/Body from the Twilio payload (b.From / b.Body, with b = $json.body || $json
+        as a defensive fallback for payload-shape variance)
+      - Classifies intent via keyword regex: cancel|cancelled|stop|can't make it|won't be able → 'cancel';
+        reschedule|resched|change|move|different time|new time|push back → 'reschedule'; else 'other'
+      - Normalizes phone to E.164; forces intent to 'other' if normalization fails (never reply to
+        an unaddressable number)
+  → Is Reschedule or Cancel? (IF: intent !== 'other')
+      false → ends silently — no reply to "thanks"/"ok"/spam/wrong-number texts (avoids noise + cost)
+      true  → Get All Appointments (googleSheets, resource=sheet/operation=read)
+        → Find Customer Appointment (Code, runOnceForAllItems)
+            - Normalizes both inbound and sheet phone numbers to 10 digits
+            - Filters to Status === 'Scheduled' AND phone match
+            - Sorts candidates by Appt Date then Appt Time ascending — nearest upcoming wins
+            - Outputs found:true (with full appointment context) or found:false
+        → Appointment Found? (IF: found === true)
+            true  → Build Reply Plan (Code, runOnceForAllItems)
+                      - Branches on intent: cancel sets newStatus='Cancelled' + builds a
+                        confirmation-and-rebooking-invite customer reply + a "consider following up
+                        to rebook" owner alert; reschedule keeps newStatus='Scheduled' + builds an
+                        acknowledgment-and-callback-promise customer reply + a "please call them to
+                        confirm a new time" owner alert
+                      - Both branches append a timestamped, quoted-original-message audit entry to
+                        Notes (existing notes preserved, pipe-separated)
+                    → Update Appointment Row (googleSheets update, matchingColumns=['Appt ID'],
+                       writes Status + Notes only — scoped write)
+                    → Send Customer Reply SMS (Twilio, resource=sms/operation=send, retryOnFail)
+                    → Notify Owner of Inbound Request (Twilio — full context: name, phone, appt ID,
+                       date/time, service, requested action)
+            false → Send Not Found Reply (Twilio — generic "couldn't find an appointment" message)
+```
+
+**Why acknowledge-and-alert instead of full self-service rebooking (design rationale):** A true two-way SMS slot-negotiation flow (propose available times → parse the customer's free-text reply → re-check availability → confirm) is high-complexity, fragile over a 160-character medium, and easy to derail with an unexpected reply — high cost of error for low marginal value. The simpler, higher-confidence design instantly reassures the customer (stopping them from worrying about a no-show penalty or wondering if their message was received) **and** instantly arms the owner with full context to close the loop by phone — the channel roofing customers actually expect for schedule changes. This mirrors the static-template-no-AI precedent already established in workflows 03/05/06/07/08/09: reliable, zero-cost, instantaneous, and impossible to derail.
+
+**Why keyword regex instead of AI for intent classification:** "Cancel" and "reschedule" requests are linguistically distinct enough (and the cost of a misclassification is low — both paths find the appointment and alert the owner; only the customer-facing copy and the `Status` write differ) that a keyword regex is reliable, instant, and free. This reserves AI spend for the one place it earns its cost in this system: lead-quality judgment calls (workflow 02's Sonnet 4.6 scoring).
+
+**Why phone-number matching (not Appt ID or conversation threading):** Customers reply via SMS from the same number they used to book — Twilio's inbound payload carries `From` directly, with no appointment-identifying context in the message body. Matching against `Status === 'Scheduled'` rows by normalized phone, then picking the nearest-upcoming match, correctly resolves the common cases (one active appointment; or multiple, where the soonest is almost always the one being referenced) without requiring the customer to type an appointment ID into a text message — which would be a poor, error-prone UX.
+
+**Why `Status` changes differ between cancel and reschedule:** Cancelling sets `Status = 'Cancelled'`, which automatically and immediately removes the appointment from workflow 09's reminder sweeps and from the pipeline digests (07/08) — no race condition where a cancelled appointment still receives a reminder. Rescheduling deliberately leaves `Status = 'Scheduled'` unchanged: the actual new date/time isn't known yet (it requires a human conversation to coordinate), so flipping the status would either incorrectly suppress reminders for a still-active (if soon-to-move) appointment, or require inventing a placeholder state. Both paths write a permanent, timestamped, quoted audit entry to `Notes` regardless — so staff always sees exactly what the customer said and when.
+
+**Live verification:** Since this workflow is triggered by inbound SMS (no scheduled/live executions exist yet — no customer has texted in), it was tested via `test_workflow` with pinned data simulating real Twilio inbound-message payloads and a Google Sheets row matching the shape of the one live Appointments row (`Appt ID: APT-20260607144823`, `Phone: 18575261499`, `Status: 'Scheduled'`). Three executions, inspected via `get_execution` with `includeData: true`:
+- **Execution 63** (reschedule, matching phone): `Normalize Inbound SMS` → `intent: 'reschedule'`; `Find Customer Appointment` → `found: true`, correct appointment context; `Build Reply Plan` → correct customer reply ("...we got your reschedule request... Our team will call you shortly..."), correct owner alert ("RESCHEDULE REQUEST via SMS: Hot Lead Test (+18575261499) wants to reschedule appt APT-20260607144823..."), `newStatus: 'Scheduled'` (preserved), `updatedNotes` correctly appended with timestamp + quoted message; flowed through to both SMS sends.
+- **Execution 64** (cancel, same phone/row): `Build Reply Plan` → `newStatus: 'Cancelled'`, correct cancellation-and-rebooking-invite customer reply, correct "CANCELLATION via SMS... Consider following up to rebook" owner alert, correct Notes append — flowed through to the sheet update and both SMS sends.
+- **Execution 65** (reschedule intent, non-matching phone `+19995550123`): `Find Customer Appointment` → `found: false` (correctly — no row matches); routed to `Send Not Found Reply` with the correct generic message and the customer's own `e164Phone` as the destination.
+
+All three branches of the routing logic — found+reschedule, found+cancel, not-found — are confirmed structurally and logically correct against live-shaped data. The "other"/irrelevant-intent silent-ignore path was confirmed by code inspection (the `Is Reschedule or Cancel?` IF gate has no false-branch connection, so non-relevant texts simply end the execution with zero side effects).
+
+---
+
 ### Missed-Call SMS (Static — No AI)
 
 Hardcoded in `Build SMS Request` (workflow 03):
@@ -270,7 +332,7 @@ To change: edit `Build SMS Request` node in workflow `u9I1bqrLW6V5LtLp`.
 |---|---|---|
 | Instagram DM → n8n | ❌ Not built | Requires Meta Business API + webhook. Not in Phase 3 scope. |
 | Facebook Messenger → n8n | ❌ Not built | Same Meta webhook, different channel routing. Not in Phase 3 scope. |
-| SMS inbound reply handling | ❌ Not built | Needed for workflow 10 (Reschedule/Cancel), Phase 4. Twilio inbound webhook — compatible with current trial-account status (inbound SMS does not require toll-free verification). |
+| SMS inbound reply handling | ✅ **Built — workflow 10 (`Bj5b3sUexa8EeQcK`), live and tested** | Native `twilioTrigger` (`com.twilio.messaging.inbound-message.received`) — zero manual webhook config, compatible with current trial-account status (inbound SMS does not require toll-free verification). |
 | GoHighLevel CRM | ⏳ Future | CRM Adapter (`wVRHChyFrUNRaH4M`) is the only swap point. |
 | Slack / email owner notifications | ⏳ Future | Workflow 04 designed for single phone now; expand to multi-channel later. |
 
@@ -302,3 +364,8 @@ To change: edit `Build SMS Request` node in workflow `u9I1bqrLW6V5LtLp`.
 | Reminder windows: 24h = 20–28h out, 2h = 1–3h out | Session decision | `Build Reminder Batch`, workflow 09 — generous bands sized to the hourly check cadence so no appointment falls between two consecutive runs |
 | Reminder idempotency: sheet-flag timestamps, not external dedup store | Session decision | `Reminder 24h`/`Reminder 2h` columns (reserved in workflow 06's Appointments tab schema since Phase 3); checked-and-set in the same Code+Sheets pass each hourly run |
 | Weekly report window: trailing 7 days | Session decision | `Build Weekly Report`, workflow 08 — simpler and more current than calendar-week boundaries |
+| Inbound SMS trigger: native `twilioTrigger`, not generic webhook | Session decision | `Inbound SMS Trigger`, workflow 10 — reuses existing `twilioApi` credential, requires zero manual Twilio-console webhook URL configuration (a generic webhook would have required the user to paste an n8n URL into the Twilio console — a manual step the standing directive aims to avoid) |
+| Reschedule/Cancel reply strategy: acknowledge + alert (no AI, no self-service rebooking) | Session decision | `Build Reply Plan`, workflow 10 — two-way SMS slot negotiation is high-complexity/high-risk-of-confusion for low marginal value; instant reassurance + a fully-contextualized owner alert delivers the real business value (protects completion rate, gets staff acting same-day) at zero cost, matching the static-template-no-AI precedent (03/05/06/07/08/09) |
+| Reschedule/Cancel intent classification: keyword regex, not AI | Session decision | `Normalize Inbound SMS`, workflow 10 — "cancel" vs. "reschedule" are linguistically distinct enough for reliable, instant, free keyword matching; AI spend reserved for lead-scoring judgment calls |
+| Reschedule/Cancel matching: phone number + nearest-upcoming `Status='Scheduled'` row | Session decision | `Find Customer Appointment`, workflow 10 — customers text from their booking number; Twilio's `From` field is the only reliable correlation key available in an inbound SMS payload |
+| Reschedule sets no new date/time automatically | Session decision | `Build Reply Plan`, workflow 10 — the new time requires a human conversation to coordinate; `Status` stays `'Scheduled'` so workflow 09 keeps reminding until staff updates the row with the agreed new slot |

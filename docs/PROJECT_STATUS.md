@@ -1,10 +1,10 @@
 # Project Status
-_Last updated: 2026-06-07 — Phase 4 underway (Workflow 09 live)_
+_Last updated: 2026-06-07 — Phase 4 complete (Workflows 09 & 10 live)_
 
 ## Current Phase
-**Phase 4 — Reminders / Reschedule / Cancel** 🔄 **In progress — Appointment Reminders (09) live and tested**
+**Phase 4 — Reminders / Reschedule / Cancel** ✅ **Complete — both workflows (09, 10) live and tested**
 
-Phase 3 is complete (all 5 components live and tested). Phase 4 has begun: Workflow 09 (Appointment Reminders) is built, published, and live-tested against real data. As a prerequisite, Workflow 06's Booking Form was upgraded from free-text date/time fields to structured `date` + `dropdown` fields so appointment times are machine-parseable for reminder scheduling — the customer-facing confirmation SMS still renders a friendly display string (e.g. "Tuesday, June 10"). Owner phone numbers remain configured and synced across all SMS-sending workflows (`+18575261499`). Next up: Reschedule/Cancel inbound-SMS keyword flow (workflow 10).
+Phase 3 is complete (all 5 components live and tested). Phase 4 is now complete: Workflow 09 (Appointment Reminders) sends 24h/2h pre-appointment SMS, and Workflow 10 (Reschedule/Cancel) handles inbound customer replies — classifying "reschedule" vs. "cancel" by keyword, locating the customer's appointment by phone, updating the Appointments sheet (status + audit-trail notes), replying to the customer, and alerting the owner so staff can close the loop by phone. As a prerequisite, Workflow 06's Booking Form was upgraded from free-text date/time fields to structured `date` + `dropdown` fields so appointment times are machine-parseable — the customer-facing confirmation SMS still renders a friendly display string (e.g. "Tuesday, June 10"). Owner phone numbers remain configured and synced across all SMS-sending workflows (`+18575261499`). Phase 4 has zero open setup items — workflow 10's inbound trigger uses the existing Twilio credential natively, requiring no manual webhook configuration. Next up: Phase 5 (Retention).
 
 ---
 
@@ -21,6 +21,7 @@ Phase 3 is complete (all 5 components live and tested). Phase 4 has begun: Workf
 | Pipeline Status Digest | `ehqNYjZRirX5L3sX` | https://valfin.app.n8n.cloud/workflow/ehqNYjZRirX5L3sX | ✅ Active — daily 6 PM ET, owner phone set |
 | Weekly Pipeline Report | `Y7ruzhYGMhE001fr` | https://valfin.app.n8n.cloud/workflow/Y7ruzhYGMhE001fr | ✅ Active — Monday 8 AM ET, owner phone set, **tested live (execution 54)** |
 | Appointment Reminders | `bJcO5ox2u190bxTr` | https://valfin.app.n8n.cloud/workflow/bJcO5ox2u190bxTr | ✅ Active — hourly check, 24h/2h SMS, **tested live (execution 55)** |
+| Reschedule / Cancel | `Bj5b3sUexa8EeQcK` | https://valfin.app.n8n.cloud/workflow/Bj5b3sUexa8EeQcK | ✅ Active — inbound SMS via Twilio Trigger, **tested live (executions 63/64/65)** |
 
 ---
 
@@ -277,6 +278,43 @@ Hourly Reminder Check (scheduleTrigger, every hour on the hour)
 
 ---
 
+### Workflow 10 — Reschedule / Cancel (`Bj5b3sUexa8EeQcK`)
+
+**Flow (11 nodes):**
+```
+Inbound SMS Trigger (twilioTrigger — com.twilio.messaging.inbound-message.received)
+  → Normalize Inbound SMS (Code — extracts From/Body, classifies intent: reschedule | cancel | other)
+  → Is Reschedule or Cancel? (IF — gates out irrelevant texts; "other" silently ends, no reply)
+      true → Get All Appointments (googleSheets — reads Appointments tab)
+        → Find Customer Appointment (Code — matches phone to a Status='Scheduled' row,
+           sorted nearest-upcoming-first; outputs found:true/false)
+        → Appointment Found? (IF)
+            true  → Build Reply Plan (Code — branches on intent: builds customer reply,
+                     owner alert, new Status, timestamped Notes append)
+                     → Update Appointment Row (googleSheets update — Status + Notes, matched by Appt ID)
+                     → Send Customer Reply SMS (Twilio)
+                     → Notify Owner of Inbound Request (Twilio — full context for staff follow-up)
+            false → Send Not Found Reply (Twilio — generic "couldn't find an appointment" message)
+```
+
+| Property | Value |
+|---|---|
+| Trigger | `n8n-nodes-base.twilioTrigger`, `updates: ['com.twilio.messaging.inbound-message.received']` — native Twilio event subscription via the existing `twilioApi` credential. **No manual Twilio-console webhook URL configuration required** (unlike a generic webhook node). |
+| Intent classification | Keyword regex (no AI): `cancel\|cancelled\|stop\|can't make it\|won't be able` → `cancel`; `reschedule\|resched\|change\|move\|different time\|new time\|push back` → `reschedule`; anything else (or unparseable phone) → `other` (ignored, no reply sent — avoids noise on "thanks"/"ok"/spam) |
+| Appointment matching | Normalizes both inbound and sheet phone numbers to 10 digits, filters to `Status === 'Scheduled'`, sorts by `Appt Date`/`Appt Time` ascending, picks the nearest upcoming match |
+| Cancel outcome | `Status` → `Cancelled` (automatically removes the appointment from future reminder/digest sweeps); customer gets a confirmation + rebooking invite; owner gets an alert to follow up and refill the slot |
+| Reschedule outcome | `Status` stays `Scheduled` (staff coordinates the new time directly — avoids fragile SMS slot-negotiation); customer gets an acknowledgment + callback promise; owner gets full context to call back |
+| Audit trail | Every request appends a `[ISO-timestamp] Customer {cancelled\|requested reschedule} via SMS reply: "<original message>"` entry to the `Notes` column (existing notes preserved, pipe-separated) |
+| Not-found handling | Generic "couldn't find an appointment under this number, please call us" reply — no false matches, no dead-ends |
+| Owner alert | Full context SMS to `+18575261499`: customer name/phone, appointment ID/date/time/service, and the requested action — enables an immediate callback |
+| Twilio from | `+18889839308` |
+| **Tested live** | Simulated inbound SMS via pinned trigger data against the live Appointments row (`APT-20260607144823`, phone `+18575261499`) — three executions, all successful: **(63)** reschedule intent → appointment found → customer reply + owner alert + Notes appended + Status preserved; **(64)** cancel intent on the same row → Status → `Cancelled`, cancellation+rebooking reply, owner alert; **(65)** unmatched phone number → graceful not-found reply with zero false matches. All three branches of the routing logic confirmed correct against live production data shapes. |
+| Architecture note | Single linear path with two IF gates (relevance, then found/not-found) — branching logic for cancel-vs-reschedule lives inside `Build Reply Plan` (mirrors the established pattern of keeping conditional logic inside Code nodes when it's a simple discriminator switch, avoiding extra branch+merge complexity) |
+
+> Why this workflow: closes the loop that workflow 09 opens — every reminder invites a reschedule call, and now a text reply gets an instant, reassuring response *and* puts the request directly in front of the owner for same-day action. This protects the appointment-completion rate (cancellations get surfaced immediately for rebooking instead of silently becoming no-shows) and keeps the Appointments sheet accurate (cancelled slots stop generating reminders automatically).
+
+---
+
 ## Credentials (Confirmed Set)
 
 | Credential | Type | Status |
@@ -322,11 +360,11 @@ Hourly Reminder Check (scheduleTrigger, every hour on the hour)
 
 ---
 
-## Phase 4 Progress — 🔄 In Progress (1/2)
+## Phase 4 Progress — ✅ COMPLETE (2/2)
 
 | Component | Status | n8n ID |
 |---|---|---|
 | Appointment Reminders (24h + 2h SMS) | ✅ Live — tested live (execution 55), idempotent via sheet flags | `bJcO5ox2u190bxTr` (09) |
-| Reschedule / Cancel (inbound SMS keyword routing) | 🔄 Up next | `10_reschedule_cancel` (planned) |
+| Reschedule / Cancel (inbound SMS keyword routing) | ✅ Live — tested live (executions 63/64/65), zero manual setup | `Bj5b3sUexa8EeQcK` (10) |
 
-**Next:** Workflow 10 — Reschedule/Cancel inbound-SMS-keyword flow. Requires a Twilio inbound SMS webhook, which is compatible with the current trial-account status (inbound doesn't require toll-free verification — only outbound to unverified numbers is blocked).
+**Phase 4 is complete.** Both planned components are published, active, and tested against live data/data shapes. Zero open setup items — workflow 10's native Twilio Trigger required no manual webhook configuration. **Next: Phase 5 (Retention)** — post-job review requests, referral invites, seasonal outreach.

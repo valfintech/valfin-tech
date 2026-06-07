@@ -15,7 +15,7 @@ docs/        setup + operating guides
 | 1. Google Sheets CRM | done (pre-existing) | — |
 | 2. Missed-call + form capture | ✅ **Complete — live in n8n** | 3 workflows deployed |
 | 3. Lead response + follow-up automation | ✅ **Complete — verified live** | 5/5 components live |
-| 4. Reminders / reschedule / cancel | 🔄 in progress (1/2) — Appointment Reminders live | 1 of 2 workflows deployed |
+| 4. Reminders / reschedule / cancel | ✅ **Complete — 2/2 live & tested** | 2 of 2 workflows deployed |
 | 5. Retention | not started | |
 
 ### All live workflows in n8n (`valfin.app.n8n.cloud`)
@@ -30,6 +30,7 @@ docs/        setup + operating guides
 | `07_pipeline_status_digest` | `ehqNYjZRirX5L3sX` | Pipeline Status Digest. Daily 6 PM ET → reads all leads → tallies New/Contacted/Booked/Stale counts → escalates Stale leads still Hot/Warm by name + phone → reports today's new leads/bookings → single SMS digest to owner. Read-only — no Sheets writes. Owner phone configured (`+18575261499`). |
 | `08_weekly_pipeline_report` | `Y7ruzhYGMhE001fr` | Weekly Pipeline Report. Monday 8 AM ET → reads all leads → computes trailing-7-day metrics (new leads, Hot/Emergency split, bookings, stale count, bookings/new ratio, top sources) → single SMS report to owner. Read-only. Owner phone synced programmatically — zero manual setup. **Test-executed live (execution 54) — confirmed working.** |
 | `09_appointment_reminders` | `bJcO5ox2u190bxTr` | Appointment Reminders. Hourly check → reads Appointments tab → computes 24h (20-28h out) and 2h (1-3h out) reminder windows → personalized SMS per appointment → flags `Reminder 24h`/`Reminder 2h` columns to prevent duplicates. **Test-executed live (execution 55) — confirmed working** (correctly parsed/skipped a legacy unparseable test row with zero false-positive sends). |
+| `10_reschedule_cancel` | `Bj5b3sUexa8EeQcK` | Reschedule/Cancel. Inbound SMS (Twilio Trigger) → classifies "reschedule"/"cancel" intent by keyword → finds the customer's upcoming Scheduled appointment by phone → updates Status (`Cancelled` on cancel, unchanged on reschedule) + appends a timestamped Notes entry → replies to the customer (cancel: confirms + invites rebooking; reschedule: acknowledges + promises a callback) → alerts the owner by SMS to follow up. Irrelevant texts are silently ignored. **Test-executed live via simulated inbound SMS (executions 63/64/65) — all three paths (reschedule found / cancel found / not-found) confirmed working.** |
 
 **Credentials configured in n8n UI:** Google Sheets OAuth2 · Anthropic Header Auth · Twilio API. (Twilio account intentionally remains on trial/unverified status — a deliberate, paused, non-blocking external decision.)
 See `docs/PROJECT_STATUS.md` for full workflow details and known issues.

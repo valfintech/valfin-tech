@@ -1,0 +1,193 @@
+{
+  "_comment": "Local reference copy — created 2026-06-07. Live ID: Bj5b3sUexa8EeQcK. Phase 4 workflow. Inbound-SMS keyword router for reschedule/cancel requests. Tested live via simulated inbound-SMS pin data (executions 63/64/65): (1) reschedule intent from a phone matching a live Scheduled appointment correctly found the row, replied to the customer, alerted the owner, and appended a Notes entry while preserving Status='Scheduled'; (2) cancel intent on the same row correctly set Status='Cancelled', sent a cancellation+rebooking-invite reply, and alerted the owner to follow up; (3) an unmatched phone number correctly fell through to the 'no appointment found' reply with zero false matches. Irrelevant inbound texts (intent='other') are silently ignored at the 'Is Reschedule or Cancel?' gate — no reply sent, no noise.",
+  "name": "Reschedule Cancel",
+  "active": true,
+  "settings": { "executionOrder": "v1" },
+  "nodes": [
+    {
+      "parameters": { "updates": ["com.twilio.messaging.inbound-message.received"] },
+      "id": "4ffa7f30-f5cd-4cb8-a04e-9fd4abc9c5bb",
+      "name": "Inbound SMS Trigger",
+      "type": "n8n-nodes-base.twilioTrigger",
+      "typeVersion": 1,
+      "position": [0, 0],
+      "webhookId": "57f5d794-9327-4648-b04f-66b39a053691",
+      "credentials": { "twilioApi": { "id": "", "name": "Twilio account" } }
+    },
+    {
+      "parameters": {
+        "mode": "runOnceForAllItems",
+        "jsCode": "const b = $json.body || $json;\nconst from = String(b.From || b.from || '').trim();\nconst bodyText = String(b.Body || b.body || '').trim();\nconst lower = bodyText.toLowerCase();\n\nlet intent = 'other';\nif (/\\b(cancel|cancelled|stop|can't make it|cant make it|won't be able|wont be able)\\b/.test(lower)) intent = 'cancel';\nelse if (/\\b(reschedule|resched|change|move|different time|new time|push back|push it)\\b/.test(lower)) intent = 'reschedule';\n\nconst raw = from.replace(/\\D/g, '');\nconst e164 = raw.length === 11 && raw.startsWith('1') ? '+' + raw\n  : raw.length === 10 ? '+1' + raw\n  : (from.startsWith('+') ? from : null);\n\nif (!e164) intent = 'other';\n\nreturn [{ json: { fromPhone: from, e164Phone: e164, messageBody: bodyText, intent } }];"
+      },
+      "id": "cf45c0c6-909c-428b-aa20-b1f3967f8191",
+      "name": "Normalize Inbound SMS",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [224, 0]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": { "caseSensitive": true, "leftValue": "", "typeValidation": "strict" },
+          "conditions": [{ "leftValue": "={{ $json.intent }}", "operator": { "type": "string", "operation": "notEquals" }, "rightValue": "other" }],
+          "combinator": "and"
+        }
+      },
+      "id": "3ef16df9-b300-4abd-8314-82452e569d33",
+      "name": "Is Reschedule or Cancel?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [448, 0]
+    },
+    {
+      "parameters": {
+        "resource": "sheet",
+        "operation": "read",
+        "documentId": { "__rl": true, "mode": "id", "value": "1MxmJouteZhi1K_-KOwgBlJtBFAXtm2G_0H555otTHBQ" },
+        "sheetName": { "__rl": true, "mode": "name", "value": "Appointments" },
+        "options": {}
+      },
+      "id": "ddd5d346-ffbb-4ea1-90e2-822f72ef5bf5",
+      "name": "Get All Appointments",
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.7,
+      "position": [672, 0],
+      "retryOnFail": true,
+      "maxTries": 3,
+      "waitBetweenTries": 2000,
+      "credentials": { "googleSheetsOAuth2Api": { "id": "", "name": "Google Sheets account" } }
+    },
+    {
+      "parameters": {
+        "mode": "runOnceForAllItems",
+        "jsCode": "const inbound = $('Normalize Inbound SMS').first().json;\nconst appts = $input.all().map(i => i.json);\n\nfunction normalizePhone(p) {\n  const raw = String(p || '').replace(/\\D/g, '');\n  if (raw.length === 11 && raw.startsWith('1')) return raw.slice(1);\n  return raw;\n}\n\nconst inboundDigits = normalizePhone(inbound.fromPhone);\n\nconst candidates = appts.filter(a => {\n  const status = (a['Status'] || '').trim();\n  if (status !== 'Scheduled') return false;\n  return inboundDigits.length === 10 && normalizePhone(a['Phone']) === inboundDigits;\n});\n\ncandidates.sort((a, b) => {\n  const da = String(a['Appt Date'] || '');\n  const db = String(b['Appt Date'] || '');\n  if (da !== db) return da < db ? -1 : 1;\n  return String(a['Appt Time'] || '').localeCompare(String(b['Appt Time'] || ''));\n});\n\nconst appt = candidates[0];\n\nif (!appt) {\n  return [{ json: { found: false, intent: inbound.intent, fromPhone: inbound.fromPhone, e164Phone: inbound.e164Phone, messageBody: inbound.messageBody } }];\n}\n\nreturn [{ json: {\n  found: true,\n  intent: inbound.intent,\n  fromPhone: inbound.fromPhone,\n  e164Phone: inbound.e164Phone,\n  messageBody: inbound.messageBody,\n  apptId: appt['Appt ID'],\n  customerName: appt['Customer Name'] || '',\n  serviceType: appt['Service Type'] || 'roofing appointment',\n  apptDate: appt['Appt Date'] || '',\n  apptTime: appt['Appt Time'] || '',\n  existingNotes: appt['Notes'] || ''\n} }];"
+      },
+      "id": "93d0099b-c2bf-4ebf-b468-2055ef4581d4",
+      "name": "Find Customer Appointment",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [896, 0]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": { "caseSensitive": true, "leftValue": "", "typeValidation": "strict" },
+          "conditions": [{ "leftValue": "={{ $json.found }}", "operator": { "type": "boolean", "operation": "true", "singleValue": true } }],
+          "combinator": "and"
+        }
+      },
+      "id": "3047b0f5-3735-451b-828d-3d150adf0811",
+      "name": "Appointment Found?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [1120, 0]
+    },
+    {
+      "parameters": {
+        "mode": "runOnceForAllItems",
+        "jsCode": "const d = $json;\nconst firstName = String(d.customerName || '').trim().split(/\\s+/)[0] || '';\nconst greeting = firstName ? 'Hi ' + firstName + ',' : 'Hi,';\nconst svc = d.serviceType || 'roofing appointment';\n\nconst OWNER_PHONE = '+18575261499';\nconst FROM = '+18889839308';\nconst ts = new Date().toISOString();\n\nlet customerReply, ownerAlert, newStatus, notesAppend;\n\nif (d.intent === 'cancel') {\n  customerReply = greeting + ' your ' + svc + ' appointment with Valfin Tech (' + d.apptDate + ' at ' + d.apptTime + ') has been cancelled per your request. Want to rebook? Just call us anytime.';\n  ownerAlert = 'CANCELLATION via SMS: ' + (d.customerName || d.fromPhone) + ' (' + d.fromPhone + ') cancelled appt ' + d.apptId + ' \\u2014 ' + d.apptDate + ' at ' + d.apptTime + ' (' + svc + '). Consider following up to rebook.';\n  newStatus = 'Cancelled';\n  notesAppend = '[' + ts + '] Customer cancelled via SMS reply: \"' + d.messageBody + '\"';\n} else {\n  customerReply = greeting + ' thanks for letting us know \\u2014 we got your reschedule request for your ' + svc + ' appointment (' + d.apptDate + ' at ' + d.apptTime + '). Our team will call you shortly to find a new time. You can also call us anytime.';\n  ownerAlert = 'RESCHEDULE REQUEST via SMS: ' + (d.customerName || d.fromPhone) + ' (' + d.fromPhone + ') wants to reschedule appt ' + d.apptId + ' \\u2014 currently ' + d.apptDate + ' at ' + d.apptTime + ' (' + svc + '). Please call them to confirm a new time.';\n  newStatus = 'Scheduled';\n  notesAppend = '[' + ts + '] Customer requested reschedule via SMS reply: \"' + d.messageBody + '\"';\n}\n\nconst updatedNotes = (d.existingNotes ? d.existingNotes + ' | ' : '') + notesAppend;\n\nreturn [{ json: {\n  apptId: d.apptId,\n  customerReply,\n  ownerAlert,\n  newStatus,\n  updatedNotes,\n  e164Phone: d.e164Phone,\n  ownerPhone: OWNER_PHONE,\n  from: FROM\n} }];"
+      },
+      "id": "4fb6cfcb-749c-46fa-a79e-9aee936bf7ca",
+      "name": "Build Reply Plan",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [1344, -120]
+    },
+    {
+      "parameters": {
+        "resource": "sheet",
+        "operation": "update",
+        "documentId": { "__rl": true, "mode": "id", "value": "1MxmJouteZhi1K_-KOwgBlJtBFAXtm2G_0H555otTHBQ" },
+        "sheetName": { "__rl": true, "mode": "name", "value": "Appointments" },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "Appt ID": "={{ $json.apptId }}",
+            "Status": "={{ $json.newStatus }}",
+            "Notes": "={{ $json.updatedNotes }}"
+          },
+          "matchingColumns": ["Appt ID"],
+          "schema": []
+        },
+        "options": {}
+      },
+      "id": "c89902ee-a311-4ebe-bd0b-0db31f30b090",
+      "name": "Update Appointment Row",
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.7,
+      "position": [1568, -120],
+      "retryOnFail": true,
+      "maxTries": 3,
+      "waitBetweenTries": 2000,
+      "credentials": { "googleSheetsOAuth2Api": { "id": "", "name": "Google Sheets account" } }
+    },
+    {
+      "parameters": {
+        "resource": "sms",
+        "operation": "send",
+        "from": "={{ $(\"Build Reply Plan\").item.json.from }}",
+        "to": "={{ $(\"Build Reply Plan\").item.json.e164Phone }}",
+        "message": "={{ $(\"Build Reply Plan\").item.json.customerReply }}",
+        "options": {}
+      },
+      "id": "67166398-7f65-4c3d-b97b-479d8054471f",
+      "name": "Send Customer Reply SMS",
+      "type": "n8n-nodes-base.twilio",
+      "typeVersion": 1,
+      "position": [1792, -120],
+      "retryOnFail": true,
+      "maxTries": 3,
+      "waitBetweenTries": 3000,
+      "credentials": { "twilioApi": { "id": "", "name": "Twilio account" } }
+    },
+    {
+      "parameters": {
+        "resource": "sms",
+        "operation": "send",
+        "from": "={{ $(\"Build Reply Plan\").item.json.from }}",
+        "to": "={{ $(\"Build Reply Plan\").item.json.ownerPhone }}",
+        "message": "={{ $(\"Build Reply Plan\").item.json.ownerAlert }}",
+        "options": {}
+      },
+      "id": "e54cb9a4-01e7-4e7e-84d6-a08992d34199",
+      "name": "Notify Owner of Inbound Request",
+      "type": "n8n-nodes-base.twilio",
+      "typeVersion": 1,
+      "position": [2016, -120],
+      "retryOnFail": true,
+      "maxTries": 3,
+      "waitBetweenTries": 3000,
+      "credentials": { "twilioApi": { "id": "", "name": "Twilio account" } }
+    },
+    {
+      "parameters": {
+        "resource": "sms",
+        "operation": "send",
+        "from": "+18889839308",
+        "to": "={{ $json.e164Phone }}",
+        "message": "Hi, we couldn't find an upcoming appointment under this number. Please call us anytime and we'll be glad to help — Valfin Tech.",
+        "options": {}
+      },
+      "id": "45274828-a6dd-4e8c-abf4-4c3525d69bbe",
+      "name": "Send Not Found Reply",
+      "type": "n8n-nodes-base.twilio",
+      "typeVersion": 1,
+      "position": [1344, 200],
+      "retryOnFail": true,
+      "maxTries": 3,
+      "waitBetweenTries": 3000,
+      "credentials": { "twilioApi": { "id": "", "name": "Twilio account" } }
+    }
+  ],
+  "connections": {
+    "Inbound SMS Trigger": { "main": [[{ "node": "Normalize Inbound SMS", "type": "main", "index": 0 }]] },
+    "Normalize Inbound SMS": { "main": [[{ "node": "Is Reschedule or Cancel?", "type": "main", "index": 0 }]] },
+    "Is Reschedule or Cancel?": { "main": [[{ "node": "Get All Appointments", "type": "main", "index": 0 }]] },
+    "Get All Appointments": { "main": [[{ "node": "Find Customer Appointment", "type": "main", "index": 0 }]] },
+    "Find Customer Appointment": { "main": [[{ "node": "Appointment Found?", "type": "main", "index": 0 }]] },
+    "Appointment Found?": { "main": [[{ "node": "Build Reply Plan", "type": "main", "index": 0 }], [{ "node": "Send Not Found Reply", "type": "main", "index": 0 }]] },
+    "Build Reply Plan": { "main": [[{ "node": "Update Appointment Row", "type": "main", "index": 0 }]] },
+    "Update Appointment Row": { "main": [[{ "node": "Send Customer Reply SMS", "type": "main", "index": 0 }]] },
+    "Send Customer Reply SMS": { "main": [[{ "node": "Notify Owner of Inbound Request", "type": "main", "index": 0 }]] }
+  }
+}
