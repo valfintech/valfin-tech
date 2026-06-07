@@ -1,11 +1,13 @@
 # Project Audit
-_Last updated: 2026-06-07 — Phase 3 in progress_
+_Last updated: 2026-06-07 — Phase 4 underway_
 
 ---
 
 ## Verification Summary (2026-06-07)
 
-All Phase 2 workflows inspected via n8n MCP and verified against live execution history. **Phase 3 is now complete — all 5 components (04–08) built, published, and configured.** Workflow 06 (Appointment Booking) confirmed working end-to-end in production by user: Lead status updates to Booked, Appointment rows write correctly, Communication Log entries are created, Follow-Up workflow continues running normally, Hot Lead Alert remains published. Workflow 07 (Pipeline Status Digest) built and published — daily owner SMS visibility + Stale/Hot escalation. Workflow 08 (Weekly Pipeline Report) built, published, owner phone synced programmatically (no manual step needed), and **test-executed live against real data (execution 54)** — produced and queued a correct SMS report. Owner phone number `+18575261499` is now confirmed live across all three SMS-alerting workflows (04, 07, 08).
+All Phase 2 workflows inspected via n8n MCP and verified against live execution history. **Phase 3 is complete — all 5 components (04–08) built, published, and configured.** Workflow 06 (Appointment Booking) confirmed working end-to-end in production by user: Lead status updates to Booked, Appointment rows write correctly, Communication Log entries are created, Follow-Up workflow continues running normally, Hot Lead Alert remains published. Workflow 07 (Pipeline Status Digest) built and published — daily owner SMS visibility + Stale/Hot escalation. Workflow 08 (Weekly Pipeline Report) built, published, owner phone synced programmatically (no manual step needed), and **test-executed live against real data (execution 54)** — produced and queued a correct SMS report. Owner phone number `+18575261499` is now confirmed live across all three SMS-alerting workflows (04, 07, 08).
+
+**Phase 4 has begun.** Before building workflow 09, workflow 06's Booking Form was patched from free-text date/time fields to structured `date`/`dropdown` fields — a prerequisite fix, since free-text values like "Tuesday, June 10" cannot be reliably parsed for reminder-time math. Workflow 09 (Appointment Reminders) was then built, validated, published, and **test-executed live (execution 55)** — it correctly read the live Appointments tab, recognized the one existing row's legacy pre-fix free-text values as unparseable, and safely skipped it with zero false-positive sends, confirming both the parsing guard and zero-item safety work correctly end-to-end against real data.
 
 ---
 
@@ -54,6 +56,11 @@ All Phase 2 workflows inspected via n8n MCP and verified against live execution 
 | Weekly report owner phone sync | Programmatically read `+18575261499` from workflow 04's live `Build Alert Message` node and patched it into workflow 08 via `update_workflow` `setNodeParameter` (path `/jsCode`) — **zero manual setup required for workflow 08**, unlike 04 and 07 which required user action |
 | Weekly report live test | Manually executed (execution `54`, 2026-06-07): computed against real Leads data — 7 new leads, 0 Hot/Emergency, 1 booked, 0 stale, 14% bookings/new ratio, top sources `Phone 3, Unknown 2`; SMS sent successfully — Twilio returned `status: queued`, `to: +18575261499`, `num_segments: 2` |
 | Bookings/New ratio — documented limitation | Compares two overlapping-but-distinct cohorts (booked-this-week vs. created-this-week); explicitly documented in PROJECT_STATUS.md as a trend indicator, not a precise funnel-conversion metric |
+| Booking form structured fields | `ax2sMbvv0lqyJHMg` patched (2026-06-07): `Appointment Date` is now `fieldType: 'date'` (returns `YYYY-MM-DD`), `Appointment Time` is now `fieldType: 'dropdown'` with 10 fixed hourly slots (8 AM–5 PM). Republished — `activeVersionId daef5531-36ca-47b6-b648-798b5cd97bd3` |
+| Booking form friendly-display preserved | `Build Booking Payload` now derives `apptDateDisplay` (e.g. "Tuesday, June 10") via `formatFriendlyDate()` from the structured `YYYY-MM-DD` value, used only in the customer-facing confirmation SMS — the stored `Appt Date`/`Appt Time` columns remain machine-parseable for workflow 09 |
+| Appointment Reminders active | `bJcO5ox2u190bxTr` — published; hourly schedule (`hoursInterval: 1`); reads Appointments tab (read scope) + writes only `Reminder 24h`/`Reminder 2h` flag columns (scoped write); **live test execution 55 succeeded** — correctly parsed/skipped a legacy unparseable row, emitted 0 reminders, loop no-op'd cleanly on empty input |
+| Reminder idempotency mechanism | `Mark Reminder Sent` writes an ISO timestamp to the just-sent reminder type's column while passing the other column's existing value through unchanged — verified in code logic (`existingReminder24`/`existingReminder2h` round-trip from `Build Reminder Batch`); prevents both duplicate sends and accidental flag overwrites |
+| Reminder send isolation | `splitInBatches(batchSize: 1)` + `retryOnFail` on both `Send Reminder SMS` and `Mark Reminder Sent` — one bad phone number or transient Twilio failure cannot block reminders to other customers in the same hourly run |
 
 ---
 
@@ -213,6 +220,40 @@ Weekly Monday 8 AM ET (scheduleTrigger, weeks interval, triggerAtDay=[1] / Monda
 
 ---
 
+### Appointment Reminders Architecture
+
+```
+Hourly Reminder Check (scheduleTrigger, hours interval, hoursInterval=1, triggerAtMinute=0)
+  → Get All Appointments (googleSheets, resource=sheet/operation=read — reads Appointments tab directly)
+  → Build Reminder Batch (Code, runOnceForAllItems)
+      - parseApptDateTime(): strict regex match on Appt Date (YYYY-MM-DD) and
+        Appt Time (H:MM AM/PM); returns null (skip) on any non-conforming value —
+        this is what safely filtered out the legacy "Friday"/"14:00" test row
+      - ET treated as fixed UTC-5 (Date.UTC(... hour + 5 ...)) — same convention as
+        workflows 05/07/08
+      - hoursUntil = (apptDateTime - now) / 3600000
+      - Eligible only if Status === 'Scheduled' AND hoursUntil >= 0 AND phone
+        normalizes to E.164
+      - Emits one item per due reminder: 24h window [20,28], 2h window [1,3],
+        gated by the corresponding Reminder flag being empty
+      - formatFriendlyDate() renders "Weekday, Month Day" for the SMS body
+  → Loop Over Reminders (splitInBatches, batchSize=1)
+      → Send Reminder SMS (Twilio, resource=sms/operation=send, retryOnFail)
+      → Mark Reminder Sent (googleSheets, resource=sheet/operation=update,
+         matchingColumns=['Appt ID'], writes Reminder 24h + Reminder 2h —
+         conditionally: the just-sent type's column gets sentAt (ISO timestamp),
+         the other column passes through its existing value unchanged)
+      → nextBatch (loop continues)
+```
+
+**Idempotency design (verified in code):** Rather than branching on reminder type with separate IF/Switch + Merge nodes, `Build Reminder Batch` carries `existingReminder24`/`existingReminder2h` (the row's current flag values) alongside `reminderType` and `sentAt` into each emitted reminder item. `Mark Reminder Sent` then writes both columns on every update using ternary expressions keyed on `reminderType`, so the column matching the type just sent gets the new timestamp and the other column is round-tripped untouched. This collapses what would otherwise require branch+merge into a single Google Sheets update node — simpler, fewer failure points, and avoids any window where one flag could be accidentally blanked.
+
+**Date/time parsing — why the prerequisite fix mattered:** `parseApptDateTime()` requires `Appt Date` to match `^\d{4}-\d{2}-\d{2}$` and `Appt Time` to match `^\d{1,2}:\d{2}\s*(AM|PM)$`. Workflow 06's original free-text fields produced values like `"Tuesday, June 10"` / `"2:00 PM"` (sometimes `"Friday"` / `"14:00"` as seen in the live test row) — none of which reliably match these patterns. Rather than attempting fuzzy natural-language date parsing (fragile, locale-dependent, hard to test), the fix was applied at the source: workflow 06's form now emits guaranteed-format values (`date` field → `YYYY-MM-DD`; `dropdown` → one of 10 fixed `H:MM AM/PM` strings), and `parseApptDateTime()` stays a simple, fully-deterministic regex+arithmetic function.
+
+**Live verification:** Manually triggered via `test_workflow` → execution `55` → `status: success`. Inspected node-level output via `get_execution` with `includeData: true`: `Get All Appointments` returned the single live row (`Appt ID: APT-20260607144823`, `Appt Date: "Friday"`, `Appt Time: "14:00"` — a pre-fix legacy test booking), and `Build Reminder Batch` correctly returned 0 items (regex match failed → `parseApptDateTime` returned `null` → `continue`). The downstream loop did not execute (correct zero-item no-op per SDK zero-item-safety guidance — no `alwaysOutputData`, no IF gate). This confirms the parsing guard, eligibility filter, and loop-safety all behave correctly on real production data; the send+mark pipeline will exercise fully once a structured (post-fix) booking enters its 24h or 2h window.
+
+---
+
 ### Missed-Call SMS (Static — No AI)
 
 Hardcoded in `Build SMS Request` (workflow 03):
@@ -229,7 +270,7 @@ To change: edit `Build SMS Request` node in workflow `u9I1bqrLW6V5LtLp`.
 |---|---|---|
 | Instagram DM → n8n | ❌ Not built | Requires Meta Business API + webhook. Not in Phase 3 scope. |
 | Facebook Messenger → n8n | ❌ Not built | Same Meta webhook, different channel routing. Not in Phase 3 scope. |
-| SMS inbound reply handling | ❌ Not built | Needed for Phase 5. Twilio inbound webhook. |
+| SMS inbound reply handling | ❌ Not built | Needed for workflow 10 (Reschedule/Cancel), Phase 4. Twilio inbound webhook — compatible with current trial-account status (inbound SMS does not require toll-free verification). |
 | GoHighLevel CRM | ⏳ Future | CRM Adapter (`wVRHChyFrUNRaH4M`) is the only swap point. |
 | Slack / email owner notifications | ⏳ Future | Workflow 04 designed for single phone now; expand to multi-channel later. |
 
@@ -256,4 +297,8 @@ To change: edit `Build SMS Request` node in workflow `u9I1bqrLW6V5LtLp`.
 | Stale escalation threshold: Hot/Warm only | Session decision | `Build Pipeline Digest`, workflow 07 — Cold Stale leads excluded as expected churn |
 | Weekly report schedule: Monday 8 AM ET | Session decision | `Weekly Monday 8 AM ET` trigger, workflow 08 — start-of-week look-back at prior week's performance |
 | Weekly report delivery: SMS (not email) | Session decision | No email credential exists in n8n (`list_credentials` returned only Google Sheets, Anthropic, Header Auth, Twilio); SMS reuses proven infrastructure with zero new setup. Roadmap explicitly allowed "SMS or email." |
+| Booking date/time fields: structured (`date`/`dropdown`), not free text | Session decision — prerequisite for workflow 09 | `Booking Form`, workflow 06 — free-text values are not reliably parseable for reminder-time math; friendly display string derived in `Build Booking Payload` keeps customer SMS unchanged |
+| Reminder check cadence: hourly, not per-appointment scheduled jobs | Session decision | `Hourly Reminder Check` trigger, workflow 09 — stateless, self-healing single poll; 4–8 hour eligibility windows comfortably tolerate hourly granularity without missed or duplicate sends |
+| Reminder windows: 24h = 20–28h out, 2h = 1–3h out | Session decision | `Build Reminder Batch`, workflow 09 — generous bands sized to the hourly check cadence so no appointment falls between two consecutive runs |
+| Reminder idempotency: sheet-flag timestamps, not external dedup store | Session decision | `Reminder 24h`/`Reminder 2h` columns (reserved in workflow 06's Appointments tab schema since Phase 3); checked-and-set in the same Code+Sheets pass each hourly run |
 | Weekly report window: trailing 7 days | Session decision | `Build Weekly Report`, workflow 08 — simpler and more current than calendar-week boundaries |

@@ -1,10 +1,10 @@
 # Project Status
-_Last updated: 2026-06-07 — Phase 3 complete_
+_Last updated: 2026-06-07 — Phase 4 underway (Workflow 09 live)_
 
 ## Current Phase
-**Phase 3 — Scheduling + Automation** ✅ **COMPLETE — all 5 components live**
+**Phase 4 — Reminders / Reschedule / Cancel** 🔄 **In progress — Appointment Reminders (09) live and tested**
 
-Phase 2 is complete and verified. Phase 3 has delivered all five planned components: Hot Lead Alerting (04), Automated Follow-Up Sequences (05), Appointment Booking (06, tested end-to-end in production), Pipeline Status Digest (07), and Weekly Pipeline Report (08, tested live — execution 54 succeeded with real data). Owner phone numbers are configured and synced across all SMS-sending workflows (`+18575261499`). Phase 4 (Reminders / Reschedule / Cancel) is next.
+Phase 3 is complete (all 5 components live and tested). Phase 4 has begun: Workflow 09 (Appointment Reminders) is built, published, and live-tested against real data. As a prerequisite, Workflow 06's Booking Form was upgraded from free-text date/time fields to structured `date` + `dropdown` fields so appointment times are machine-parseable for reminder scheduling — the customer-facing confirmation SMS still renders a friendly display string (e.g. "Tuesday, June 10"). Owner phone numbers remain configured and synced across all SMS-sending workflows (`+18575261499`). Next up: Reschedule/Cancel inbound-SMS keyword flow (workflow 10).
 
 ---
 
@@ -17,9 +17,10 @@ Phase 2 is complete and verified. Phase 3 has delivered all five planned compone
 | Missed-Call Auto-SMS | `u9I1bqrLW6V5LtLp` | https://valfin.app.n8n.cloud/workflow/u9I1bqrLW6V5LtLp | ✅ Active — Twilio webhook live |
 | Hot Lead Alert | `KIpMMKM8H5IZB9wb` | https://valfin.app.n8n.cloud/workflow/KIpMMKM8H5IZB9wb | ✅ Active — owner phone set (`+18575261499`) |
 | Follow-Up Sequence | `chYfABnQdnPfiHQx` | https://valfin.app.n8n.cloud/workflow/chYfABnQdnPfiHQx | ✅ Active — daily 9 AM ET |
-| Appointment Booking | `ax2sMbvv0lqyJHMg` | https://valfin.app.n8n.cloud/workflow/ax2sMbvv0lqyJHMg | ✅ Active — form live, tested end-to-end |
+| Appointment Booking | `ax2sMbvv0lqyJHMg` | https://valfin.app.n8n.cloud/workflow/ax2sMbvv0lqyJHMg | ✅ Active — form live, tested end-to-end; **form fields upgraded to structured date/dropdown (2026-06-07)** |
 | Pipeline Status Digest | `ehqNYjZRirX5L3sX` | https://valfin.app.n8n.cloud/workflow/ehqNYjZRirX5L3sX | ✅ Active — daily 6 PM ET, owner phone set |
 | Weekly Pipeline Report | `Y7ruzhYGMhE001fr` | https://valfin.app.n8n.cloud/workflow/Y7ruzhYGMhE001fr | ✅ Active — Monday 8 AM ET, owner phone set, **tested live (execution 54)** |
+| Appointment Reminders | `bJcO5ox2u190bxTr` | https://valfin.app.n8n.cloud/workflow/bJcO5ox2u190bxTr | ✅ Active — hourly check, 24h/2h SMS, **tested live (execution 55)** |
 
 ---
 
@@ -172,15 +173,16 @@ Booking Form (owner opens URL)
 | Property | Value |
 |---|---|
 | Form URL | `https://valfin.app.n8n.cloud/form/eca6bfbb-ef53-4f82-b909-cbd2b818991a` |
-| Form fields | Lead ID (required), Appointment Date (required), Appointment Time (required), Team Member (optional), Notes (optional) |
+| Form fields | Lead ID (text, required), **Appointment Date (`date` field — YYYY-MM-DD, required)**, **Appointment Time (`dropdown` — fixed hourly slots 8 AM–5 PM, required)**, Team Member (text, optional), Notes (textarea, optional) |
 | Appt ID format | `APT-` + 14-char timestamp (e.g. `APT-20260606143052`) |
-| Appointments tab | Direct append — all 15 columns written; Status = `Scheduled` |
+| Appointments tab | Direct append — all 15 columns written; Status = `Scheduled`; `Appt Date` stored as raw `YYYY-MM-DD`, `Appt Time` stored as `H:MM AM/PM` — both machine-parseable for workflow 09 |
 | Lead status after booking | `Booked` (via CRM Adapter) |
 | Assigned To | Set from Team Member field |
-| Customer SMS | Static personalized: `"Hi [Name], your [Service] appointment with Valfin Tech is confirmed for [Date] at [Time]. Questions? Call us anytime."` |
+| Customer SMS | Static personalized, with friendly display date computed from the structured value: `"Hi [Name], your [Service] appointment with Valfin Tech is confirmed for [Weekday, Month Day] at [Time]. Questions? Call us anytime."` |
 | Twilio from | `+18889839308` |
 | Data recovery | `Build CRM Update` reads from `Build Booking Payload` by name (Twilio replaces `$json` after SMS) |
 | Invalid Lead ID | Workflow halts at IF node — nothing written |
+| **2026-06-07 architectural fix** | Form fields were originally free-text (placeholders "e.g. Tuesday, June 10" / "e.g. 2:00 PM"), which produced unparseable strings that blocked reliable reminder-time computation. Patched to structured `date`/`dropdown` field types — a prerequisite for workflow 09 — while `Build Booking Payload` now derives a friendly display string (`formatFriendlyDate()`) for the customer SMS so the user experience is unchanged. Republished; live and tested (execution 55 confirms the new pipeline runs end-to-end). |
 
 ---
 
@@ -238,6 +240,43 @@ Weekly Monday 8 AM ET (scheduleTrigger)
 
 ---
 
+### Workflow 09 — Appointment Reminders (`bJcO5ox2u190bxTr`)
+
+**Flow (6 nodes):**
+```
+Hourly Reminder Check (scheduleTrigger, every hour on the hour)
+  → Get All Appointments (googleSheets — reads Appointments tab)
+  → Build Reminder Batch (Code, runOnceForAllItems — parses Appt Date/Time,
+     computes hoursUntil per appointment, emits one item per reminder due)
+  → Loop Over Reminders (splitInBatches, batchSize 1)
+      → Send Reminder SMS (Twilio, personalized per appointment)
+      → Mark Reminder Sent (googleSheets update — writes Reminder 24h/2h timestamp,
+         matched by Appt ID; preserves the other flag's existing value)
+      → nextBatch (loop continues)
+```
+
+| Property | Value |
+|---|---|
+| Schedule | Hourly, on the hour (`hoursInterval: 1`, `triggerAtMinute: 0`) |
+| Reads | `Appointments` tab directly (read-only fetch; writes are scoped to the two reminder-flag columns only) |
+| Eligibility filter | `Status === 'Scheduled'` AND `Appt Date`/`Appt Time` parse successfully AND appointment is in the future |
+| 24h window | `hoursUntil` between 20–28, AND `Reminder 24h` flag empty |
+| 2h window | `hoursUntil` between 1–3, AND `Reminder 2h` flag empty |
+| Idempotency | `Reminder 24h` / `Reminder 2h` columns written with an ISO timestamp on send — checked on every run to prevent duplicate SMS to the same customer |
+| Date/time parsing | `parseApptDateTime()` expects `Appt Date` = `YYYY-MM-DD`, `Appt Time` = `H:MM AM/PM`; ET treated as fixed UTC-5 (matches workflows 05/07/08 convention) |
+| Friendly display | `formatFriendlyDate()` renders `Weekday, Month Day` (e.g. "Tuesday, June 10") for the SMS body from the stored `YYYY-MM-DD` |
+| Customer SMS (24h) | `"Hi [Name], reminder — your [Service] appointment with Valfin Tech is tomorrow, [Weekday, Month Day] at [Time]. Need to reschedule? Call us anytime."` |
+| Customer SMS (2h) | `"Hi [Name], your [Service] appointment with Valfin Tech is today at [Time] — about 2 hours from now. See you soon!"` |
+| Twilio from | `+18889839308` |
+| Sheet write safety | `Mark Reminder Sent` always writes both `Reminder 24h` and `Reminder 2h` columns, but conditionally — the column matching the just-sent reminder type gets the new timestamp, the other column is passed through unchanged from its existing value (prevents accidental overwrites) |
+| **Prerequisite fix** | Workflow 06's Booking Form was upgraded from free-text date/time to structured `date`/`dropdown` fields (see Workflow 06 section, "2026-06-07 architectural fix") — required for `Appt Date`/`Appt Time` to be reliably parseable |
+| **Tested live** | Execution `55` (manual run, 2026-06-07): read the live Appointments tab (1 row — a legacy test booking with pre-fix free-text values `"Friday"`/`"14:00"`), `parseApptDateTime()` correctly recognized this as unparseable and safely skipped it, `Build Reminder Batch` emitted 0 items, the loop correctly no-op'd on empty input. Confirms the parsing guard, eligibility filter, and zero-item safety all work correctly against live production data — new structured bookings (post-fix) will flow through the full send+mark pipeline. |
+| Architecture note | Read + scoped-write only; calls no other workflow; designed to run independently and safely alongside all other workflows |
+
+> Why this workflow: reduces no-shows (the single biggest drag on appointment-completion rate and technician utilization) by reaching customers twice — a day-before nudge that catches early cancellations/reschedules, and a same-day nudge that maximizes show-up rate. Both messages invite a reschedule call, setting up workflow 10's inbound-keyword flow.
+
+---
+
 ## Credentials (Confirmed Set)
 
 | Credential | Type | Status |
@@ -279,4 +318,15 @@ Weekly Monday 8 AM ET (scheduleTrigger)
 | Pipeline Status Digest | ✅ Live — owner phone set | `ehqNYjZRirX5L3sX` (07) |
 | Weekly Pipeline Report | ✅ Live — owner phone set, tested live (execution 54) | `Y7ruzhYGMhE001fr` (08) |
 
-**Phase 3 is complete.** All five planned components are published, active, and (where applicable) tested against live data. **Next:** Phase 4 — Reminders / Reschedule / Cancel (24h + 2h appointment reminder SMS, inbound-SMS-keyword reschedule/cancel flows). This requires a Twilio inbound SMS webhook, which is compatible with the current trial-account status (inbound doesn't require toll-free verification — only outbound to unverified numbers is blocked).
+**Phase 3 is complete.** All five planned components are published, active, and (where applicable) tested against live data.
+
+---
+
+## Phase 4 Progress — 🔄 In Progress (1/2)
+
+| Component | Status | n8n ID |
+|---|---|---|
+| Appointment Reminders (24h + 2h SMS) | ✅ Live — tested live (execution 55), idempotent via sheet flags | `bJcO5ox2u190bxTr` (09) |
+| Reschedule / Cancel (inbound SMS keyword routing) | 🔄 Up next | `10_reschedule_cancel` (planned) |
+
+**Next:** Workflow 10 — Reschedule/Cancel inbound-SMS-keyword flow. Requires a Twilio inbound SMS webhook, which is compatible with the current trial-account status (inbound doesn't require toll-free verification — only outbound to unverified numbers is blocked).

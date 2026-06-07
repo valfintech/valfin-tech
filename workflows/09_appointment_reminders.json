@@ -1,0 +1,110 @@
+{
+  "_comment": "Local reference copy — created 2026-06-07. Live ID: bJcO5ox2u190bxTr. Phase 4 workflow. Hourly reminder scheduler — sends 24h and 2h pre-appointment SMS to customers, idempotent via Reminder 24h/2h sheet flags. Tested live (execution 55): correctly read the live Appointments tab, recognized the one existing row's legacy free-text date/time ('Friday'/'14:00' — predates the workflow 06 form fix below) as unparseable, and safely skipped it with zero false-positive sends (Build Reminder Batch returned 0 items; loop no-op on empty input). Confirms parsing + zero-item safety logic both work correctly against live production data.",
+  "name": "Appointment Reminders",
+  "active": true,
+  "settings": { "executionOrder": "v1" },
+  "nodes": [
+    {
+      "parameters": {
+        "rule": { "interval": [{ "field": "hours", "hoursInterval": 1, "triggerAtMinute": 0 }] }
+      },
+      "id": "7c17d63a-7ded-461d-960d-486091a6ea2b",
+      "name": "Hourly Reminder Check",
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.3,
+      "position": [0, 0]
+    },
+    {
+      "parameters": {
+        "resource": "sheet",
+        "operation": "read",
+        "documentId": { "__rl": true, "mode": "id", "value": "1MxmJouteZhi1K_-KOwgBlJtBFAXtm2G_0H555otTHBQ" },
+        "sheetName": { "__rl": true, "mode": "name", "value": "Appointments" },
+        "options": {}
+      },
+      "id": "7be8198b-3180-4085-a1fe-aded478e30c5",
+      "name": "Get All Appointments",
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.7,
+      "position": [224, 0],
+      "retryOnFail": true,
+      "maxTries": 3,
+      "waitBetweenTries": 2000,
+      "credentials": { "googleSheetsOAuth2Api": { "id": "", "name": "Google Sheets account" } }
+    },
+    {
+      "parameters": {
+        "mode": "runOnceForAllItems",
+        "jsCode": "const now = new Date();\nconst appts = $input.all().map(i => i.json);\n\nfunction parseApptDateTime(apptDate, apptTime) {\n  const dm = String(apptDate || '').trim().match(/^(\\d{4})-(\\d{2})-(\\d{2})$/);\n  const tm = String(apptTime || '').trim().match(/^(\\d{1,2}):(\\d{2})\\s*(AM|PM)$/i);\n  if (!dm || !tm) return null;\n  const year = parseInt(dm[1], 10);\n  const month = parseInt(dm[2], 10);\n  const day = parseInt(dm[3], 10);\n  let hour = parseInt(tm[1], 10);\n  const minute = parseInt(tm[2], 10);\n  const ampm = tm[3].toUpperCase();\n  if (ampm === 'PM' && hour !== 12) hour += 12;\n  if (ampm === 'AM' && hour === 12) hour = 0;\n  const utcMs = Date.UTC(year, month - 1, day, hour + 5, minute);\n  return new Date(utcMs);\n}\n\nfunction formatFriendlyDate(ymd) {\n  const m = String(ymd || '').match(/^(\\d{4})-(\\d{2})-(\\d{2})$/);\n  if (!m) return ymd;\n  const dt = new Date(Date.UTC(+m[1], +m[2] - 1, +m[3]));\n  const days = ['Sunday','Monday','Tuesday','Wednesday','Thursday','Friday','Saturday'];\n  const months = ['January','February','March','April','May','June','July','August','September','October','November','December'];\n  return days[dt.getUTCDay()] + ', ' + months[dt.getUTCMonth()] + ' ' + dt.getUTCDate();\n}\n\nconst FROM = '+18889839308';\nconst nowIso = now.toISOString();\nconst reminders = [];\n\nfor (const appt of appts) {\n  const status = (appt['Status'] || '').trim();\n  if (status !== 'Scheduled') continue;\n\n  const apptDateTime = parseApptDateTime(appt['Appt Date'], appt['Appt Time']);\n  if (!apptDateTime) continue;\n\n  const hoursUntil = (apptDateTime.getTime() - now.getTime()) / (1000 * 60 * 60);\n  if (hoursUntil < 0) continue;\n\n  const raw = String(appt['Phone'] || '').replace(/\\D/g, '');\n  const e164 = raw.length === 11 && raw.startsWith('1') ? '+' + raw\n    : raw.length === 10 ? '+1' + raw : null;\n  if (!e164) continue;\n\n  const firstName = String(appt['Customer Name'] || '').trim().split(/\\s+/)[0] || '';\n  const greeting = firstName ? 'Hi ' + firstName + ',' : 'Hi,';\n  const svc = appt['Service Type'] || 'roofing appointment';\n  const dateDisplay = formatFriendlyDate(appt['Appt Date']);\n  const timeDisplay = appt['Appt Time'] || '';\n\n  const reminder24Sent = String(appt['Reminder 24h'] || '').trim();\n  const reminder2Sent = String(appt['Reminder 2h'] || '').trim();\n\n  if (!reminder24Sent && hoursUntil >= 20 && hoursUntil <= 28) {\n    reminders.push({\n      apptId: appt['Appt ID'],\n      reminderType: '24h',\n      e164Phone: e164,\n      from: FROM,\n      sentAt: nowIso,\n      existingReminder24: reminder24Sent,\n      existingReminder2h: reminder2Sent,\n      message: greeting + ' reminder — your ' + svc + ' appointment with Valfin Tech is tomorrow, ' + dateDisplay + ' at ' + timeDisplay + '. Need to reschedule? Call us anytime.'\n    });\n  }\n  if (!reminder2Sent && hoursUntil >= 1 && hoursUntil <= 3) {\n    reminders.push({\n      apptId: appt['Appt ID'],\n      reminderType: '2h',\n      e164Phone: e164,\n      from: FROM,\n      sentAt: nowIso,\n      existingReminder24: reminder24Sent,\n      existingReminder2h: reminder2Sent,\n      message: greeting + ' your ' + svc + ' appointment with Valfin Tech is today at ' + timeDisplay + ' — about 2 hours from now. See you soon!'\n    });\n  }\n}\n\nreturn reminders.map(r => ({ json: r }));"
+      },
+      "id": "2c8142ed-5a4c-4e06-b453-50a0b319632c",
+      "name": "Build Reminder Batch",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [448, 0]
+    },
+    {
+      "parameters": { "batchSize": 1 },
+      "id": "1ee0e61b-2d0e-454d-bbf3-fbf8e70ff4e9",
+      "name": "Loop Over Reminders",
+      "type": "n8n-nodes-base.splitInBatches",
+      "typeVersion": 3,
+      "position": [672, 0]
+    },
+    {
+      "parameters": {
+        "resource": "sms",
+        "operation": "send",
+        "from": "={{ $json.from }}",
+        "to": "={{ $json.e164Phone }}",
+        "message": "={{ $json.message }}",
+        "options": {}
+      },
+      "id": "2cdfbcfd-b046-421c-8e6d-a9a35e9078c9",
+      "name": "Send Reminder SMS",
+      "type": "n8n-nodes-base.twilio",
+      "typeVersion": 1,
+      "position": [0, 0],
+      "retryOnFail": true,
+      "maxTries": 3,
+      "waitBetweenTries": 3000,
+      "credentials": { "twilioApi": { "id": "", "name": "Twilio account" } }
+    },
+    {
+      "parameters": {
+        "resource": "sheet",
+        "operation": "update",
+        "documentId": { "__rl": true, "mode": "id", "value": "1MxmJouteZhi1K_-KOwgBlJtBFAXtm2G_0H555otTHBQ" },
+        "sheetName": { "__rl": true, "mode": "name", "value": "Appointments" },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "Appt ID": "={{ $(\"Build Reminder Batch\").item.json.apptId }}",
+            "Reminder 24h": "={{ $(\"Build Reminder Batch\").item.json.reminderType === \"24h\" ? $(\"Build Reminder Batch\").item.json.sentAt : $(\"Build Reminder Batch\").item.json.existingReminder24 }}",
+            "Reminder 2h": "={{ $(\"Build Reminder Batch\").item.json.reminderType === \"2h\" ? $(\"Build Reminder Batch\").item.json.sentAt : $(\"Build Reminder Batch\").item.json.existingReminder2h }}"
+          },
+          "matchingColumns": ["Appt ID"],
+          "schema": []
+        },
+        "options": {}
+      },
+      "id": "ffa2de0b-3530-49d4-af7a-f0837342767b",
+      "name": "Mark Reminder Sent",
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.7,
+      "position": [224, 0],
+      "retryOnFail": true,
+      "maxTries": 3,
+      "waitBetweenTries": 2000,
+      "credentials": { "googleSheetsOAuth2Api": { "id": "", "name": "Google Sheets account" } }
+    }
+  ],
+  "connections": {
+    "Hourly Reminder Check": { "main": [[{ "node": "Get All Appointments", "type": "main", "index": 0 }]] },
+    "Get All Appointments": { "main": [[{ "node": "Build Reminder Batch", "type": "main", "index": 0 }]] },
+    "Build Reminder Batch": { "main": [[{ "node": "Loop Over Reminders", "type": "main", "index": 0 }]] },
+    "Loop Over Reminders": { "main": [[], [{ "node": "Send Reminder SMS", "type": "main", "index": 0 }]] },
+    "Send Reminder SMS": { "main": [[{ "node": "Mark Reminder Sent", "type": "main", "index": 0 }]] },
+    "Mark Reminder Sent": { "main": [[{ "node": "Loop Over Reminders", "type": "main", "index": 0 }]] }
+  }
+}

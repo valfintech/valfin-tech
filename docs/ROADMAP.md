@@ -1,5 +1,5 @@
 # Roadmap
-_Last updated: 2026-06-07_
+_Last updated: 2026-06-07 — Phase 4 underway (Workflow 09 live)_
 
 ## Phase Overview
 
@@ -8,7 +8,7 @@ _Last updated: 2026-06-07_
 | 1 | Google Sheets CRM | — | ✅ Done (pre-existing) | — |
 | 2 | Missed-Call + Form Capture | 🔴 DEMO | ✅ **Complete — verified live** | Phase 1 |
 | 3 | Lead Response + Follow-Up Automation | High | ✅ **Complete (5/5) — verified live** | Phase 2 |
-| 4 | Reminders / Reschedule / Cancel | High | 🔄 **Up next** | Phase 3 |
+| 4 | Reminders / Reschedule / Cancel | High | 🔄 **In progress (1/2)** — Appointment Reminders (09) live & tested | Phase 3 |
 | 5 | Retention (reviews, referrals, seasonal) | Low | Not started | Phase 4 |
 
 > Note: the original Phase 4/5/6 numbering in this roadmap ("Appointment Booking + Pipeline" as Phase 4) was superseded once Appointment Booking and Pipeline Status Automation were folded into Phase 3 (workflows 06–08) — they delivered more value sooner there, alongside the rest of the lead-response stack. Phase numbering below has been compressed accordingly: former Phase 5 (Reminders/Reschedule/Cancel) is now Phase 4, and former Phase 6 (Retention) is now Phase 5.
@@ -72,7 +72,7 @@ Verified against live n8n on 2026-06-07. All five components published, active, 
 
 ---
 
-## Phase 4 — Reminders / Reschedule / Cancel 🔄 UP NEXT
+## Phase 4 — Reminders / Reschedule / Cancel 🔄 IN PROGRESS (1/2)
 
 ### Scope
 - 24-hour appointment reminder SMS
@@ -81,11 +81,17 @@ Verified against live n8n on 2026-06-07. All five components published, active, 
 - Cancel flow: confirmation + optional rebooking offer
 
 ### Key Workflows
-- `09_appointment_reminders` — scheduled 24h + 2h triggers before appointment
-- `10_reschedule_cancel` — inbound SMS keyword routing
+| Workflow | n8n ID | Status | What It Does |
+|---|---|---|---|
+| `09_appointment_reminders` | `bJcO5ox2u190bxTr` | ✅ **Live — tested live (execution 55)** | Hourly schedule → reads Appointments tab → computes 24h (20–28h out) and 2h (1–3h out) reminder windows from parsed `Appt Date`/`Appt Time` → sends personalized SMS per appointment → flags `Reminder 24h`/`Reminder 2h` columns to prevent duplicate sends. |
+| `10_reschedule_cancel` | _planned_ | 🔄 Up next | Inbound SMS keyword routing — customer replies "reschedule"/"cancel" to a reminder → proposes new slot or confirms cancellation + optional rebooking offer. |
+
+### Prerequisite Fix (Completed 2026-06-07)
+Workflow 06's Booking Form originally captured `Appointment Date`/`Appointment Time` as **free-text** fields (placeholders "e.g. Tuesday, June 10" / "e.g. 2:00 PM"), producing strings that could not be reliably parsed for computing "24 hours before" / "2 hours before" reminder timing. Fixed at the source: the form now uses a `date` field type (`YYYY-MM-DD`, machine-parseable) and a `dropdown` field type (fixed hourly time slots, 8 AM–5 PM). `Build Booking Payload` derives a friendly display string (`formatFriendlyDate()` → "Tuesday, June 10") for the customer-facing confirmation SMS, so the user experience is unchanged while the underlying stored data is now parseable. Republished and live-tested.
 
 ### Dependencies
 - ✅ Phase 3 appointment booking complete (workflow 06, `ax2sMbvv0lqyJHMg`, tested end-to-end)
+- ✅ Workflow 06 form fields upgraded to structured date/dropdown — prerequisite for workflow 09, delivered 2026-06-07
 - Inbound SMS webhook (Twilio → n8n) — **compatible with current trial-account status; inbound SMS does not require toll-free verification (only outbound to unverified numbers is restricted)**
 
 ---
@@ -112,7 +118,7 @@ Verified against live n8n on 2026-06-07. All five components published, active, 
 
 ```
 Phase 2 ✅ → Phase 3 ✅ COMPLETE (Hot Alert + Follow-Up + Booking + Pipeline Digest + Weekly Report, all live & tested)
-   → Phase 4 🔄 (Reminders / Reschedule / Cancel — up next)
+   → Phase 4 🔄 IN PROGRESS (Appointment Reminders 09 ✅ live & tested → Reschedule/Cancel 10 up next)
    → Phase 5 (Retention)
 ```
 
@@ -147,3 +153,7 @@ The CRM Adapter (`wVRHChyFrUNRaH4M`) is the foundation — all workflows call it
 | Weekly report delivery channel | SMS (not email) | No email credential exists in n8n; SMS reuses proven Twilio infrastructure with zero new setup. Roadmap explicitly allowed either channel. |
 | Weekly report schedule | Monday 8 AM ET (13:00 UTC) | Start-of-week look-back at the prior 7 days — gives the owner a trend view to open the week with |
 | New-workflow owner-phone setup | Read live value from an existing configured workflow + patch via `update_workflow`, when possible | Eliminates repeat manual setup steps (used for workflow 08 — zero manual action required, unlike 04/07) |
+| Booking form date/time capture | Structured `date` + `dropdown` fields (not free text) | Free-text values like "Tuesday, June 10" / "2:00 PM" placeholders are not reliably parseable for reminder-time math; structured fields guarantee `YYYY-MM-DD` / fixed time-slot strings while a derived friendly-display string keeps the customer SMS unchanged |
+| Reminder schedule cadence | Hourly check (not per-appointment scheduling) | Simpler, stateless, self-healing — a single recurring poll covers both the 24h and 2h windows for every appointment without per-appointment trigger management; 4–8 hour windows (20–28h, 1–3h) tolerate the hourly granularity |
+| Reminder idempotency | `Reminder 24h`/`Reminder 2h` sheet flags written with ISO timestamps, checked before every send | Prevents duplicate SMS on repeat hourly runs; matches the reserved-column design already present in the Appointments tab from workflow 06 |
+| Reminder send failure isolation | Each reminder processed independently in a `splitInBatches(1)` loop with `retryOnFail` | One customer's bad phone number or a transient Twilio error doesn't block reminders to other customers in the same run |

@@ -15,7 +15,7 @@ docs/        setup + operating guides
 | 1. Google Sheets CRM | done (pre-existing) | — |
 | 2. Missed-call + form capture | ✅ **Complete — live in n8n** | 3 workflows deployed |
 | 3. Lead response + follow-up automation | ✅ **Complete — verified live** | 5/5 components live |
-| 4. Reminders / reschedule / cancel | 🔄 up next | |
+| 4. Reminders / reschedule / cancel | 🔄 in progress (1/2) — Appointment Reminders live | 1 of 2 workflows deployed |
 | 5. Retention | not started | |
 
 ### All live workflows in n8n (`valfin.app.n8n.cloud`)
@@ -26,9 +26,10 @@ docs/        setup + operating guides
 | `03_missed_call_auto_sms` | `u9I1bqrLW6V5LtLp` | Missed-Call Auto-SMS. Twilio call-status → no-answer/busy filter → static SMS within seconds → CRM logs Comm entry only (no Lead). |
 | `04_hot_lead_alert` | `KIpMMKM8H5IZB9wb` | Hot Lead Alert. Sub-workflow called by 02 on Hot/Emergency leads. Sends instant SMS to owner. Owner phone configured (`+18575261499`). |
 | `05_follow_up_sequence` | `chYfABnQdnPfiHQx` | Follow-Up Sequence. Daily 9 AM ET. Sends Day 1/3/7 SMS to New/Contacted leads, then updates status + Follow-up Count via CRM Adapter. Stops at 3 attempts. Booked leads auto-excluded. |
-| `06_appointment_booking` | `ax2sMbvv0lqyJHMg` | Appointment Booking. Owner form → look up lead → write Appointments tab → customer confirmation SMS → update lead to Booked via CRM Adapter. Form: `https://valfin.app.n8n.cloud/form/eca6bfbb-ef53-4f82-b909-cbd2b818991a`. **Tested end-to-end in production — confirmed working.** |
+| `06_appointment_booking` | `ax2sMbvv0lqyJHMg` | Appointment Booking. Owner form → look up lead → write Appointments tab → customer confirmation SMS → update lead to Booked via CRM Adapter. Form: `https://valfin.app.n8n.cloud/form/eca6bfbb-ef53-4f82-b909-cbd2b818991a`. Date/Time fields upgraded to structured `date`/`dropdown` (machine-parseable for reminders); friendly display string preserved in customer SMS. **Tested end-to-end in production — confirmed working.** |
 | `07_pipeline_status_digest` | `ehqNYjZRirX5L3sX` | Pipeline Status Digest. Daily 6 PM ET → reads all leads → tallies New/Contacted/Booked/Stale counts → escalates Stale leads still Hot/Warm by name + phone → reports today's new leads/bookings → single SMS digest to owner. Read-only — no Sheets writes. Owner phone configured (`+18575261499`). |
 | `08_weekly_pipeline_report` | `Y7ruzhYGMhE001fr` | Weekly Pipeline Report. Monday 8 AM ET → reads all leads → computes trailing-7-day metrics (new leads, Hot/Emergency split, bookings, stale count, bookings/new ratio, top sources) → single SMS report to owner. Read-only. Owner phone synced programmatically — zero manual setup. **Test-executed live (execution 54) — confirmed working.** |
+| `09_appointment_reminders` | `bJcO5ox2u190bxTr` | Appointment Reminders. Hourly check → reads Appointments tab → computes 24h (20-28h out) and 2h (1-3h out) reminder windows → personalized SMS per appointment → flags `Reminder 24h`/`Reminder 2h` columns to prevent duplicates. **Test-executed live (execution 55) — confirmed working** (correctly parsed/skipped a legacy unparseable test row with zero false-positive sends). |
 
 **Credentials configured in n8n UI:** Google Sheets OAuth2 · Anthropic Header Auth · Twilio API. (Twilio account intentionally remains on trial/unverified status — a deliberate, paused, non-blocking external decision.)
 See `docs/PROJECT_STATUS.md` for full workflow details and known issues.
