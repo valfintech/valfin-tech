@@ -1,5 +1,5 @@
 # Roadmap
-_Last updated: 2026-06-06_
+_Last updated: 2026-06-07_
 
 ## Phase Overview
 
@@ -7,7 +7,7 @@ _Last updated: 2026-06-06_
 |---|---|---|---|---|
 | 1 | Google Sheets CRM | — | ✅ Done (pre-existing) | — |
 | 2 | Missed-Call + Form Capture | 🔴 DEMO | ✅ **Complete — verified live** | Phase 1 |
-| 3 | Lead Response + Follow-Up Automation | High | 🔄 **In Progress (2/5 complete)** | Phase 2 |
+| 3 | Lead Response + Follow-Up Automation | High | 🔄 **In Progress (4/5 complete)** | Phase 2 |
 | 4 | Appointment Booking + Pipeline | High | Not started | Phase 3 |
 | 5 | Reminders / Reschedule / Cancel | High | Not started | Phase 4 |
 | 6 | Retention (reviews, referrals, seasonal) | Low | Not started | Phase 5 |
@@ -35,7 +35,7 @@ Verified against live n8n on 2026-06-06.
 - [x] `skipLeadCreation` routing live and tested
 
 ### Open Item (Non-Blocking)
-- [ ] Twilio toll-free number verification — error 30032 blocks SMS delivery at carrier level. Complete at twilio.com/console. Workflows are ready and correct.
+- [ ] Twilio toll-free number verification — error 30032 blocks SMS delivery at carrier level. Complete at twilio.com/console. Workflows are ready and correct. **User confirmed (2026-06-07): explicitly non-blocking — external infrastructure item, do not block development on it.**
 
 ---
 
@@ -49,29 +49,28 @@ Verified against live n8n on 2026-06-06.
 |---|---|---|
 | Hot Lead Alert | `KIpMMKM8H5IZB9wb` | Sub-workflow called by 02 when score is Hot or urgency is Emergency. Sends instant SMS to owner with lead name, service, address, and phone. |
 | Follow-Up Sequence | `chYfABnQdnPfiHQx` | Daily 9 AM ET. Reads all New/Contacted leads, filters by time thresholds (Day 1/3/7), sends personalized static SMS templates, updates lead status + Follow-up Count via CRM Adapter. Stops at 3 attempts or status change. Booked leads auto-excluded. |
-| Appointment Booking | `ax2sMbvv0lqyJHMg` | Owner-facing n8n form. Looks up lead by ID, writes row to Appointments tab, sends customer confirmation SMS, updates lead status to Booked via CRM Adapter. |
+| Appointment Booking | `ax2sMbvv0lqyJHMg` | Owner-facing n8n form. Looks up lead by ID, writes row to Appointments tab, sends customer confirmation SMS, updates lead status to Booked via CRM Adapter. **Tested end-to-end in production — confirmed working.** |
+| Pipeline Status Digest | `ehqNYjZRirX5L3sX` | Daily 6 PM ET. Reads all leads, tallies counts by status (New/Contacted/Booked/Stale), escalates Stale leads still Hot/Warm by name + phone, reports today's new leads and bookings — single SMS digest to owner. Read-only; no Sheets writes. |
 
 ### Phase 3 Completion Criteria
 - [x] Hot leads trigger immediate owner SMS notification
 - [x] Automated Day 1 / Day 3 / Day 7 follow-up sequence running
 - [x] Appointment Booking Workflow live — form, Appointments tab write, customer SMS, lead status update
+- [x] Appointment Booking verified end-to-end in production (Lead → Booked, Appointment row, Comm Log, Follow-Up + Hot Alert unaffected)
 - [x] Every interaction logged to Communication Log
 - [x] CRM Adapter supports `followUpCount` from callers
 - [x] Booked leads automatically excluded from follow-up sequence
+- [x] Daily pipeline digest live — counts by status + Stale/Hot escalation + today's activity
 - [ ] **SETUP REQUIRED:** Replace `OWNER_PHONE_HERE` in workflow 04 `Build Alert Message` node with real E.164 phone number
-- [ ] Pipeline Status Automation (07)
+- [ ] **SETUP REQUIRED:** Replace `OWNER_PHONE_HERE` in workflow 07 `Build Pipeline Digest` node with real E.164 phone number (same number as 04)
 - [ ] Reporting / Dashboarding (08)
 
 ### Remaining Phase 3 Work
 
-**Workflow 07 — Pipeline Status Automation:**
-- Status change triggers → team notification
-- Stale lead escalation
-- Booked → job created workflow
-
-**Workflow 08 — Reporting:**
-- Weekly summary: new leads, appointments booked, follow-up counts
-- Delivered via SMS or email to owner
+**Workflow 08 — Reporting / Dashboarding:**
+- Weekly (or monthly) summary: new leads, appointments booked, follow-up counts, conversion trends
+- Likely delivered via email given larger payload — daily real-time pipeline visibility is now covered by workflow 07 (Pipeline Status Digest)
+- Candidate metrics: lead source breakdown, average time-to-contact, booking conversion rate, follow-up sequence effectiveness
 
 ---
 
@@ -114,7 +113,7 @@ Verified against live n8n on 2026-06-06.
 ## Recommended Build Order
 
 ```
-Phase 2 ✅ → Phase 3 (Hot Alert ✅ + Follow-Up ✅ + Booking ✅) → Phase 4 → Phase 5
+Phase 2 ✅ → Phase 3 (Hot Alert ✅ + Follow-Up ✅ + Booking ✅ + Pipeline Digest ✅ → Reporting 🔲) → Phase 4 → Phase 5
 ```
 
 **Rule of thumb:** Each phase must be live and tested before building the next.
@@ -140,3 +139,6 @@ The CRM Adapter (`wVRHChyFrUNRaH4M`) is the foundation — all workflows call it
 | Owner notification channel | SMS via Twilio (Phase 3) | Simplest, uses existing credentials. Designed for future Slack/email expansion. |
 | Hot lead threshold | `temperature === 'Hot'` OR `urgency === 'Emergency'` | Captures both scored and keyword-emergency leads |
 | Follow-up stop conditions | Count ≥ 3 OR status not in {New, Contacted} | Prevents over-messaging; status change by any path stops the sequence |
+| Pipeline digest schedule | Daily 6 PM ET (22:00 UTC) | End-of-business-day summary — captures the full day's activity before owner's evening review |
+| Pipeline digest delivery | SMS, plain text, no AI, read-only | Reliability + zero cost; matches static-template precedent from workflows 03/05/06; GSM-7 encoding minimizes segment count |
+| Stale escalation scope | Stale AND Temperature in {Hot, Warm} only | Surfaces revenue-at-risk leads without noise from expected Cold churn |

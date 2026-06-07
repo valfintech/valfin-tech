@@ -1,11 +1,11 @@
 # Project Audit
-_Last updated: 2026-06-06 — Phase 3 in progress_
+_Last updated: 2026-06-07 — Phase 3 in progress_
 
 ---
 
-## Verification Summary (2026-06-06)
+## Verification Summary (2026-06-07)
 
-All Phase 2 workflows inspected via n8n MCP and verified against live execution history. Phase 3 components (04, 05) built and published in the same session.
+All Phase 2 workflows inspected via n8n MCP and verified against live execution history. Phase 3 components 04–07 built and published. Workflow 06 (Appointment Booking) confirmed working end-to-end in production by user: Lead status updates to Booked, Appointment rows write correctly, Communication Log entries are created, Follow-Up workflow continues running normally, Hot Lead Alert remains published. Workflow 07 (Pipeline Status Digest) built and published this session as the next highest-value Phase 3 component — gives the owner daily pipeline visibility plus proactive escalation of Stale-but-still-warm leads.
 
 ---
 
@@ -18,7 +18,8 @@ All Phase 2 workflows inspected via n8n MCP and verified against live execution 
 | Missed-Call Auto-SMS active | `u9I1bqrLW6V5LtLp` — Twilio webhook live |
 | Hot Lead Alert active | `KIpMMKM8H5IZB9wb` — published; called by workflow 02 when Hot or Emergency |
 | Follow-Up Sequence active | `chYfABnQdnPfiHQx` — published; daily 9 AM ET schedule |
-| Appointment Booking active | `ax2sMbvv0lqyJHMg` — published; form live at `https://valfin.app.n8n.cloud/form/eca6bfbb-ef53-4f82-b909-cbd2b818991a` |
+| Appointment Booking active | `ax2sMbvv0lqyJHMg` — published; form live at `https://valfin.app.n8n.cloud/form/eca6bfbb-ef53-4f82-b909-cbd2b818991a`; **confirmed working end-to-end in production by user (2026-06-07): Lead → Booked, Appointment row written, Comm Log entry created, Follow-Up + Hot Lead Alert unaffected** |
+| Pipeline Status Digest active | `ehqNYjZRirX5L3sX` — published; daily 22:00 UTC (6 PM ET) schedule; read-only, no Sheets writes |
 | Google Sheets credential | Set on all Sheets nodes in workflows 01 and 05 |
 | Anthropic credential | Set on all HTTP Request nodes in workflow 02 |
 | Twilio credential | Set on SMS nodes in workflows 02, 03, 04, 05 |
@@ -43,6 +44,10 @@ All Phase 2 workflows inspected via n8n MCP and verified against live execution 
 | Appointments tab write (direct) | Workflow 06 appends directly to Appointments tab — does not go through CRM Adapter. Correct: Appointments is a pure-append log with no dedup concern. |
 | Invalid Lead ID handling | IF node halts workflow gracefully — nothing written to Appointments or Leads if Lead ID not found |
 | Booked leads excluded from follow-up | Status `Booked` not in qualifying set {New, Contacted} — no code change needed |
+| Pipeline digest aggregation | `Build Pipeline Digest` uses `mode: runOnceForAllItems` to tally all leads in a single Code node pass — correct since only one summary SMS is sent (no loop required) |
+| Pipeline digest read-only safety | Workflow 07 only reads the `Leads` tab — no writes to Sheets, no CRM Adapter calls, cannot interfere with any other workflow's state |
+| Stale/Hot escalation logic | `status === 'Stale' && (temp === 'Hot' || temp === 'Warm')` — correctly targets warm deals at risk of being lost, not all Stale leads (Cold Stale leads are expected and not actionable) |
+| Digest message encoding | Plain text, no emojis — keeps SMS in GSM-7 encoding (160 chars/segment) rather than UCS-2 (70 chars/segment), reducing per-message Twilio segment cost |
 
 ---
 
@@ -50,8 +55,9 @@ All Phase 2 workflows inspected via n8n MCP and verified against live execution 
 
 | Issue | Impact | Action |
 |---|---|---|
-| Twilio error 30032 — toll-free number not verified | No customer or owner SMS received | **User action:** complete toll-free verification at [twilio.com/console](https://www.twilio.com/console). Workflows are correct; carrier blocks delivery until verified. |
+| Twilio error 30032 — toll-free number not verified | No customer or owner SMS received | **User action:** complete toll-free verification at [twilio.com/console](https://www.twilio.com/console). Workflows are correct; carrier blocks delivery until verified. **Per user direction (2026-06-07): explicitly non-blocking — external infrastructure item, do not block development on it.** |
 | Workflow 04 — `OWNER_PHONE_HERE` placeholder | Owner alert SMS will fail until set | **User action:** open workflow `KIpMMKM8H5IZB9wb`, edit `Build Alert Message` node, replace `OWNER_PHONE_HERE` with E.164 number (e.g. `+16175550100`). |
+| Workflow 07 — `OWNER_PHONE_HERE` placeholder | Daily digest SMS will fail until set | **User action:** open workflow `ehqNYjZRirX5L3sX`, edit `Build Pipeline Digest` node, replace `OWNER_PHONE_HERE` with the same E.164 number used in workflow 04. |
 
 ---
 
@@ -155,6 +161,25 @@ Leads with no valid phone are skipped silently.
 
 ---
 
+### Pipeline Status Digest Architecture
+
+```
+Daily 6 PM ET (scheduleTrigger, 22:00 UTC)
+  → Get All Leads (googleSheets — reads Leads tab directly, read-only)
+  → Build Pipeline Digest (Code, runOnceForAllItems)
+      - Tallies counts by Status: New / Contacted / Booked / Stale
+      - Computes today's activity: newToday (Date Created = today), bookedToday (Status=Booked + Last Contact = today)
+      - Builds escalation list: Status = Stale AND Temperature in {Hot, Warm} (top 3 + "+N more")
+      - Assembles single plain-text SMS (no emojis — GSM-7 encoding)
+  → Send Owner Digest SMS (Twilio)
+```
+
+**Why read directly instead of via CRM Adapter:** This workflow only reads — it never writes to Sheets or Communication Log, so there's no dedup/single-writer concern. Matches the same direct-read precedent already used in workflow 05 (`Get All Leads`).
+
+**Escalation criteria rationale:** Only Stale leads that are still Hot or Warm are surfaced — these are qualified prospects the automated follow-up sequence couldn't close, representing real revenue at risk. Cold Stale leads are expected/normal churn and would just create noise.
+
+---
+
 ### Missed-Call SMS (Static — No AI)
 
 Hardcoded in `Build SMS Request` (workflow 03):
@@ -193,3 +218,6 @@ To change: edit `Build SMS Request` node in workflow `u9I1bqrLW6V5LtLp`.
 | Google Sheet ID: `1MxmJouteZhi1K_-KOwgBlJtBFAXtm2G_0H555otTHBQ` | Live verified | All Sheets nodes, workflows 01 and 05 |
 | Follow-up schedule: 9 AM ET daily | Session decision | `Daily 9 AM ET` trigger, workflow 05 |
 | Owner notification: SMS only (Phase 3) | Session decision | `Build Alert Message`, workflow 04 — expand later |
+| Pipeline digest schedule: 6 PM ET daily | Session decision | `Daily 6 PM ET` trigger, workflow 07 — end-of-business-day summary |
+| Pipeline digest: read-only, no AI, plain text | Session decision | `Build Pipeline Digest`, workflow 07 — reliability, zero cost, GSM-7 segment efficiency |
+| Stale escalation threshold: Hot/Warm only | Session decision | `Build Pipeline Digest`, workflow 07 — Cold Stale leads excluded as expected churn |

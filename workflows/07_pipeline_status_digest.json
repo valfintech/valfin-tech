@@ -1,0 +1,69 @@
+{
+  "_comment": "Local reference copy — created 2026-06-07. Live ID: ehqNYjZRirX5L3sX. Phase 3 workflow. Daily owner SMS digest of pipeline health + Stale Hot/Warm lead escalation.",
+  "name": "Pipeline Status Digest",
+  "active": true,
+  "settings": { "executionOrder": "v1" },
+  "nodes": [
+    {
+      "parameters": {
+        "rule": {
+          "interval": [{ "field": "days", "daysInterval": 1, "triggerAtHour": 22, "triggerAtMinute": 0 }]
+        }
+      },
+      "id": "dedf32a9-80c8-4cb4-b86a-98d3ab00fbcb",
+      "name": "Daily 6 PM ET",
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.3,
+      "position": [0, 0]
+    },
+    {
+      "parameters": {
+        "documentId": { "__rl": true, "mode": "id", "value": "1MxmJouteZhi1K_-KOwgBlJtBFAXtm2G_0H555otTHBQ" },
+        "sheetName": { "__rl": true, "mode": "name", "value": "Leads" },
+        "options": {}
+      },
+      "id": "756e8552-b65d-45bb-b837-bc54e43463dd",
+      "name": "Get All Leads",
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.7,
+      "position": [224, 0],
+      "retryOnFail": true,
+      "maxTries": 3,
+      "waitBetweenTries": 2000,
+      "credentials": { "googleSheetsOAuth2Api": { "id": "", "name": "Google Sheets account" } }
+    },
+    {
+      "parameters": {
+        "mode": "runOnceForAllItems",
+        "jsCode": "const now = new Date();\nconst todayStr = now.toISOString().slice(0, 10);\nconst leads = $input.all().map(i => i.json);\n\nconst counts = { New: 0, Contacted: 0, Booked: 0, Stale: 0 };\nlet newToday = 0;\nlet bookedToday = 0;\nconst escalations = [];\n\nfor (const lead of leads) {\n  const status = (lead['Status'] || '').trim();\n  if (counts[status] !== undefined) counts[status]++;\n\n  const created = String(lead['Date Created'] || '').slice(0, 10);\n  if (created === todayStr) newToday++;\n\n  const lastContact = String(lead['Last Contact'] || '').slice(0, 10);\n  if (status === 'Booked' && lastContact === todayStr) bookedToday++;\n\n  const temp = (lead['Temperature'] || '').trim();\n  if (status === 'Stale' && (temp === 'Hot' || temp === 'Warm')) {\n    escalations.push({\n      leadId: lead['Lead ID'] || '',\n      name: [lead['First Name'], lead['Last Name']].filter(Boolean).join(' ') || 'Unknown',\n      temp,\n      score: (lead['Lead Score'] !== undefined && lead['Lead Score'] !== '') ? lead['Lead Score'] : '?',\n      phone: lead['Phone'] || ''\n    });\n  }\n}\n\n// SETUP REQUIRED: replace with owner/rep E.164 phone — same number as workflow 04 Build Alert Message\nconst OWNER_PHONE = 'OWNER_PHONE_HERE';\n\nlet msg = 'Daily Pipeline - Valfin Tech\\n';\nmsg += 'New ' + counts.New + ' | Contacted ' + counts.Contacted + ' | Booked ' + counts.Booked + ' | Stale ' + counts.Stale + '\\n';\n\nif (escalations.length) {\n  msg += '\\nNeeds your personal touch (Stale + Hot/Warm):\\n';\n  escalations.slice(0, 3).forEach(e => {\n    msg += e.leadId + ' ' + e.name + ' (' + e.temp + ' ' + e.score + ') ' + e.phone + '\\n';\n  });\n  if (escalations.length > 3) msg += '+' + (escalations.length - 3) + ' more\\n';\n}\n\nmsg += '\\nToday: ' + newToday + ' new, ' + bookedToday + ' booked';\n\nreturn [{ json: {\n  digestMessage: msg.trim(),\n  ownerPhone: OWNER_PHONE,\n  counts,\n  escalationCount: escalations.length,\n  newToday,\n  bookedToday\n} }];"
+      },
+      "id": "2e1af177-f918-412d-95d4-b952a5737567",
+      "name": "Build Pipeline Digest",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [448, 0]
+    },
+    {
+      "parameters": {
+        "from": "+18889839308",
+        "to": "={{ $json.ownerPhone }}",
+        "message": "={{ $json.digestMessage }}",
+        "options": {}
+      },
+      "id": "4b6126dd-c8b8-43c7-938a-b5dce4cd22df",
+      "name": "Send Owner Digest SMS",
+      "type": "n8n-nodes-base.twilio",
+      "typeVersion": 1,
+      "position": [672, 0],
+      "retryOnFail": true,
+      "maxTries": 3,
+      "waitBetweenTries": 3000,
+      "credentials": { "twilioApi": { "id": "", "name": "Twilio account" } }
+    }
+  ],
+  "connections": {
+    "Daily 6 PM ET": { "main": [[{ "node": "Get All Leads", "type": "main", "index": 0 }]] },
+    "Get All Leads": { "main": [[{ "node": "Build Pipeline Digest", "type": "main", "index": 0 }]] },
+    "Build Pipeline Digest": { "main": [[{ "node": "Send Owner Digest SMS", "type": "main", "index": 0 }]] }
+  }
+}

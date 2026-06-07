@@ -1,10 +1,10 @@
 # Project Status
-_Last updated: 2026-06-06 — Phase 3 in progress_
+_Last updated: 2026-06-07 — Phase 3 in progress_
 
 ## Current Phase
 **Phase 3 — Scheduling + Automation** 🔄 **IN PROGRESS**
 
-Phase 2 is complete and verified. Phase 3 has delivered Hot Lead Alerting (04) and Automated Follow-Up Sequences (05). Appointment Booking is next.
+Phase 2 is complete and verified. Phase 3 has delivered Hot Lead Alerting (04), Automated Follow-Up Sequences (05), Appointment Booking (06, tested end-to-end in production), and Pipeline Status Digest (07). Reporting/Dashboarding is next.
 
 ---
 
@@ -17,7 +17,8 @@ Phase 2 is complete and verified. Phase 3 has delivered Hot Lead Alerting (04) a
 | Missed-Call Auto-SMS | `u9I1bqrLW6V5LtLp` | https://valfin.app.n8n.cloud/workflow/u9I1bqrLW6V5LtLp | ✅ Active — Twilio webhook live |
 | Hot Lead Alert | `KIpMMKM8H5IZB9wb` | https://valfin.app.n8n.cloud/workflow/KIpMMKM8H5IZB9wb | ✅ Active — **owner phone setup required** |
 | Follow-Up Sequence | `chYfABnQdnPfiHQx` | https://valfin.app.n8n.cloud/workflow/chYfABnQdnPfiHQx | ✅ Active — daily 9 AM ET |
-| Appointment Booking | `ax2sMbvv0lqyJHMg` | https://valfin.app.n8n.cloud/workflow/ax2sMbvv0lqyJHMg | ✅ Active — form live |
+| Appointment Booking | `ax2sMbvv0lqyJHMg` | https://valfin.app.n8n.cloud/workflow/ax2sMbvv0lqyJHMg | ✅ Active — form live, tested end-to-end |
+| Pipeline Status Digest | `ehqNYjZRirX5L3sX` | https://valfin.app.n8n.cloud/workflow/ehqNYjZRirX5L3sX | ✅ Active — daily 6 PM ET, **owner phone setup required** |
 
 ---
 
@@ -32,6 +33,7 @@ Phase 2 is complete and verified. Phase 3 has delivered Hot Lead Alerting (04) a
 | Missed call (no-answer / busy) | ❌ Not created | ✅ Written | None — static SMS | ❌ |
 | Follow-up cadence (daily 9 AM) | ✅ Updated | ✅ Written | None — static templates | ❌ |
 | Owner books appointment (form) | ✅ Updated → Booked | ✅ Written | None — static SMS | ❌ |
+| Daily pipeline digest (6 PM) | — (read only) | — (read only) | None — static aggregation | ✅ SMS digest + Stale/Hot escalation |
 
 ---
 
@@ -180,6 +182,33 @@ Booking Form (owner opens URL)
 
 ---
 
+### Workflow 07 — Pipeline Status Digest (`ehqNYjZRirX5L3sX`)
+
+**Flow (4 nodes):**
+```
+Daily 6 PM ET (scheduleTrigger)
+  → Get All Leads (googleSheets — reads Leads tab directly)
+  → Build Pipeline Digest (Code, runOnceForAllItems — aggregates + builds SMS text)
+  → Send Owner Digest SMS (Twilio)
+```
+
+| Property | Value |
+|---|---|
+| Schedule | Daily at 22:00 UTC (6 PM ET) |
+| Reads | `Leads` tab directly (read-only — no writes, no CRM Adapter call needed) |
+| Pipeline counts | New / Contacted / Booked / Stale (status tally across all leads) |
+| Escalation rule | Status = `Stale` AND Temperature in {`Hot`, `Warm`} → surfaced by name + phone for a personal rescue call (top 3 shown, "+N more" if longer) |
+| Daily activity | `newToday` = leads with `Date Created` = today; `bookedToday` = leads with Status `Booked` and `Last Contact` = today |
+| Message format | Plain text, no emojis (keeps GSM encoding — fewer SMS segments than Unicode/emoji text) |
+| Owner phone | **⚠️ SETUP REQUIRED** — edit `Build Pipeline Digest` node, replace `OWNER_PHONE_HERE` with E.164 number (same number as workflow 04) |
+| Twilio from | `+18889839308` |
+| Data flow | Single Code node aggregates all leads in one pass (`mode: runOnceForAllItems`) — no loop needed since this only sends one SMS |
+| Architecture note | Read-only digest — does not write to Sheets or call the CRM Adapter; safe to run independently of all other workflows |
+
+> Why this workflow: gives the owner daily pipeline visibility without opening Google Sheets, and proactively surfaces Stale-but-still-warm leads that are at risk of being lost — turning passive tracking into an actionable daily prompt.
+
+---
+
 ## Credentials (Confirmed Set)
 
 | Credential | Type | Status |
@@ -205,8 +234,9 @@ Booking Form (owner opens URL)
 
 | Issue | Severity | Action |
 |---|---|---|
-| Twilio error 30032 — toll-free SMS blocked by carrier | Medium | **User action:** complete toll-free number verification at twilio.com/console. Workflows are correct and functional; this is a carrier-level hold on unverified toll-free numbers. |
+| Twilio error 30032 — toll-free SMS blocked by carrier | Medium | **User action:** complete toll-free number verification at twilio.com/console. Workflows are correct and functional; this is a carrier-level hold on unverified toll-free numbers. Explicitly treated as a non-blocking external infrastructure item per user direction (2026-06-07). |
 | Workflow 04 — `OWNER_PHONE_HERE` placeholder | **High — must be set before 04 fires** | Open workflow `KIpMMKM8H5IZB9wb` in n8n. Edit `Build Alert Message` node. Replace `OWNER_PHONE_HERE` with the owner/rep's E.164 number (e.g. `+16175550100`). |
+| Workflow 07 — `OWNER_PHONE_HERE` placeholder | **High — must be set before 07 fires** | Open workflow `ehqNYjZRirX5L3sX` in n8n. Edit `Build Pipeline Digest` node. Replace `OWNER_PHONE_HERE` with the same E.164 number used in workflow 04. |
 
 ---
 
@@ -216,8 +246,8 @@ Booking Form (owner opens URL)
 |---|---|---|
 | Hot Lead Alerting | ✅ Live | `KIpMMKM8H5IZB9wb` (04) |
 | Automated Follow-Up Sequences | ✅ Live | `chYfABnQdnPfiHQx` (05) |
-| Appointment Booking Workflow | ✅ Live | `ax2sMbvv0lqyJHMg` (06) |
-| Pipeline Status Automation | 🔲 Not started | — |
+| Appointment Booking Workflow | ✅ Live — tested end-to-end in production | `ax2sMbvv0lqyJHMg` (06) |
+| Pipeline Status Digest | ✅ Live | `ehqNYjZRirX5L3sX` (07) |
 | Reporting / Dashboarding | 🔲 Not started | — |
 
-**Next:** Pipeline Status Automation — status-change triggered owner notifications, Stale lead escalation, and weekly summary.
+**Next:** Reporting / Dashboarding (08) — weekly summary of new leads, appointments booked, and follow-up activity. Daily pipeline visibility is now covered by workflow 07; workflow 08 would add a longer-horizon (weekly/monthly) trend view, likely via email given the larger payload size.
