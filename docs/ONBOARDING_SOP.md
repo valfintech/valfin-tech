@@ -12,6 +12,8 @@ This is the step-by-step playbook **you** (the operator) follow from "prospect s
 ## Phase 0 — Close the Deal
 **Trigger:** Prospect agrees to move forward.
 
+> **Don't have a prospect yet?** This phase assumes one already exists — that assumption was identified as the single highest-leverage gap in the whole sequence (2026-06-08 architect-level review, see `ROADMAP.md`). **Start with `docs/CLIENT_ACQUISITION_PLAYBOOK.md`** — it covers the ICP, concrete this-week sourcing channels for Boston-area roofing prospects, first-contact scripts, and the discovery-call structure that hands directly into step 1 below the moment someone says "tell me more."
+
 1. Open `docs/PRICING_PACKAGING.md` — confirm which tier you're proposing (default pitch: **Growth**, matching the live website's `isFeatured: true` recommendation — see that doc's reconciliation note for why the naming changed from "Tier 2")
 2. Send/sign the service agreement — use `docs/CLIENT_SERVICE_AGREEMENT_TEMPLATE.md` as the starting draft (created 2026-06-07, closing the item formerly flagged here as "not yet written"). **Read its top warning before sending anything**: it is a structured starting point, not an attorney-reviewed final contract — fill in every `[BRACKETED]` value, and get a real legal review before the first signature. Until that review lands, the template still upgrades the interim "document terms via email" approach by giving you (and the prospect) a complete, professional, single-source-of-truth document to work from instead of an ad hoc email thread
 3. Collect the setup fee (or first invoice) before configuration work begins

@@ -37,7 +37,9 @@ docs/        setup + operating guides
 **Credentials configured in n8n UI:** Google Sheets OAuth2 · Anthropic Header Auth · Twilio API. (Twilio account intentionally remains on trial/unverified status — a deliberate, paused, non-blocking external decision.)
 See `docs/PROJECT_STATUS.md` for full workflow details and known issues.
 
-**Selling/deploying this to a new client?** Start with `docs/ONBOARDING_SOP.md` — the end-to-end runbook from "prospect says yes" to "client is live and supported," which ties together:
+**Looking for client #1 and don't have a prospect yet?** Start one step earlier, with `docs/CLIENT_ACQUISITION_PLAYBOOK.md` — the ICP, where to actually find Boston-area roofing prospects this week, first-contact scripts built around the "founding partner" framing (turning "no case study yet" into the single most differentiated thing you can say), and the discovery-call structure that hands directly into the runbook below. This was identified as the highest-leverage remaining gap in the 2026-06-08 architect-level platform review (see `ROADMAP.md`) — every other asset in this list assumes a prospect already exists; this is what gets one.
+
+**Once a prospect says yes**, `docs/ONBOARDING_SOP.md` — the end-to-end runbook from "prospect says yes" to "client is live and supported," ties together:
 - `docs/PRICING_PACKAGING.md` — internal pricing anchors, ROI framing, and contract structure (reconciled with the live website's "Foundation/Growth/Built for you" custom-pricing model — see that doc's reconciliation note)
 - `docs/CLIENT_ONBOARDING_INTAKE.md` — the client-facing questionnaire that collects every configuration value up front, including the one-time-only baseline data needed for the flagship case study
 - `docs/CLIENT_DEPLOYMENT_GUIDE.md` — the master technical checklist of every per-client value across all 10 workflows, deployment order of operations, and a post-deploy verification plan
