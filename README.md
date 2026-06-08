@@ -36,11 +36,14 @@ docs/        setup + operating guides
 See `docs/PROJECT_STATUS.md` for full workflow details and known issues.
 
 **Selling/deploying this to a new client?** Start with `docs/ONBOARDING_SOP.md` — the end-to-end runbook from "prospect says yes" to "client is live and supported," which ties together:
-- `docs/PRICING_PACKAGING.md` — tiers, suggested pricing, ROI framing, and contract structure
-- `docs/CLIENT_ONBOARDING_INTAKE.md` — the client-facing questionnaire that collects every configuration value up front
+- `docs/PRICING_PACKAGING.md` — internal pricing anchors, ROI framing, and contract structure (reconciled with the live website's "Foundation/Growth/Built for you" custom-pricing model — see that doc's reconciliation note)
+- `docs/CLIENT_ONBOARDING_INTAKE.md` — the client-facing questionnaire that collects every configuration value up front, including the one-time-only baseline data needed for the flagship case study
 - `docs/CLIENT_DEPLOYMENT_GUIDE.md` — the master technical checklist of every per-client value across all 10 workflows, deployment order of operations, and a post-deploy verification plan
+- `docs/CASE_STUDY_DATA_PLAN.md` — the spec for measuring and capturing the real before/after numbers the website's flagship case study (`website/src/content/results.ts`) is currently waiting on — the bridge between this track and the parallel website-build track
 
 Together these are what turn "one custom build" into a repeatable, sellable offering.
+
+> **Note on `website/`:** a Next.js marketing site lives in this repo under `website/` and is under **active independent development in a parallel session** (already shipped: scaffold, Lead Leak Calculator, all core pages, SEO). Don't edit its content from this track — coordinate via `docs/CASE_STUDY_DATA_PLAN.md` when real deployment data is ready to hand off.
 
 ## Models
 - `claude-sonnet-4-6` — lead scoring / qualification (judgment).

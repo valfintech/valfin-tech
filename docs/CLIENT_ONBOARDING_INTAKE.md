@@ -1,5 +1,5 @@
 # Client Onboarding Intake Packet
-_Created 2026-06-07 — companion to CLIENT_DEPLOYMENT_GUIDE.md / PRICING_PACKAGING.md / ONBOARDING_SOP.md_
+_Created 2026-06-07 — companion to CLIENT_DEPLOYMENT_GUIDE.md / PRICING_PACKAGING.md / ONBOARDING_SOP.md / CASE_STUDY_DATA_PLAN.md_
 
 ## Purpose
 
@@ -43,6 +43,8 @@ Without this document, collecting ~30 configuration values would happen ad hoc o
 | D1 | What makes a lead "urgent" to you? (e.g., active leak, storm damage, insurance claim deadline) | Tunes the AI scoring system's definition of "Hot"/"Emergency" | Workflow 02 system prompt; §3e score thresholds |
 | D2 | If we follow up automatically with leads who haven't responded, how many touches feels right before we stop? (Our default: 3 attempts over 7 days) | Configures the follow-up sequence cadence | §3e "Follow-up cadence" |
 | D3 | Where do your leads currently come from? (Website form, Google/Facebook ads, referrals, signs/trucks, etc.) | Helps us tune source-tracking and gives the weekly report meaningful categories | Workflow 08 "top sources" |
+| D4 | What's your average revenue on a completed job — a typical roof replacement, major repair, whatever your usual "win" looks like? | Sharpens the ROI conversation beyond industry-average figures, and is the multiplier behind every "$ recovered" estimate we'll ever show you | `PRICING_PACKAGING.md` ROI anchor; `CASE_STUDY_DATA_PLAN.md` Metric 4 ($-recovered calculation) |
+| D5 | Roughly, in a typical month *before* working with us: how many calls do you think go unanswered, and how many jobs do you book? | This becomes our **baseline** — the "before" half of every before/after comparison we'll ever be able to show. **We only get one chance to capture this honestly, before the system changes anything** — so we ask it on Day 1, not after go-live | `CASE_STUDY_DATA_PLAN.md` Window 1 (baseline capture) — feeds the flagship case-study numbers directly |
 
 ## Section E — Brand Voice (what your customers will actually read)
 
