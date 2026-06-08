@@ -12,8 +12,8 @@ This is the step-by-step playbook **you** (the operator) follow from "prospect s
 ## Phase 0 — Close the Deal
 **Trigger:** Prospect agrees to move forward.
 
-1. Open `docs/PRICING_PACKAGING.md` — confirm which tier you're proposing (default pitch: Tier 2)
-2. Send/sign the service agreement *(template not yet written — see "Open Items" below; until it exists, document terms in writing via email at minimum: tier, setup fee, monthly fee, 30-day cancellation, non-refundable setup once work begins)*
+1. Open `docs/PRICING_PACKAGING.md` — confirm which tier you're proposing (default pitch: **Growth**, matching the live website's `isFeatured: true` recommendation — see that doc's reconciliation note for why the naming changed from "Tier 2")
+2. Send/sign the service agreement — use `docs/CLIENT_SERVICE_AGREEMENT_TEMPLATE.md` as the starting draft (created 2026-06-07, closing the item formerly flagged here as "not yet written"). **Read its top warning before sending anything**: it is a structured starting point, not an attorney-reviewed final contract — fill in every `[BRACKETED]` value, and get a real legal review before the first signature. Until that review lands, the template still upgrades the interim "document terms via email" approach by giving you (and the prospect) a complete, professional, single-source-of-truth document to work from instead of an ad hoc email thread
 3. Collect the setup fee (or first invoice) before configuration work begins
 4. **Do not proceed to Phase 1 without a signed agreement and payment terms confirmed** — this is the one hard gate in the whole sequence
 
@@ -77,7 +77,7 @@ These aren't blockers for client #1 (they can be handled manually/in writing the
 
 | Item | Current workaround | Real fix |
 |---|---|---|
-| No formal service agreement template | Document terms via email; reference `PRICING_PACKAGING.md` "Contract Structure" section verbatim | Write `docs/CLIENT_SERVICE_AGREEMENT_TEMPLATE.md` — a fillable contract template |
+| ~~No formal service agreement template~~ — **closed 2026-06-07** | ~~Document terms via email~~ | `docs/CLIENT_SERVICE_AGREEMENT_TEMPLATE.md` exists as a structured draft. **Remaining sub-task before it's truly "done": get it reviewed by a licensed attorney** — the draft says so explicitly in its own header, and that review is the one piece of this that genuinely cannot be completed by an AI session. Track that review as the live remaining gap, not the document's existence |
 | No automated system-health monitoring | Manual weekly spot-checks (Phase 6, step 1) | Build the "system-health monitoring" workflow cataloged in `CLIENT_DEPLOYMENT_GUIDE.md` §6 — alerts *you*, not the client, when a scheduled run fails |
 | No client-facing ROI report | Manually assembled monthly summary (Phase 6, step 2) | Build the "client-facing ROI/performance report" workflow cataloged in `CLIENT_DEPLOYMENT_GUIDE.md` §6 |
 | No standard TCPA consent-language snippet to hand clients | Improvised per-client during Phase 3, step 4 | Draft a one-paragraph standard consent-language recommendation once, reuse every time |

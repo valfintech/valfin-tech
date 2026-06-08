@@ -118,7 +118,7 @@ The one-time setup fee exists for two reasons, and both should be said plainly t
 - **Month-to-month after setup**, no long-term lock-in — removes the prospect's biggest objection ("what if it doesn't work for us") while the infrastructure-stickiness argument (once it's running their lead flow, ripping it out is costly) does the retention work for you
 - **30-day notice to cancel** — standard, fair, easy to say out loud
 - Setup fee is **non-refundable once configuration work begins** (it covers real labor, including carrier verification time that can't be "undone")
-- See `docs/CLIENT_SERVICE_AGREEMENT_TEMPLATE.md` *(future deliverable — not yet written; flagged in ROADMAP as a Tier-1 V1 item once client #1 is closer to signing)* for the actual legal template — this pricing doc defines the commercial terms; a template service agreement should formalize them before the first signature.
+- `docs/CLIENT_SERVICE_AGREEMENT_TEMPLATE.md` (created 2026-06-07) now formalizes exactly these terms into a fillable contract draft — the commercial terms above are exactly what its §2 ("Fees & Payment") and §3 ("Term & Termination") sections encode. **It still needs an attorney's review before the first real signature** — that template's own header explains why and how to route around the gap in the meantime (its draft form is already a major upgrade over "document terms via email").
 
 ---
 

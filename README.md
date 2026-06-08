@@ -40,6 +40,7 @@ See `docs/PROJECT_STATUS.md` for full workflow details and known issues.
 - `docs/CLIENT_ONBOARDING_INTAKE.md` — the client-facing questionnaire that collects every configuration value up front, including the one-time-only baseline data needed for the flagship case study
 - `docs/CLIENT_DEPLOYMENT_GUIDE.md` — the master technical checklist of every per-client value across all 10 workflows, deployment order of operations, and a post-deploy verification plan
 - `docs/CASE_STUDY_DATA_PLAN.md` — the spec for measuring and capturing the real before/after numbers the website's flagship case study (`website/src/content/results.ts`) is currently waiting on — the bridge between this track and the parallel website-build track
+- `docs/CLIENT_SERVICE_AGREEMENT_TEMPLATE.md` — a fillable contract draft that closes the literal hard gate in `ONBOARDING_SOP.md` Phase 0 ("do not proceed without a signed agreement"); **read its header before using it** — it's a structured starting point for an attorney review, not a finished legal instrument
 
 Together these are what turn "one custom build" into a repeatable, sellable offering.
 
