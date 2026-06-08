@@ -43,7 +43,7 @@ This is the step-by-step playbook **you** (the operator) follow from "prospect s
    - Import the remaining workflows in the documented order, re-pointing every sub-workflow reference
 2. Use intake Sections A–D to fill every value cataloged in `CLIENT_DEPLOYMENT_GUIDE.md` §3 (identity/contact, schedule/cadence, business-rule constants, booking slots)
 3. Use intake **Section E (brand voice)** to rewrite every customer-facing SMS template and AI system prompt — **do not ship the Valfin-Tech-flavored copy to a new client verbatim**; this is the single highest-leverage "feels custom, not templated" touch in the whole process
-4. Use intake **Section G** to confirm consent language exists on the client's intake forms — if it doesn't, provide standard TCPA consent-language recommendations before going live (this is a real compliance gate, not a nicety — see `CLIENT_DEPLOYMENT_GUIDE.md` §7)
+4. Use intake **Section G** to confirm consent language exists on the client's intake forms — if it doesn't (or even if it does and you want to strengthen it), **hand them `docs/SMS_CONSENT_LANGUAGE_GUIDE.md`** (created 2026-06-07, closing the "improvised per-client" item formerly flagged here): ready-to-use language for digital forms, paper forms, phone scripts, and the system's first automated touch — plus the "here's exactly how our opt-out handling works" talking points that double as a trust-building selling point. This is a real compliance gate, not a nicety (see `CLIENT_DEPLOYMENT_GUIDE.md` §7) — and per that guide's own go-live checklist, a recommendation handed over but not actually implemented on the client's live forms closes nothing; confirm implementation before flipping workflows to active
 
 ## Phase 4 — Verify Before Anyone Sees It (Day 3–5)
 **Trigger:** Configuration complete.
@@ -80,7 +80,7 @@ These aren't blockers for client #1 (they can be handled manually/in writing the
 | ~~No formal service agreement template~~ — **closed 2026-06-07** | ~~Document terms via email~~ | `docs/CLIENT_SERVICE_AGREEMENT_TEMPLATE.md` exists as a structured draft. **Remaining sub-task before it's truly "done": get it reviewed by a licensed attorney** — the draft says so explicitly in its own header, and that review is the one piece of this that genuinely cannot be completed by an AI session. Track that review as the live remaining gap, not the document's existence |
 | No automated system-health monitoring | Manual weekly spot-checks (Phase 6, step 1) | Build the "system-health monitoring" workflow cataloged in `CLIENT_DEPLOYMENT_GUIDE.md` §6 — alerts *you*, not the client, when a scheduled run fails |
 | No client-facing ROI report | Manually assembled monthly summary (Phase 6, step 2) | Build the "client-facing ROI/performance report" workflow cataloged in `CLIENT_DEPLOYMENT_GUIDE.md` §6 |
-| No standard TCPA consent-language snippet to hand clients | Improvised per-client during Phase 3, step 4 | Draft a one-paragraph standard consent-language recommendation once, reuse every time |
+| ~~No standard TCPA consent-language snippet to hand clients~~ — **closed 2026-06-07** | ~~Improvised per-client during Phase 3, step 4~~ | `docs/SMS_CONSENT_LANGUAGE_GUIDE.md` exists — ready-to-hand language for digital forms, paper forms, phone scripts, and the system's first-touch message, plus the "what our system already guarantees" talking points |
 
 ---
 

@@ -64,7 +64,7 @@ Without this document, collecting ~30 configuration values would happen ad hoc o
 
 | # | Question | Why we need it | Maps to deployment guide |
 |---|---|---|---|
-| G1 | Do your current lead-intake forms (website, paper, etc.) collect customer consent to receive text messages? | Automated SMS to customers requires documented consent (TCPA) — if this isn't currently happening, we'll provide standard consent-language recommendations to add to your intake forms before go-live | §7 compliance considerations |
+| G1 | Do your current lead-intake forms (website, paper, etc.) collect customer consent to receive text messages? | Automated SMS to customers requires documented consent (TCPA) — if this isn't currently happening (or even if it is and could be stronger), we'll hand you `docs/SMS_CONSENT_LANGUAGE_GUIDE.md`: ready-to-use language for whichever channels you actually use (website forms, paper sheets, phone scripts) before go-live | §7 compliance considerations; `docs/SMS_CONSENT_LANGUAGE_GUIDE.md` |
 | G2 | Are you aware that carriers require phone-number verification (A2P 10DLC / toll-free) before business SMS can be reliably delivered, and that this can take several days? | Sets expectations early — this is the single longest lead-time item and the actual gate on go-live, not anything on our side | §1 prerequisites table |
 
 ---
