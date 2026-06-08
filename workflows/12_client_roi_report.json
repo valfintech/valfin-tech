@@ -1,0 +1,336 @@
+{
+  "name": "Client ROI Report",
+  "active": true,
+  "settings": {
+    "executionOrder": "v1",
+    "availableInMCP": true
+  },
+  "nodes": [
+    {
+      "id": "a78adcd5-dd16-487a-9fd6-dcdb7fdf2c7c",
+      "name": "Monthly ROI Report Trigger",
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.3,
+      "position": [
+        0,
+        192
+      ],
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "field": "days",
+              "daysInterval": 30,
+              "triggerAtHour": 14,
+              "triggerAtMinute": 0
+            }
+          ]
+        }
+      }
+    },
+    {
+      "id": "7426633a-3eef-4d00-8c17-d216e80e1e60",
+      "name": "Get All Leads (ROI Report)",
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.7,
+      "position": [
+        224,
+        0
+      ],
+      "parameters": {
+        "resource": "sheet",
+        "operation": "read",
+        "documentId": {
+          "__rl": true,
+          "mode": "id",
+          "value": "1MxmJouteZhi1K_-KOwgBlJtBFAXtm2G_0H555otTHBQ",
+          "cachedResultName": "Valfin CRM"
+        },
+        "sheetName": {
+          "__rl": true,
+          "mode": "name",
+          "value": "Leads"
+        },
+        "options": {}
+      },
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "",
+          "name": "Google Sheets account"
+        }
+      }
+    },
+    {
+      "id": "a2c326d0-1e60-4381-a117-7a216c7f5e44",
+      "name": "Compute Lead Metrics",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        448,
+        0
+      ],
+      "parameters": {
+        "mode": "runOnceForAllItems",
+        "language": "javaScript",
+        "jsCode": "const WINDOW_DAYS = 30;\nconst items = $input.all();\nconst now = new Date();\nconst windowStart = new Date(now.getTime() - WINDOW_DAYS * 24 * 60 * 60 * 1000);\nlet newLeads = 0;\nlet hotOrUrgentLeads = 0;\nfor (const item of items) {\n  const lead = item.json;\n  const createdRaw = (lead['Date Created'] || '').toString().trim();\n  if (!createdRaw) continue;\n  const created = new Date(createdRaw);\n  if (isNaN(created.getTime())) continue;\n  if (created >= windowStart && created <= now) {\n    newLeads++;\n    const temp = (lead['Temperature'] || '').toString().trim();\n    const urgency = (lead['Urgency'] || '').toString().trim();\n    if (temp === 'Hot' || urgency === 'Emergency') hotOrUrgentLeads++;\n  }\n}\nreturn [{ json: { metricGroup: 'leads', newLeads: newLeads, hotOrUrgentLeads: hotOrUrgentLeads } }];"
+      }
+    },
+    {
+      "id": "1e608808-32c6-4cd0-93a1-c3e5f1cb87db",
+      "name": "Combine ROI Metrics",
+      "type": "n8n-nodes-base.merge",
+      "typeVersion": 3.2,
+      "position": [
+        672,
+        176
+      ],
+      "parameters": {
+        "mode": "append",
+        "numberInputs": 3
+      }
+    },
+    {
+      "id": "e7f1fcb9-507e-4d60-b27d-e6831966893f",
+      "name": "Get All Appointments (ROI Report)",
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.7,
+      "position": [
+        224,
+        192
+      ],
+      "parameters": {
+        "resource": "sheet",
+        "operation": "read",
+        "documentId": {
+          "__rl": true,
+          "mode": "id",
+          "value": "1MxmJouteZhi1K_-KOwgBlJtBFAXtm2G_0H555otTHBQ",
+          "cachedResultName": "Valfin CRM"
+        },
+        "sheetName": {
+          "__rl": true,
+          "mode": "name",
+          "value": "Appointments"
+        },
+        "options": {}
+      },
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "",
+          "name": "Google Sheets account"
+        }
+      }
+    },
+    {
+      "id": "3ed6d866-17ec-492e-9919-f594a767e8e7",
+      "name": "Compute Appointment Metrics",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        448,
+        192
+      ],
+      "parameters": {
+        "mode": "runOnceForAllItems",
+        "language": "javaScript",
+        "jsCode": "const WINDOW_DAYS = 30;\nconst items = $input.all();\nconst now = new Date();\nconst windowStart = new Date(now.getTime() - WINDOW_DAYS * 24 * 60 * 60 * 1000);\nlet appointmentsBooked = 0;\nlet appointmentsKept = 0;\nfor (const item of items) {\n  const appt = item.json;\n  const apptId = (appt['Appt ID'] || '').toString().trim();\n  const idMatch = apptId.match(/^APT-(\\d{4})(\\d{2})(\\d{2})(\\d{2})(\\d{2})(\\d{2})$/);\n  if (idMatch) {\n    const bookedAt = new Date(Date.UTC(\n      parseInt(idMatch[1], 10), parseInt(idMatch[2], 10) - 1, parseInt(idMatch[3], 10),\n      parseInt(idMatch[4], 10), parseInt(idMatch[5], 10), parseInt(idMatch[6], 10)\n    ));\n    if (bookedAt >= windowStart && bookedAt <= now) appointmentsBooked++;\n  }\n  const status = (appt['Status'] || '').toString().trim();\n  const dateStr = (appt['Appt Date'] || '').toString().trim();\n  const dateMatch = dateStr.match(/^(\\d{4})-(\\d{2})-(\\d{2})$/);\n  if (dateMatch && status !== 'Cancelled') {\n    const apptDate = new Date(Date.UTC(parseInt(dateMatch[1], 10), parseInt(dateMatch[2], 10) - 1, parseInt(dateMatch[3], 10)));\n    if (apptDate >= windowStart && apptDate <= now) appointmentsKept++;\n  }\n}\nreturn [{ json: { metricGroup: 'appointments', appointmentsBooked: appointmentsBooked, appointmentsKept: appointmentsKept } }];"
+      }
+    },
+    {
+      "id": "b2260bbc-9bd6-4849-b5ec-d64fca1f8c87",
+      "name": "Get Communication Log (ROI Report)",
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.7,
+      "position": [
+        224,
+        384
+      ],
+      "parameters": {
+        "resource": "sheet",
+        "operation": "read",
+        "documentId": {
+          "__rl": true,
+          "mode": "id",
+          "value": "1MxmJouteZhi1K_-KOwgBlJtBFAXtm2G_0H555otTHBQ",
+          "cachedResultName": "Valfin CRM"
+        },
+        "sheetName": {
+          "__rl": true,
+          "mode": "name",
+          "value": "Communication Log"
+        },
+        "options": {}
+      },
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "",
+          "name": "Google Sheets account"
+        }
+      }
+    },
+    {
+      "id": "9ee3f17a-6cc7-4634-b6fa-e25d56c6f0be",
+      "name": "Compute Recovery Metrics",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        448,
+        384
+      ],
+      "parameters": {
+        "mode": "runOnceForAllItems",
+        "language": "javaScript",
+        "jsCode": "const WINDOW_DAYS = 30;\nconst items = $input.all();\nconst now = new Date();\nconst windowStart = new Date(now.getTime() - WINDOW_DAYS * 24 * 60 * 60 * 1000);\nlet missedCallsRecovered = 0;\nfor (const item of items) {\n  const log = item.json;\n  const channel = (log['Channel'] || '').toString().trim();\n  const summary = (log['Message Summary'] || '').toString().trim();\n  const whenRaw = (log['Date / Time'] || '').toString().trim();\n  if (channel !== 'Phone') continue;\n  if (!/missed call/i.test(summary)) continue;\n  if (!whenRaw) continue;\n  const when = new Date(whenRaw);\n  if (isNaN(when.getTime())) continue;\n  if (when >= windowStart && when <= now) missedCallsRecovered++;\n}\nreturn [{ json: { metricGroup: 'recoveries', missedCallsRecovered: missedCallsRecovered } }];"
+      }
+    },
+    {
+      "id": "527eac9f-d1be-467b-ad56-288ffced6901",
+      "name": "Build ROI Report",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        896,
+        192
+      ],
+      "parameters": {
+        "mode": "runOnceForAllItems",
+        "language": "javaScript",
+        "jsCode": "const COMPANY_NAME = \"Valfin Tech\";\nconst WINDOW_DAYS = 30;\nconst items = $input.all();\nconst byGroup = {};\nfor (const item of items) {\n  const g = item.json && item.json.metricGroup;\n  if (g) byGroup[g] = item.json;\n}\nconst leads = byGroup.leads || { newLeads: 0, hotOrUrgentLeads: 0 };\nconst appts = byGroup.appointments || { appointmentsBooked: 0, appointmentsKept: 0 };\nconst recoveries = byGroup.recoveries || { missedCallsRecovered: 0 };\nconst lines = [];\nlines.push('Your Valfin System -- Last ' + WINDOW_DAYS + ' Days for ' + COMPANY_NAME);\nlines.push('');\nlines.push('New leads captured: ' + leads.newLeads);\nif (leads.hotOrUrgentLeads > 0) {\n  lines.push('  -> ' + leads.hotOrUrgentLeads + ' flagged Hot/urgent and texted to you the moment they came in');\n}\nlines.push('Missed calls recovered with an instant text-back: ' + recoveries.missedCallsRecovered);\nlines.push('Appointments booked: ' + appts.appointmentsBooked);\nlines.push('Appointments kept (not cancelled): ' + appts.appointmentsKept);\nlines.push('');\nlet closing = 'That is ' + appts.appointmentsBooked + ' potential job(s) this system helped put on your calendar';\nif (recoveries.missedCallsRecovered > 0) {\n  closing += ', including ' + recoveries.missedCallsRecovered + ' that started as a missed call your business would not have otherwise followed up on.';\n} else {\n  closing += '.';\n}\nlines.push(closing);\nlines.push('');\nlines.push('Want the math behind any of these numbers, or to talk about what is next? Just reply -- happy to walk through it.');\nconst message = lines.join('\\n');\nreturn [{ json: {\n  reportWindowDays: WINDOW_DAYS,\n  newLeads: leads.newLeads,\n  hotOrUrgentLeads: leads.hotOrUrgentLeads,\n  missedCallsRecovered: recoveries.missedCallsRecovered,\n  appointmentsBooked: appts.appointmentsBooked,\n  appointmentsKept: appts.appointmentsKept,\n  reportMessage: message\n} }];"
+      }
+    },
+    {
+      "id": "83588661-cc91-4f4f-80ad-b0845f1ca18b",
+      "name": "Send ROI Report SMS",
+      "type": "n8n-nodes-base.twilio",
+      "typeVersion": 1,
+      "position": [
+        1120,
+        192
+      ],
+      "parameters": {
+        "resource": "sms",
+        "operation": "send",
+        "from": "+18889839308",
+        "to": "+18575261499",
+        "message": "={{ $json.reportMessage }}"
+      },
+      "credentials": {
+        "twilioApi": {
+          "id": "",
+          "name": "Twilio account"
+        }
+      }
+    }
+  ],
+  "connections": {
+    "Monthly ROI Report Trigger": {
+      "main": [
+        [
+          {
+            "node": "Get All Leads (ROI Report)",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Get All Appointments (ROI Report)",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Get Communication Log (ROI Report)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Get All Leads (ROI Report)": {
+      "main": [
+        [
+          {
+            "node": "Compute Lead Metrics",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Compute Lead Metrics": {
+      "main": [
+        [
+          {
+            "node": "Combine ROI Metrics",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Combine ROI Metrics": {
+      "main": [
+        [
+          {
+            "node": "Build ROI Report",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Get All Appointments (ROI Report)": {
+      "main": [
+        [
+          {
+            "node": "Compute Appointment Metrics",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Compute Appointment Metrics": {
+      "main": [
+        [
+          {
+            "node": "Combine ROI Metrics",
+            "type": "main",
+            "index": 1
+          }
+        ]
+      ]
+    },
+    "Get Communication Log (ROI Report)": {
+      "main": [
+        [
+          {
+            "node": "Compute Recovery Metrics",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Compute Recovery Metrics": {
+      "main": [
+        [
+          {
+            "node": "Combine ROI Metrics",
+            "type": "main",
+            "index": 2
+          }
+        ]
+      ]
+    },
+    "Build ROI Report": {
+      "main": [
+        [
+          {
+            "node": "Send ROI Report SMS",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  }
+}

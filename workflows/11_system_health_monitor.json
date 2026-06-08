@@ -1,0 +1,261 @@
+{
+  "name": "11_system_health_monitor",
+  "active": true,
+  "settings": {
+    "executionOrder": "v1",
+    "availableInMCP": true
+  },
+  "nodes": [
+    {
+      "id": "7ed11721-2060-4d81-ac08-afae2a9ef7d0",
+      "name": "Daily Health Check Trigger",
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.3,
+      "position": [
+        0,
+        96
+      ],
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "field": "days",
+              "daysInterval": 1,
+              "triggerAtHour": 16,
+              "triggerAtMinute": 0
+            }
+          ]
+        }
+      }
+    },
+    {
+      "id": "5fdef8df-183f-438d-9c19-0c5f8b3e99be",
+      "name": "Get All Appointments",
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.7,
+      "position": [
+        224,
+        0
+      ],
+      "parameters": {
+        "resource": "sheet",
+        "operation": "read",
+        "documentId": {
+          "__rl": true,
+          "mode": "id",
+          "value": "1MxmJouteZhi1K_-KOwgBlJtBFAXtm2G_0H555otTHBQ",
+          "cachedResultName": "Valfin CRM"
+        },
+        "sheetName": {
+          "__rl": true,
+          "mode": "name",
+          "value": "Appointments"
+        },
+        "options": {}
+      },
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "",
+          "name": "Google Sheets account"
+        }
+      }
+    },
+    {
+      "id": "428d2205-dbc0-40d9-87e1-07cb7603c907",
+      "name": "Check Appointment Reminders",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        448,
+        0
+      ],
+      "parameters": {
+        "mode": "runOnceForAllItems",
+        "language": "javaScript",
+        "jsCode": "const items = $input.all();\nconst issues = [];\nconst now = new Date();\nfor (const item of items) {\n  const appt = item.json;\n  const status = (appt['Status'] || '').toString().trim();\n  if (status !== 'Scheduled') continue;\n  const dateStr = (appt['Appt Date'] || '').toString().trim();\n  const timeStr = (appt['Appt Time'] || '').toString().trim();\n  const dateMatch = dateStr.match(/^(\\d{4})-(\\d{2})-(\\d{2})$/);\n  const timeMatch = timeStr.match(/^(\\d{1,2}):(\\d{2})\\s*(AM|PM)$/i);\n  if (!dateMatch || !timeMatch) continue;\n  const year = parseInt(dateMatch[1], 10);\n  const month = parseInt(dateMatch[2], 10);\n  const day = parseInt(dateMatch[3], 10);\n  let hour = parseInt(timeMatch[1], 10);\n  const minute = parseInt(timeMatch[2], 10);\n  const ampm = timeMatch[3].toUpperCase();\n  if (ampm === 'PM' && hour !== 12) hour += 12;\n  if (ampm === 'AM' && hour === 12) hour = 0;\n  const apptDateTime = new Date(Date.UTC(year, month - 1, day, hour + 5, minute));\n  const hoursUntil = (apptDateTime.getTime() - now.getTime()) / (1000 * 60 * 60);\n  if (hoursUntil < 0) continue;\n  const reminder24Sent = (appt['Reminder 24h'] || '').toString().trim().length > 0;\n  const reminder2Sent = (appt['Reminder 2h'] || '').toString().trim().length > 0;\n  const name = appt['Customer Name'] || 'An appointment';\n  const id = appt['Appt ID'] || '(no ID)';\n  if (!reminder24Sent && hoursUntil >= 20 && hoursUntil <= 26) {\n    issues.push({ json: {\n      checkType: 'appointment_reminder', apptId: id, customerName: name, reminderType: '24-hour',\n      hoursUntil: Math.round(hoursUntil * 10) / 10,\n      detail: name + ' (' + id + ') is ~' + Math.round(hoursUntil) + 'h out and still missing its 24h reminder'\n    }});\n  }\n  if (!reminder2Sent && hoursUntil >= 1 && hoursUntil <= 2) {\n    issues.push({ json: {\n      checkType: 'appointment_reminder', apptId: id, customerName: name, reminderType: '2-hour',\n      hoursUntil: Math.round(hoursUntil * 10) / 10,\n      detail: name + ' (' + id + ') is ~' + Math.round(hoursUntil) + 'h out and still missing its 2h reminder'\n    }});\n  }\n}\nreturn issues;"
+      }
+    },
+    {
+      "id": "2d06e606-bef9-4bb6-b260-3500059c7be6",
+      "name": "Combine Health Issues",
+      "type": "n8n-nodes-base.merge",
+      "typeVersion": 3.2,
+      "position": [
+        672,
+        96
+      ],
+      "parameters": {
+        "mode": "append"
+      }
+    },
+    {
+      "id": "7a03a686-061a-49ef-9347-d77b94c6c5e2",
+      "name": "Get All Leads (Health Check)",
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.7,
+      "position": [
+        224,
+        192
+      ],
+      "parameters": {
+        "resource": "sheet",
+        "operation": "read",
+        "documentId": {
+          "__rl": true,
+          "mode": "id",
+          "value": "1MxmJouteZhi1K_-KOwgBlJtBFAXtm2G_0H555otTHBQ",
+          "cachedResultName": "Valfin CRM"
+        },
+        "sheetName": {
+          "__rl": true,
+          "mode": "name",
+          "value": "Leads"
+        },
+        "options": {}
+      },
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "",
+          "name": "Google Sheets account"
+        }
+      }
+    },
+    {
+      "id": "137b7cfa-5cfb-4a60-a0d0-95b5dffc1c29",
+      "name": "Check Follow-Up Sequence",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        448,
+        192
+      ],
+      "parameters": {
+        "mode": "runOnceForAllItems",
+        "language": "javaScript",
+        "jsCode": "const items = $input.all();\nconst issues = [];\nconst now = new Date();\nconst thresholds = { 0: 24, 1: 72, 2: 96 };\nconst dayLabel = { 0: 1, 1: 3, 2: 7 };\nconst BUFFER_HOURS = 30;\nfor (const item of items) {\n  const lead = item.json;\n  const status = (lead['Status'] || '').toString().trim();\n  if (status !== 'New' && status !== 'Contacted') continue;\n  const countRaw = parseInt(lead['Follow-up Count'], 10);\n  const count = isNaN(countRaw) ? 0 : countRaw;\n  if (count >= 3) continue;\n  const lastTouchRaw = (lead['Last Contact'] || lead['Date Created'] || '').toString().trim();\n  let hoursSince = 9999;\n  if (lastTouchRaw) {\n    const parsed = new Date(lastTouchRaw);\n    if (!isNaN(parsed.getTime())) {\n      hoursSince = (now.getTime() - parsed.getTime()) / (1000 * 60 * 60);\n    }\n  }\n  const threshold = thresholds[count];\n  if (hoursSince >= threshold + BUFFER_HOURS) {\n    const name = ((lead['First Name'] || '') + ' ' + (lead['Last Name'] || '')).trim() || 'A lead';\n    const id = lead['Lead ID'] || '(no ID)';\n    const overdueBy = Math.round(hoursSince - threshold);\n    issues.push({ json: {\n      checkType: 'follow_up', leadId: id, customerName: name, followUpCount: count,\n      hoursOverdue: overdueBy,\n      detail: name + ' (' + id + ') looks ~' + overdueBy + 'h overdue for its Day-' + dayLabel[count] + ' follow-up'\n    }});\n  }\n}\nreturn issues;"
+      }
+    },
+    {
+      "id": "a4b04b56-78ab-47f2-a633-64bf70c89683",
+      "name": "Build Health Report",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        896,
+        96
+      ],
+      "parameters": {
+        "mode": "runOnceForAllItems",
+        "language": "javaScript",
+        "jsCode": "const items = $input.all();\nif (items.length === 0) {\n  return [];\n}\nconst lines = items.map(function (item, idx) { return (idx + 1) + '. ' + item.json.detail; });\nconst message = 'Valfin System Health Alert\\n\\n' +\n  items.length + ' issue(s) detected that may indicate a scheduled workflow did not run as expected:\\n\\n' +\n  lines.join('\\n') +\n  '\\n\\nCheck n8n executions for Workflow 09 (Appointment Reminders) and/or Workflow 05 (Follow-Up Sequence). ' +\n  'This is an automated freshness check, not a guarantee something is broken -- verify in the CRM before assuming the worst.';\nreturn [{ json: { issueCount: items.length, alertMessage: message } }];"
+      }
+    },
+    {
+      "id": "2787720c-ea92-4e89-a510-f6be8f5a3a91",
+      "name": "Send Health Alert SMS",
+      "type": "n8n-nodes-base.twilio",
+      "typeVersion": 1,
+      "position": [
+        1120,
+        96
+      ],
+      "parameters": {
+        "resource": "sms",
+        "operation": "send",
+        "from": "+18889839308",
+        "to": "+18575261499",
+        "message": "={{ $json.alertMessage }}"
+      },
+      "credentials": {
+        "twilioApi": {
+          "id": "",
+          "name": "Twilio account"
+        }
+      }
+    }
+  ],
+  "connections": {
+    "Daily Health Check Trigger": {
+      "main": [
+        [
+          {
+            "node": "Get All Appointments",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Get All Leads (Health Check)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Get All Appointments": {
+      "main": [
+        [
+          {
+            "node": "Check Appointment Reminders",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Check Appointment Reminders": {
+      "main": [
+        [
+          {
+            "node": "Combine Health Issues",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Combine Health Issues": {
+      "main": [
+        [
+          {
+            "node": "Build Health Report",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Get All Leads (Health Check)": {
+      "main": [
+        [
+          {
+            "node": "Check Follow-Up Sequence",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Check Follow-Up Sequence": {
+      "main": [
+        [
+          {
+            "node": "Combine Health Issues",
+            "type": "main",
+            "index": 1
+          }
+        ]
+      ]
+    },
+    "Build Health Report": {
+      "main": [
+        [
+          {
+            "node": "Send Health Alert SMS",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  }
+}

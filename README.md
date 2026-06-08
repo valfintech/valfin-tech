@@ -4,7 +4,9 @@ n8n + Claude API + Google Sheets CRM for a single Boston-area roofing company. S
 
 ## Folder layout
 ```
-workflows/   importable n8n workflow JSON
+workflows/   importable n8n workflow JSON exports — all 12 workflows now have one (closed 2026-06-08;
+             see ROADMAP), plus one retained `.ts` SDK-source file for workflow 11 (kept for its
+             design-rationale comments — the `.json` export is the actual importable artifact)
 prompts/     Claude system prompts (reference copies; live copies live in the workflow Code nodes)
 docs/        setup + operating guides
 ```
