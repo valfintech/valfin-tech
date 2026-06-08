@@ -4,6 +4,7 @@ import { ContactForm } from "@/components/company/contact-form";
 import { ButtonLink } from "@/components/ui/button-link";
 import { SectionHeader } from "@/components/sections/section-header";
 import { ScrollReveal, ScrollRevealGroup, ScrollRevealItem } from "@/components/motion/scroll-reveal";
+import { JsonLd } from "@/components/seo/json-ld";
 import {
   companyHero,
   contact,
@@ -12,6 +13,7 @@ import {
   timeline,
   vision,
 } from "@/content/company";
+import { breadcrumbSchema } from "@/lib/structured-data";
 
 const TITLE = "Company — Why Valfin exists | Valfin";
 const DESCRIPTION =
@@ -27,6 +29,7 @@ export const metadata: Metadata = {
 export default function CompanyPage() {
   return (
     <>
+      <JsonLd data={breadcrumbSchema([{ name: "Home", path: "/" }, { name: "Company", path: "/company" }])} />
       {/* Hero */}
       <section className="section-padding pb-16 sm:pb-20">
         <div className="section-container">

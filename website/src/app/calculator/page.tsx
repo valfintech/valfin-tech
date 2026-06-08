@@ -1,6 +1,8 @@
 import type { Metadata } from "next";
 import { LeadLeakCalculator } from "@/components/calculator/lead-leak-calculator";
 import { ScrollReveal } from "@/components/motion/scroll-reveal";
+import { JsonLd } from "@/components/seo/json-ld";
+import { breadcrumbSchema } from "@/lib/structured-data";
 
 const TITLE = "Lead Leak Calculator — See what slow follow-up is costing you";
 const DESCRIPTION =
@@ -20,6 +22,7 @@ export const metadata: Metadata = {
 export default function CalculatorPage() {
   return (
     <>
+      <JsonLd data={breadcrumbSchema([{ name: "Home", path: "/" }, { name: "Lead Leak Calculator", path: "/calculator" }])} />
       <section className="section-padding pb-16 sm:pb-20">
         <div className="section-container">
           <ScrollReveal className="mx-auto max-w-2xl text-center">

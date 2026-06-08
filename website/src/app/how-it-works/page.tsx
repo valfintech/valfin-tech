@@ -9,6 +9,7 @@ import {
 } from "@/components/ui/accordion";
 import { SectionHeader } from "@/components/sections/section-header";
 import { ScrollReveal, ScrollRevealGroup, ScrollRevealItem } from "@/components/motion/scroll-reveal";
+import { JsonLd } from "@/components/seo/json-ld";
 import {
   detailedSteps,
   handoff,
@@ -17,6 +18,7 @@ import {
   setup,
   underTheHood,
 } from "@/content/how-it-works";
+import { breadcrumbSchema, faqPageSchema } from "@/lib/structured-data";
 
 const TITLE = "How It Works — Valfin";
 const DESCRIPTION =
@@ -32,6 +34,8 @@ export const metadata: Metadata = {
 export default function HowItWorksPage() {
   return (
     <>
+      <JsonLd data={breadcrumbSchema([{ name: "Home", path: "/" }, { name: "How It Works", path: "/how-it-works" }])} />
+      <JsonLd data={faqPageSchema(howItWorksFaq)} />
       {/* Hero */}
       <section className="section-padding pb-16 sm:pb-20">
         <div className="section-container">

@@ -4,7 +4,9 @@ import { ArrowRight } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { ButtonLink } from "@/components/ui/button-link";
 import { ScrollReveal } from "@/components/motion/scroll-reveal";
+import { JsonLd } from "@/components/seo/json-ld";
 import { flagshipCaseStudy } from "@/content/results";
+import { breadcrumbSchema, caseStudyArticleSchema } from "@/lib/structured-data";
 
 type PageProps = { params: Promise<{ slug: string }> };
 
@@ -44,6 +46,21 @@ export default async function CaseStudyPage({ params }: PageProps) {
 
   return (
     <>
+      <JsonLd
+        data={breadcrumbSchema([
+          { name: "Home", path: "/" },
+          { name: "Results", path: "/results" },
+          { name: study.industryTag, path: `/results/${study.slug}` },
+        ])}
+      />
+      <JsonLd
+        data={caseStudyArticleSchema({
+          slug: study.slug,
+          title: study.title,
+          description: study.dek,
+          industryTag: study.industryTag,
+        })}
+      />
       <section className="section-padding pb-12 sm:pb-16">
         <div className="section-container">
           <ScrollReveal className="mx-auto max-w-3xl text-center">

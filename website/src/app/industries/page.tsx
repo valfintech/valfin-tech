@@ -3,7 +3,9 @@ import Link from "next/link";
 import { ArrowRight } from "lucide-react";
 import { ButtonLink } from "@/components/ui/button-link";
 import { ScrollReveal, ScrollRevealGroup, ScrollRevealItem } from "@/components/motion/scroll-reveal";
+import { JsonLd } from "@/components/seo/json-ld";
 import { industriesPage, industryList } from "@/content/industries";
+import { breadcrumbSchema } from "@/lib/structured-data";
 
 const TITLE = "Industries — Valfin works for any business that runs on leads";
 const DESCRIPTION =
@@ -19,6 +21,7 @@ export const metadata: Metadata = {
 export default function IndustriesPage() {
   return (
     <>
+      <JsonLd data={breadcrumbSchema([{ name: "Home", path: "/" }, { name: "Industries", path: "/industries" }])} />
       <section className="section-padding pb-16 sm:pb-20">
         <div className="section-container">
           <ScrollReveal className="mx-auto max-w-3xl text-center">

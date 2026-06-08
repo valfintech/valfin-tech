@@ -5,8 +5,10 @@ import { ButtonLink } from "@/components/ui/button-link";
 import { Badge } from "@/components/ui/badge";
 import { ScrollReveal, ScrollRevealGroup, ScrollRevealItem } from "@/components/motion/scroll-reveal";
 import { SectionHeader } from "@/components/sections/section-header";
+import { JsonLd } from "@/components/seo/json-ld";
 import { getIndustryBySlug, industryList } from "@/content/industries";
 import { howItWorks } from "@/content/homepage";
+import { breadcrumbSchema, industryServiceSchema } from "@/lib/structured-data";
 
 type PageProps = { params: Promise<{ slug: string }> };
 
@@ -49,6 +51,14 @@ export default async function IndustryPage({ params }: PageProps) {
 
   return (
     <>
+      <JsonLd
+        data={breadcrumbSchema([
+          { name: "Home", path: "/" },
+          { name: "Industries", path: "/industries" },
+          { name: industry.name, path: `/industries/${industry.slug}` },
+        ])}
+      />
+      <JsonLd data={industryServiceSchema(industry)} />
       {/* Hero */}
       <section className="section-padding pb-16 sm:pb-20">
         <div className="section-container">

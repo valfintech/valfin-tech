@@ -4,7 +4,9 @@ import { ArrowRight } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { ButtonLink } from "@/components/ui/button-link";
 import { ScrollReveal } from "@/components/motion/scroll-reveal";
+import { JsonLd } from "@/components/seo/json-ld";
 import { caseStudies, resultsPage } from "@/content/results";
+import { breadcrumbSchema } from "@/lib/structured-data";
 
 const TITLE = "Results — Real numbers from real businesses | Valfin";
 const DESCRIPTION =
@@ -20,6 +22,7 @@ export const metadata: Metadata = {
 export default function ResultsPage() {
   return (
     <>
+      <JsonLd data={breadcrumbSchema([{ name: "Home", path: "/" }, { name: "Results", path: "/results" }])} />
       <section className="section-padding pb-16 sm:pb-20">
         <div className="section-container">
           <ScrollReveal className="mx-auto max-w-3xl text-center">

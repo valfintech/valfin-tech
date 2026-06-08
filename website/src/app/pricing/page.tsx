@@ -9,7 +9,9 @@ import {
 } from "@/components/ui/accordion";
 import { SectionHeader } from "@/components/sections/section-header";
 import { ScrollReveal, ScrollRevealGroup, ScrollRevealItem } from "@/components/motion/scroll-reveal";
+import { JsonLd } from "@/components/seo/json-ld";
 import { pricingFaq, pricingPage, pricingPlans } from "@/content/pricing";
+import { breadcrumbSchema, faqPageSchema } from "@/lib/structured-data";
 import { cn } from "@/lib/utils";
 
 const TITLE = "Pricing — Valfin";
@@ -26,6 +28,8 @@ export const metadata: Metadata = {
 export default function PricingPage() {
   return (
     <>
+      <JsonLd data={breadcrumbSchema([{ name: "Home", path: "/" }, { name: "Pricing", path: "/pricing" }])} />
+      <JsonLd data={faqPageSchema(pricingFaq)} />
       <section className="section-padding pb-16 sm:pb-20">
         <div className="section-container">
           <ScrollReveal className="mx-auto max-w-3xl text-center">

@@ -9,7 +9,10 @@ import { Industries } from "@/components/sections/industries";
 import { Trust } from "@/components/sections/trust";
 import { Faq } from "@/components/sections/faq";
 import { FinalCta } from "@/components/sections/final-cta";
+import { JsonLd } from "@/components/seo/json-ld";
+import { faq } from "@/content/homepage";
 import { siteConfig } from "@/lib/site-config";
+import { faqPageSchema } from "@/lib/structured-data";
 
 export const metadata: Metadata = {
   title: siteConfig.title,
@@ -20,6 +23,7 @@ export const metadata: Metadata = {
 export default function HomePage() {
   return (
     <>
+      <JsonLd data={faqPageSchema(faq.items)} />
       <Hero />
       <Wound />
       <Reframe />

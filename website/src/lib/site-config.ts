@@ -16,7 +16,6 @@ export const siteConfig = {
   description:
     "Valfin makes sure your business never loses another customer to slow follow-up. Always-on systems that answer, qualify, follow up, and book — automatically, day and night.",
   url: "https://www.valfin.tech",
-  ogImage: "/og.png",
   keywords: [
     "lead response system",
     "missed call recovery",
