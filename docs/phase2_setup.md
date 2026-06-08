@@ -9,7 +9,7 @@ This guide gets the **Form Capture + AI Scoring** flow live and tested. It depen
 ## 0. Prerequisites (one time)
 
 1. **The CRM lives in Google Sheets, not a local `.xlsx`.** Create (or open) the Google Sheet that has these tabs with header rows exactly as named in the brief: `Leads`, `Appointments`, `Quotes`, `Jobs`, `Communication Log`, `Follow Ups`, `Team Schedule`, `Dashboard`.
-   - If you only have `Roofing_CRM_Google_Sheets.xlsx`: in Google Drive, **New → File upload**, then open it and **File → Save as Google Sheets**. Use that converted sheet.
+   - **Use `templates/Roofing_CRM_Google_Sheets_TEMPLATE.xlsx`** (generated 2026-06-08 — see `docs/CRM_SHEET_SCHEMA.md` for the full rationale and column-by-column reference): in Google Drive, **New → File upload**, then open it and **File → Save as Google Sheets**. Delete the `EXAMPLE-` rows before using it for real data. _(Historical note: the brief originally referenced a file called `Roofing_CRM_Google_Sheets.xlsx` that was never actually present in the project folder — `docs/CRM_SHEET_SCHEMA.md` documents that gap and how the generated template closes it. If you're starting completely fresh and the generated template is somehow unavailable, that doc also gives you the exact verified header rows to recreate by hand.)_
    - Grab the **Spreadsheet ID** from the URL: `https://docs.google.com/spreadsheets/d/`**`THIS_LONG_ID`**`/edit`.
 2. The `Leads` header row must include a **`Lead ID`** column and a **`Phone`** column (used as the match keys). The `Communication Log` headers must match the brief exactly (`Log ID`, `Date/Time`, `Lead ID`, `Customer Name`, `Channel`, `Direction`, `Handler`, `Message Summary`, `Notes`).
 

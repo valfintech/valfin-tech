@@ -43,6 +43,7 @@ See `docs/PROJECT_STATUS.md` for full workflow details and known issues.
 - `docs/CASE_STUDY_DATA_PLAN.md` — the spec for measuring and capturing the real before/after numbers the website's flagship case study (`website/src/content/results.ts`) is currently waiting on — the bridge between this track and the parallel website-build track
 - `docs/CLIENT_SERVICE_AGREEMENT_TEMPLATE.md` — a fillable contract draft that closes the literal hard gate in `ONBOARDING_SOP.md` Phase 0 ("do not proceed without a signed agreement"); **read its header before using it** — it's a structured starting point for an attorney review, not a finished legal instrument
 - `docs/SMS_CONSENT_LANGUAGE_GUIDE.md` — ready-to-hand consent-language recommendations for a client's digital forms, paper forms, phone scripts, and first-touch SMS, plus the "here's exactly how our opt-out handling works" talking points that double as a trust-building selling point in the sales conversation itself
+- `docs/CRM_SHEET_SCHEMA.md` + `templates/Roofing_CRM_Google_Sheets_TEMPLATE.xlsx` — the CRM Google Sheet's full column-by-column schema (verified live for `Leads`/`Appointments`/`Communication Log`, clearly-flagged proposals for the five tabs no workflow has built against yet) and a ready-to-clone 8-tab spreadsheet template — closes a long-standing gap where the brief referenced a `Roofing_CRM_Google_Sheets.xlsx` that was never actually in the project folder
 
 Together these are what turn "one custom build" into a repeatable, sellable offering.
 
