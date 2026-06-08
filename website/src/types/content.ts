@@ -44,11 +44,37 @@ export type CaseStudyResult = {
 export type IndustryVocabulary = {
   slug: string;
   name: string;
+  /** Short plural label used in lists/cards, e.g. "Roofing companies" */
+  shortLabel: string;
   /** What this industry calls a "lead" — e.g. "homeowner", "patient", "client" */
   customerNoun: string;
   /** What this industry calls a "job" — e.g. "job", "appointment", "case", "consultation" */
   outcomeNoun: string;
   /** A specific, vivid example of a missed-opportunity moment in this industry */
   painExample: string;
+  /** A specific moment where fast response changes the outcome */
+  winExample: string;
   isFlagship?: boolean;
+};
+
+export type PricingPlan = {
+  name: string;
+  tagline: string;
+  priceLabel: string;
+  priceNote?: string;
+  description: string;
+  features: string[];
+  cta: { label: string; href: string };
+  isFeatured?: boolean;
+};
+
+export type TimelineEntry = {
+  marker: string;
+  title: string;
+  description: string;
+};
+
+export type TeamPrinciple = {
+  title: string;
+  description: string;
 };
