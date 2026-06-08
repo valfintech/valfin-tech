@@ -35,6 +35,8 @@ docs/        setup + operating guides
 **Credentials configured in n8n UI:** Google Sheets OAuth2 · Anthropic Header Auth · Twilio API. (Twilio account intentionally remains on trial/unverified status — a deliberate, paused, non-blocking external decision.)
 See `docs/PROJECT_STATUS.md` for full workflow details and known issues.
 
+**Selling/deploying this to a new client?** See `docs/CLIENT_DEPLOYMENT_GUIDE.md` — the master checklist of every per-client value across all 10 workflows, deployment order of operations, and a post-deploy verification plan. This is the document that turns "one custom build" into a repeatable offering.
+
 ## Models
 - `claude-sonnet-4-6` — lead scoring / qualification (judgment).
 - `claude-haiku-4-5` — instant customer replies (volume/speed).
