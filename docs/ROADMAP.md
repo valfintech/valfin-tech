@@ -2,6 +2,8 @@
 _Last updated: 2026-06-07 — Phase 4 complete (Workflows 09 & 10 live); sellability review redirected next-step priority to deployment readiness (see note below)_
 
 > **2026-06-07 — Sellability review & redirect:** Asked to evaluate the system "as if being sold to a roofing company today" rather than default to building Phase 5 next, the conclusion was that the highest-ROI next step was **not** another workflow — the automation stack (01–10) is already comprehensive and live-tested. The actual gap to a sellable, deployable V1 was (a) the complete absence of a repeatable deployment process (every workflow has Valfin-specific values hardcoded, with no catalog of what to change for client #2), and (b) one small but real SMS-compliance bug. Both were addressed immediately: **`docs/CLIENT_DEPLOYMENT_GUIDE.md`** was written (the master per-client configuration catalog + deployment order of operations + post-deploy verification plan — see §6 of that doc for the full "optional enhancements" list, which now supersedes the informal "future work" notes previously scattered through this roadmap), and the opt-out compliance fix below was shipped and verified live. **Phase 5 (Retention) remains the next workflow-building milestone, but is no longer the top priority** — packaging/onboarding/deployment work is, until a second client deployment validates the guide.
+>
+> **2026-06-07 — Onboarding-the-first-client review (follow-on):** A second pass evaluated the system specifically from "what does it take to onboard our *first paying client*" — and again concluded the gap was commercial/operational, not technical. The deployment guide answers "how do we clone this," but nothing answered "what do we charge," "how do we collect a client's configuration values without an ad hoc back-and-forth," or "what's the repeatable day-by-day sequence from signed deal to live system to ongoing support." Three companion assets were written to close that gap: **`docs/PRICING_PACKAGING.md`** (tiers, suggested pricing anchored to the ROI math, contract structure), **`docs/CLIENT_ONBOARDING_INTAKE.md`** (the client-facing questionnaire that maps 1:1 onto the deployment guide's configuration catalog — turns a slow ad hoc data-collection process into a single clean packet sent on Day 1), and **`docs/ONBOARDING_SOP.md`** (the operator runbook binding all of the above plus the deployment guide into one phase-by-phase sequence from "deal closes" through "ongoing client success," and explicitly logging the "Open Items" — service agreement template, system-health monitoring, client-facing ROI report, standard TCPA consent language — that should be built before client #2 to remove the last manual workarounds). **Pricing is now the literal precondition for closing client #1** — nothing else in the funnel matters if there's no number to say out loud.
 
 
 
@@ -131,8 +133,16 @@ A pre-launch evaluation of the system "as if being sold to a roofing company tod
 ```
 Phase 2 ✅ → Phase 3 ✅ COMPLETE (Hot Alert + Follow-Up + Booking + Pipeline Digest + Weekly Report, all live & tested)
    → Phase 4 ✅ COMPLETE (Appointment Reminders 09 ✅ + Reschedule/Cancel 10 ✅, both live & tested)
-   → Phase 5 (Retention) — up next
+   → [CURRENT PRIORITY] Commercial/onboarding readiness — NOT a workflow phase:
+        Pricing & Packaging ✅ → Client Onboarding Intake ✅ → Onboarding SOP ✅
+        → close client #1 → validate the whole sequence end-to-end → THEN:
+   → Phase 5 (Retention) — resumes once client #1 is live and the onboarding
+     sequence above has been proven on a real engagement (not before — building
+     more workflows before you can sell/onboard the existing ten is optimizing
+     the wrong constraint)
 ```
+
+**Why this re-ordering:** Two consecutive sellability reviews (2026-06-07) reached the same conclusion from different angles — the bottleneck to revenue is not "more automation," it's "the ability to price, sign, onboard, and support a client using what's already built." `docs/PRICING_PACKAGING.md`, `docs/CLIENT_ONBOARDING_INTAKE.md`, and `docs/ONBOARDING_SOP.md` close that gap. Phase 5 is real, valuable future work — but building it before client #1 exists would be building inventory nobody has asked for yet, while the actual precondition for revenue (a price, a contract, a repeatable onboarding motion) sat unbuilt.
 
 **Rule of thumb:** Each phase must be live and tested before building the next.
 The CRM Adapter (`wVRHChyFrUNRaH4M`) is the foundation — all workflows call it. Never write directly to Google Sheets from a non-adapter workflow.

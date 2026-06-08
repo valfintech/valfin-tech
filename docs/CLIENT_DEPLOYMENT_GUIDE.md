@@ -1,6 +1,8 @@
 # Client Deployment & Configuration Guide
 _Created 2026-06-07 — companion to PROJECT_STATUS.md / PROJECT_AUDIT.md / ROADMAP.md_
 
+> **This is the technical half of the onboarding sequence.** For the commercial/operational half — pricing, the client-facing questionnaire that collects the values this guide catalogs, and the day-by-day runbook that ties everything together — see `docs/ONBOARDING_SOP.md` (start there), which in turn references `docs/PRICING_PACKAGING.md` and `docs/CLIENT_ONBOARDING_INTAKE.md`. Use this guide for *how* to configure; use those for *how to sell, collect information, and run the engagement*.
+
 ## Purpose
 
 This is the guide that turns the system from **"one custom build for Valfin Tech"** into **"a repeatable product we can stand up for client #2, #3, #N."**

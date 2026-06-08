@@ -35,7 +35,12 @@ docs/        setup + operating guides
 **Credentials configured in n8n UI:** Google Sheets OAuth2 · Anthropic Header Auth · Twilio API. (Twilio account intentionally remains on trial/unverified status — a deliberate, paused, non-blocking external decision.)
 See `docs/PROJECT_STATUS.md` for full workflow details and known issues.
 
-**Selling/deploying this to a new client?** See `docs/CLIENT_DEPLOYMENT_GUIDE.md` — the master checklist of every per-client value across all 10 workflows, deployment order of operations, and a post-deploy verification plan. This is the document that turns "one custom build" into a repeatable offering.
+**Selling/deploying this to a new client?** Start with `docs/ONBOARDING_SOP.md` — the end-to-end runbook from "prospect says yes" to "client is live and supported," which ties together:
+- `docs/PRICING_PACKAGING.md` — tiers, suggested pricing, ROI framing, and contract structure
+- `docs/CLIENT_ONBOARDING_INTAKE.md` — the client-facing questionnaire that collects every configuration value up front
+- `docs/CLIENT_DEPLOYMENT_GUIDE.md` — the master technical checklist of every per-client value across all 10 workflows, deployment order of operations, and a post-deploy verification plan
+
+Together these are what turn "one custom build" into a repeatable, sellable offering.
 
 ## Models
 - `claude-sonnet-4-6` — lead scoring / qualification (judgment).
