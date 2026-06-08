@@ -22,6 +22,7 @@ Phase 3 is complete (all 5 components live and tested). Phase 4 is now complete:
 | Weekly Pipeline Report | `Y7ruzhYGMhE001fr` | https://valfin.app.n8n.cloud/workflow/Y7ruzhYGMhE001fr | ✅ Active — Monday 8 AM ET, owner phone set, **tested live (execution 54)** |
 | Appointment Reminders | `bJcO5ox2u190bxTr` | https://valfin.app.n8n.cloud/workflow/bJcO5ox2u190bxTr | ✅ Active — hourly check, 24h/2h SMS, **tested live (execution 55)** |
 | Reschedule / Cancel | `Bj5b3sUexa8EeQcK` | https://valfin.app.n8n.cloud/workflow/Bj5b3sUexa8EeQcK | ✅ Active — inbound SMS via Twilio Trigger, **tested live (executions 63/64/65)** |
+| System Health Monitor | `U6t0b7M6lN8eA1JO` | https://valfin.app.n8n.cloud/workflow/U6t0b7M6lN8eA1JO | ✅ Active — daily 16:00 UTC, alerts owner/operator (not client) on stale appointment-reminder/follow-up data, **tested live (executions 75/76 — both alert-firing and clean-pass paths confirmed)** |
 
 ---
 
