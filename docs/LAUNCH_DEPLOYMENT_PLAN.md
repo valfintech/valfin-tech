@@ -1,16 +1,29 @@
 # Valfin Website — Launch Deployment Plan & Execution Checklist (v1)
 
-**Status — updated Jun 9 2026:** Pre-deployment infrastructure is complete. The items below that were previously blocking launch have been resolved:
+**Status — updated Jun 9 2026:** Codebase is production-ready and pushed to GitHub. All code-level deployment tasks are complete.
 
-- ✅ `.env*` confirmed gitignored (line 34 of `.gitignore`) — `.env.local` created and excluded
-- ✅ Contact form (`/api/contact`) wired to n8n webhook with failsafe email — no longer a silent drop
-- ✅ Internal lead capture system built, activated, and verified — `N8N_VALFIN_LEADS_WEBHOOK_URL` set in `.env.local`
-- ✅ Google Sheet created, tab renamed to `Leads`, 14 column headers written
-- ✅ Production build clean — zero TypeScript errors, 26/26 pages, 2.2s compile
-- ⏳ Vercel env vars (`N8N_VALFIN_LEADS_WEBHOOK_URL`) — needed before production deployment
-- ⏳ Domain connection, DNS, SSL, analytics — all pending your account access (Sections 4–8 below)
+**✅ Completed by Claude:**
+- Root `.gitignore` committed — covers `.env*`, `.claude/`, `.DS_Store`, binary docs, build artifacts
+- `.DS_Store` and `.claude/settings.local.json` untracked and removed from version control
+- Contact form (`/api/contact`) wired to n8n webhook with 8s timeout + failsafe email + Vercel-log fallback
+- Internal lead capture system (n8n `OIakSYLK2iMWsB32`) built, verified end-to-end, and active
+- Google Sheet `1eCzFh9jrzlqFGu9BoXLAsZ7a76tN7oTApm_bVG2n-zg` — tab `Leads`, 14 headers, formatting applied
+- `N8N_VALFIN_LEADS_WEBHOOK_URL` set in `.env.local` (local) — **still needs adding to Vercel dashboard**
+- Security headers added to `next.config.ts` — HSTS, X-Frame-Options, CSP, nosniff, Referrer-Policy
+- Vercel Analytics (`@vercel/analytics/react`) added to root layout — zero-config on Vercel deploy
+- `vercel.json` created — permanent 301 redirect: `valfin.tech` → `www.valfin.tech` (enforces www canonical)
+- Production build clean: 26/26 pages, 0 TypeScript errors, 0 lint errors, 3.4s compile
+- All changes committed and pushed: `git push origin main` (commit `3381528`)
 
-**What remains:** Sections 4–10 below are the live deployment sequence. Nothing in those sections has been executed yet — no deploy, no domain connection, no DNS changes.
+**⏳ Requires Kejsi (account access):**
+1. **Vercel** — create project, import repo (`valfintech/valfin-tech`), set root dir = `website`, deploy
+2. **Vercel env vars** — add `N8N_VALFIN_LEADS_WEBHOOK_URL=https://valfin.app.n8n.cloud/webhook/valfin-leads`
+3. **Domain** — add `www.valfin.tech` + `valfin.tech` in Vercel dashboard, set www as primary
+4. **Cloudflare DNS** — point records to Vercel as specified by Vercel's dashboard
+5. **Twilio** — add `+18575261499` as Verified Caller ID (for SMS during trial); upgrade account + toll-free verification (for production SMS)
+6. **n8n Gmail node** — click "Connect Google account" in n8n to enable email alerts
+
+**What remains:** Sections 4–10 below are the live deployment sequence — all require your account access.
 
 This document assumes the codebase stays exactly as it is structurally — **no redesign, no architecture rebuild, no major visual changes.** Every item here is operational/launch-mechanics, not product work.
 
