@@ -37,7 +37,7 @@ Valfin Tech builds Revenue Operations Infrastructure for local service businesse
 **Where we are today (2026-06-08):**
 - V1 of the Revenue Recovery System is fully built, live, and tested inside a Boston-area roofing company
 - 12 workflows running in production on n8n (valfin.app.n8n.cloud)
-- Marketing website (valfin.tech) built, not yet deployed to production
+- Marketing website live at `https://valfintech.com` (Vercel + Cloudflare, SSL active, deployed Jun 9 2026)
 - Zero paying clients (the roofing deployment is the founding internal case study, not a paid client)
 - V1 is declared launch-ready — all tooling, documentation, and operational assets exist to acquire and deploy client #1
 
@@ -242,7 +242,7 @@ Three templates in the acquisition playbook for warm intro, cold outreach, and i
 ### Step 3: The 15-Minute Discovery Call
 Structured sequence:
 1. **Listen first.** Ask how they currently handle inbound calls and leads, and what happens after hours. If you ran the mystery-customer test on their specific business, reference it.
-2. **Run the Lead Leak Calculator** (valfin.tech/calculator) with their real numbers — monthly leads, average job value. Let the number they generate do the persuading. Do not narrate over it; let the silence work.
+2. **Run the Lead Leak Calculator** (valfintech.com/calculator) with their real numbers — monthly leads, average job value. Let the number they generate do the persuading. Do not narrate over it; let the silence work.
 3. **Make the founding-partner offer explicitly** (if they seem receptive). This is the moment the conversation either advances or schedules a follow-up.
 4. **If "not yet," capture them properly.** "Not yet" is the most common outcome of any first conversation. Ask for permission to follow up, record them in the prospect tracker.
 
@@ -389,11 +389,11 @@ Two reasons to say plainly to prospects:
 
 ### Valfin's Own Lead System (Internal)
 
-Every "Talk to us" submission on valfin.tech flows through the internal lead pipeline:
+Every "Talk to us" submission on valfintech.com flows through the internal lead pipeline:
 ```
 Contact Form → /api/contact → n8n Webhook (OIakSYLK2iMWsB32)
     → Google Sheet ("Valfin Internal Leads")
-    → Email alert to hello@valfin.tech
+    → Email alert to hello@valfintech.com
     → SMS alert to Kejsi's mobile
 ```
 
@@ -437,9 +437,9 @@ The System Health Monitor (Workflow 11) runs daily and will often catch issues b
 | Database | Google Sheets (Google account: valfintechnologies@gmail.com) | CRM — Leads, Appointments, Communication Log |
 | SMS | Twilio | All outbound/inbound SMS; webhook trigger for missed calls |
 | AI | Claude API (Anthropic) — Sonnet 4.6 + Haiku 4.5 | Lead scoring (Sonnet) + SMS generation (Haiku) |
-| Website | Next.js 15, Tailwind CSS v4, shadcn/ui, Framer Motion | Marketing site at valfin.tech |
-| Website hosting | TBD — Vercel or Cloudflare Pages (not yet deployed) |
-| Domain | valfin.tech (DNS: Cloudflare) |
+| Website | Next.js 15, Tailwind CSS v4, shadcn/ui, Framer Motion | Marketing site at valfintech.com |
+| Website hosting | Vercel (deployed Jun 9 2026, Cloudflare DNS) |
+| Domain | valfintech.com (DNS: Cloudflare) |
 | Source control | GitHub: valfintech/valfin-tech, branch main |
 
 ### n8n Architecture
@@ -483,7 +483,7 @@ This was one of the best early decisions. Do not break this pattern in future wo
 - `N8N_VALFIN_LEADS_WEBHOOK_URL` — the n8n webhook URL for the internal lead capture workflow
 - `RESEND_API_KEY` — optional failsafe email if n8n is down
 
-**Production URL:** valfin.tech (hardcoded as canonical URL in `src/lib/site-config.ts`)
+**Production URL:** valfintech.com (hardcoded as canonical URL in `src/lib/site-config.ts`)
 
 ### GitHub Structure
 
@@ -549,7 +549,7 @@ All 12 workflows are live in production and have importable JSON exports in `wor
 | 12 | Client ROI Report | `ocAnTMCh068BxxXz` | Every 30 days, 2 PM UTC | Computes 30-day metrics (leads captured, missed calls recovered, appointments booked/kept). Texts client in their brand name. | Client (SMS) |
 
 **Internal lead capture (Valfin's own):**
-- Workflow `OIakSYLK2iMWsB32` — "Valfin — Website Lead Capture" — handles valfin.tech contact form submissions → Sheets + email + SMS alert. Requires one-time configuration (see `INTERNAL_LEAD_CAPTURE_SETUP.md`).
+- Workflow `OIakSYLK2iMWsB32` — "Valfin — Website Lead Capture" — handles valfintech.com contact form submissions → Sheets + email + SMS alert. Requires one-time configuration (see `INTERNAL_LEAD_CAPTURE_SETUP.md`).
 
 ---
 
@@ -674,7 +674,7 @@ All 12 workflows are live in production and have importable JSON exports in `wor
 
 3. **Run a practice discovery call.** Read `CLIENT_ACQUISITION_PLAYBOOK.md`, then run the 15-minute discovery call structure with a friend playing prospect. Do it at least twice: once where they say yes, once where they say "not yet."
 
-4. **Walk through the calculator with your own numbers.** Go to valfin.tech/calculator (or the local dev version) and run it for your own hypothetical business. The number it produces is what you lead with in sales conversations.
+4. **Walk through the calculator with your own numbers.** Go to valfintech.com/calculator (or the local dev version) and run it for your own hypothetical business. The number it produces is what you lead with in sales conversations.
 
 5. **Read the deployment guide as a buyer.** Open `CLIENT_DEPLOYMENT_GUIDE.md` and read it as if you were a client being deployed. You should know what changes per client, what the most error-prone steps are, and what "working" looks like.
 
@@ -750,8 +750,8 @@ The website launched without any analytics. This means: no pageview data, no cal
 **Lesson 3: Copy humanization was needed after the initial build.**
 The initial website copy was functional but sounded slightly "generated" in places. It required a humanization pass before being considered final. **What to do differently:** Establish brand voice rules (plain language, pain-first framing, five-second clarity, no startup vocabulary) before writing any copy, and apply them as a first-pass standard rather than a revision step.
 
-**Lesson 4: Domain connection, hosting provider choice, and SSL are all open.**
-The website was built, validated, and ready to deploy — but the actual deployment (domain pointing, hosting provider setup, DNS configuration) was left as a checklist of manual steps for the founder. **This is not a failure of the build — it's appropriate.** But it means the website will not be "live at valfin.tech" until those steps are completed. See `LAUNCH_DEPLOYMENT_PLAN.md` for the full sequence. **Recommended:** Vercel or Cloudflare Pages; Cloudflare Pages is simpler if already using Cloudflare for DNS.
+**Lesson 4: Domain connection went live on Jun 9 2026.**
+The website is now deployed at `https://valfintech.com` via Vercel + Cloudflare DNS. SSL is active. The deployment itself was straightforward — Vercel's GitHub integration handled the build automatically once the repo was connected and the root directory was set to `website`. The main remaining setup item is adding the Vercel env var `N8N_VALFIN_LEADS_WEBHOOK_URL` so production form submissions route to n8n.
 
 **Lesson 5: The two-session architecture created coordination friction.**
 The Revenue Recovery System and the website were developed in parallel sessions with different contexts. This created occasional duplication of effort, inconsistent naming (tier names "Tier 2" vs. "Growth"), and the need for explicit coordination artifacts (the `CASE_STUDY_DATA_PLAN.md` exists specifically to bridge the two tracks). **What to do differently:** For V2, maintain a single unified repository and development context. The parallel-session model was a constraint of the development environment, not a design choice — don't replicate it.
@@ -764,14 +764,17 @@ The Revenue Recovery System and the website were developed in parallel sessions 
 
 | Gap | Severity | Status | Who must act |
 |---|---|---|---|
-| Contact form on valfin.tech is a no-op stub | **LAUNCH BLOCKER** | Unresolved | Developer or Founder |
-| Internal lead capture pipeline needs one-time configuration | **OPERATIONAL BLOCKER** | Unresolved | Founder (5-step setup, see `INTERNAL_LEAD_CAPTURE_SETUP.md`) |
-| Website not deployed to production (valfin.tech has no live site) | **LAUNCH BLOCKER** | Unresolved | Founder (see `LAUNCH_DEPLOYMENT_PLAN.md`) |
-| Twilio toll-free verification outstanding | Medium | Unresolved | Founder (submit at twilio.com/console) |
-| Service agreement template needs attorney review | Medium | Unresolved | Founder (route to attorney before first signature) |
+| Contact form wiring to n8n | **OPERATIONAL** | ✅ Resolved — wired Jun 9 2026 | n8n workflow `OIakSYLK2iMWsB32` active |
+| Vercel env var `N8N_VALFIN_LEADS_WEBHOOK_URL` | **OPERATIONAL BLOCKER** | Pending | Add in Vercel dashboard → Settings → Env Vars |
+| Internal lead capture pipeline | **OPERATIONAL** | ✅ Resolved — active + verified | Sheet, SMS chain working; Gmail node pending credential |
+| Website deployed to production | **LAUNCH** | ✅ Resolved — live at valfintech.com Jun 9 2026 | Vercel + Cloudflare |
+| n8n Gmail email node | Medium | Pending 1-click OAuth | Open workflow in n8n, connect Google account |
+| Twilio toll-free verification outstanding | Medium | Unresolved | Submit at twilio.com/console (after site is live — which it now is) |
+| Twilio trial account (SMS only to verified numbers) | Medium | Unresolved | Add +18575261499 as Verified Caller ID; upgrade from trial |
+| Service agreement template needs attorney review | Medium | Unresolved | Route to attorney before first signature |
 | No published case study (roofing measurement in progress) | Medium | In progress | Completes naturally 60–90 days after client #1 is live |
-| No analytics on valfin.tech | Medium | Unresolved | Developer (add Plausible or Vercel Analytics) |
-| Privacy policy / Terms pages missing from website | Medium | Unresolved | Founder + Developer (needed for Twilio verification submission) |
+| Vercel Analytics | ✅ Added | Resolves on redeploy | @vercel/analytics added to layout.tsx |
+| Privacy policy / Terms pages missing from website | Medium | Unresolved | Needed for Twilio verification submission |
 | No second or third verified case study | Low | Expected post-V1 | Completes naturally with each new client deployment |
 | Phase 5 retention workflows (review requests, referrals) | Low | Deferred to V2 | Developer when client demand justifies |
 | Framework architecture doc (technical) | Low | Deferred to post-client-#1 | Better written from real clone experience |
@@ -779,4 +782,4 @@ The Revenue Recovery System and the website were developed in parallel sessions 
 ---
 
 *End of Valfin Founder Operating Manual v1.0*
-*Next version should be updated after: (1) client #1 is signed and live, (2) the roofing case study measurement period closes, (3) the website goes live at valfin.tech.*
+*Next version should be updated after: (1) client #1 is signed and live, (2) the roofing case study measurement period closes, (3) Gmail node connected in n8n + Twilio toll-free verification submitted.*

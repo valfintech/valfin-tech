@@ -1,29 +1,27 @@
 # Valfin Website — Launch Deployment Plan & Execution Checklist (v1)
 
-**Status — updated Jun 9 2026:** Codebase is production-ready and pushed to GitHub. All code-level deployment tasks are complete.
+**Status — updated Jun 9 2026 (LIVE):** Site is live at `https://valfintech.com`. Domain connected via Vercel + Cloudflare. SSL active.
 
-**✅ Completed by Claude:**
-- Root `.gitignore` committed — covers `.env*`, `.claude/`, `.DS_Store`, binary docs, build artifacts
-- `.DS_Store` and `.claude/settings.local.json` untracked and removed from version control
-- Contact form (`/api/contact`) wired to n8n webhook with 8s timeout + failsafe email + Vercel-log fallback
-- Internal lead capture system (n8n `OIakSYLK2iMWsB32`) built, verified end-to-end, and active
+**✅ Complete — site is live:**
+- Root `.gitignore` — covers `.env*`, `.claude/`, `.DS_Store`, binary docs, build artifacts
+- `.DS_Store` and `.claude/` untracked from version control
+- Contact form (`/api/contact`) wired to n8n webhook with 8s timeout + Resend failsafe + Vercel-log fallback
+- Internal lead capture system (n8n `OIakSYLK2iMWsB32`) built, active, end-to-end verified
 - Google Sheet `1eCzFh9jrzlqFGu9BoXLAsZ7a76tN7oTApm_bVG2n-zg` — tab `Leads`, 14 headers, formatting applied
-- `N8N_VALFIN_LEADS_WEBHOOK_URL` set in `.env.local` (local) — **still needs adding to Vercel dashboard**
-- Security headers added to `next.config.ts` — HSTS, X-Frame-Options, CSP, nosniff, Referrer-Policy
-- Vercel Analytics (`@vercel/analytics/react`) added to root layout — zero-config on Vercel deploy
-- `vercel.json` created — permanent 301 redirect: `valfin.tech` → `www.valfin.tech` (enforces www canonical)
-- Production build clean: 26/26 pages, 0 TypeScript errors, 0 lint errors, 3.4s compile
-- All changes committed and pushed: `git push origin main` (commit `3381528`)
+- Security headers: HSTS, X-Frame-Options, CSP, nosniff, Referrer-Policy on all routes
+- Vercel Analytics (`@vercel/analytics/react`) in root layout — auto-activates on Vercel
+- `vercel.json` — permanent 301 redirect: `www.valfintech.com` → `valfintech.com` (canonical apex)
+- Canonical URL updated throughout codebase: `https://valfintech.com`
+- Production build clean: 26/26 pages, 0 errors, 3.4s compile
+- Domain connected, Cloudflare DNS configured, SSL active
 
-**⏳ Requires Kejsi (account access):**
-1. **Vercel** — create project, import repo (`valfintech/valfin-tech`), set root dir = `website`, deploy
-2. **Vercel env vars** — add `N8N_VALFIN_LEADS_WEBHOOK_URL=https://valfin.app.n8n.cloud/webhook/valfin-leads`
-3. **Domain** — add `www.valfin.tech` + `valfin.tech` in Vercel dashboard, set www as primary
-4. **Cloudflare DNS** — point records to Vercel as specified by Vercel's dashboard
-5. **Twilio** — add `+18575261499` as Verified Caller ID (for SMS during trial); upgrade account + toll-free verification (for production SMS)
-6. **n8n Gmail node** — click "Connect Google account" in n8n to enable email alerts
+**⏳ Still requires Kejsi:**
+1. **Vercel env vars** — confirm `N8N_VALFIN_LEADS_WEBHOOK_URL=https://valfin.app.n8n.cloud/webhook/valfin-leads` is set in Vercel dashboard (Settings → Environment Variables) — required for production lead capture to work
+2. **n8n Gmail node** — open workflow `OIakSYLK2iMWsB32` → click "Send Lead Email Alert" node → Connect Google account (OAuth, 1 click) → re-enable the node
+3. **Twilio** — add `+18575261499` as Verified Caller ID in Twilio console (immediate SMS testing); upgrade from trial + submit toll-free verification (production SMS)
+4. **Resend** (optional failsafe) — verify `valfintech.com` domain in Resend → add `RESEND_API_KEY` to Vercel env vars
 
-**What remains:** Sections 4–10 below are the live deployment sequence — all require your account access.
+**What remains in this document:** Sections below are now partially historical. Sections 4–6 (domain/DNS/SSL) are complete. Section 7 (lead capture) is wired and working. Section 10 (toll-free verification) is still pending.
 
 This document assumes the codebase stays exactly as it is structurally — **no redesign, no architecture rebuild, no major visual changes.** Every item here is operational/launch-mechanics, not product work.
 
@@ -88,13 +86,13 @@ Route output confirms all marketing pages are statically generated (`○`/`●`)
 
 ## 4. Domain connection plan
 
-**[VERIFIED]** The site is already coded to expect `https://www.valfin.tech` — this is hardcoded as the canonical URL in `src/lib/site-config.ts` and propagates correctly into metadata, Open Graph tags, the sitemap, and `robots.txt`. **No code changes are needed to support the domain** — this is purely a hosting + DNS exercise.
+**[VERIFIED]** The site is already coded to expect `https://valfintech.com` — this is hardcoded as the canonical URL in `src/lib/site-config.ts` and propagates correctly into metadata, Open Graph tags, the sitemap, and `robots.txt`. **No code changes are needed to support the domain** — this is purely a hosting + DNS exercise.
 
 **Plan (sequenced):**
 1. **[YOUR ACTION]** Choose a hosting provider for the Next.js app. Given the codebase (Next.js 15, App Router, edge-runtime API routes, static-first output), the lowest-friction options are **Vercel** (first-party Next.js support, zero-config) or **Cloudflare Pages** (since Section 5 indicates you're already planning to use Cloudflare for DNS — keeping both in one ecosystem simplifies management). This is a real decision with tradeoffs (see callout below) — make it before proceeding.
 2. **[YOUR ACTION]** Connect the GitHub repo to that provider; configure the production branch (per your Section 1 decision)
 3. **[YOUR ACTION]** Deploy once to the provider's default subdomain (e.g., `valfin-tech.vercel.app` or `*.pages.dev`) and **smoke-test it there first**, before touching DNS — this isolates "did the deploy work" from "did the domain connect work" as two separate, independently-debuggable steps
-4. **[YOUR ACTION]** Add the custom domain (`www.valfin.tech`, plus a redirect from the bare `valfin.tech` → `www.valfin.tech`, or vice versa — pick one canonical form and redirect the other, to avoid duplicate-content SEO issues) in the provider's dashboard
+4. **[YOUR ACTION]** Add the custom domain (`valfintech.com`, plus a redirect from the bare `valfintech.com` → `valfintech.com`, or vice versa — pick one canonical form and redirect the other, to avoid duplicate-content SEO issues) in the provider's dashboard
 5. Proceed to Section 5 (DNS) to point the domain at the provider
 
 > **Callout — provider choice affects Section 5:** If you choose Vercel, Cloudflare becomes "DNS-only" (you manage records in Cloudflare, but Vercel handles SSL/CDN). If you choose Cloudflare Pages, Cloudflare handles everything end-to-end (DNS + SSL + CDN + hosting in one place — generally the simplest single-vendor setup). Neither is wrong; Cloudflare Pages is marginally simpler operationally *if* you're already standardizing on Cloudflare for DNS, which Section 5 suggests you are.
@@ -114,19 +112,19 @@ Route output confirms all marketing pages are statically generated (`○`/`●`)
 
 General plan (the exact records depend on your Section 4 provider choice — your provider's domain-setup page will give you the *exact* values to enter; this is the sequence and the things to watch for):
 
-1. Confirm the domain `valfin.tech` is already in your Cloudflare account (added as a "zone") and that Cloudflare is the authoritative nameserver at your domain registrar — if it isn't yet, that's the first step, and it can take time to propagate (sometimes up to 24–48 hours), so do this *first* if it isn't done, well before your target launch date
+1. Confirm the domain `valfintech.com` is already in your Cloudflare account (added as a "zone") and that Cloudflare is the authoritative nameserver at your domain registrar — if it isn't yet, that's the first step, and it can take time to propagate (sometimes up to 24–48 hours), so do this *first* if it isn't done, well before your target launch date
 2. Add the DNS record(s) your hosting provider's dashboard tells you to add — typically:
    - A **CNAME** record for `www` pointing to your provider's hostname (e.g., `cname.vercel-dns.com` or your Cloudflare Pages project hostname)
-   - Either an **A record** or Cloudflare-specific **CNAME flattening** for the bare/apex domain (`valfin.tech`) — Cloudflare supports CNAME flattening at the apex, which is genuinely useful here and something many DNS providers can't do
+   - Either an **A record** or Cloudflare-specific **CNAME flattening** for the bare/apex domain (`valfintech.com`) — Cloudflare supports CNAME flattening at the apex, which is genuinely useful here and something many DNS providers can't do
 3. **Set the Cloudflare proxy status deliberately, not by default.** Cloudflare DNS records can be "proxied" (orange cloud — traffic routes through Cloudflare's CDN/security layer) or "DNS only" (grey cloud — traffic goes straight to your host). If you choose Cloudflare Pages as your host, proxied is correct and automatic. If you choose an external host like Vercel, check that provider's specific guidance — some require "DNS only" for their SSL provisioning to work correctly, and proxying too early can cause SSL handshake failures (this is the single most common Cloudflare+external-host launch-day issue, and it's avoidable by reading your provider's Cloudflare-specific docs *before* flipping the proxy toggle)
 4. Leave existing MX/email-related DNS records untouched unless you know exactly why you're changing them — a domain connection project is a common moment where someone accidentally breaks email deliverability by overwriting MX records. **Audit what's currently in the zone before adding anything**, and don't delete anything you don't recognize without confirming what it's for first
 
 **Checklist:**
-- [ ] **[YOUR ACTION]** Confirm `valfin.tech` zone exists in Cloudflare and Cloudflare is authoritative
+- [ ] **[YOUR ACTION]** Confirm `valfintech.com` zone exists in Cloudflare and Cloudflare is authoritative
 - [ ] **[YOUR ACTION]** Audit existing DNS records (especially MX/email) before making changes — screenshot or export the current zone as a rollback reference
 - [ ] **[YOUR ACTION]** Add the exact record(s) your hosting provider specifies for the custom domain
 - [ ] **[YOUR ACTION]** Set proxy status (orange vs. grey cloud) per your hosting provider's specific Cloudflare guidance — do not assume; check
-- [ ] **[YOUR ACTION]** Verify DNS propagation (e.g., via `dig www.valfin.tech` or a propagation-checker site) before moving to SSL verification
+- [ ] **[YOUR ACTION]** Verify DNS propagation (e.g., via `dig valfintech.com` or a propagation-checker site) before moving to SSL verification
 
 ---
 
@@ -136,10 +134,10 @@ General plan (the exact records depend on your Section 4 provider choice — you
 
 Modern hosting providers (Vercel, Cloudflare Pages) provision and renew SSL certificates automatically once DNS is correctly pointed — there is normally no manual certificate work required. The plan is verification, not configuration:
 
-1. After DNS propagates and the provider issues a certificate (usually minutes, occasionally up to a few hours), load `https://www.valfin.tech` directly and confirm:
+1. After DNS propagates and the provider issues a certificate (usually minutes, occasionally up to a few hours), load `https://valfintech.com` directly and confirm:
    - The browser shows a valid, trusted padlock (no warnings)
    - There is no mixed-content warning (everything loads over HTTPS — this should be automatic since the codebase has no hardcoded `http://` asset references, but worth a direct visual check)
-2. Confirm `http://www.valfin.tech` and `http://valfin.tech` both **redirect** to `https://www.valfin.tech` (HTTPS should be enforced, not just available) — most providers do this by default, but verify rather than assume
+2. Confirm `https://valfintech.com` and `https://valfintech.com` both **redirect** to `https://valfintech.com` (HTTPS should be enforced, not just available) — most providers do this by default, but verify rather than assume
 3. Run the site through an external SSL checker (e.g., SSL Labs' SSL Test) once live — takes a couple of minutes and gives you independent confirmation plus a security grade, which is also a nice thing to have on record before you start sending toll-free-verification or prospect traffic to the domain
 
 **Checklist:**
@@ -167,7 +165,7 @@ This is not a bug in the sense of broken code — the code does exactly what its
 
 **Plan:**
 1. **[YOUR ACTION / possible follow-up task]** Wire `/api/contact` (and ideally `/api/calculator`, so completed-calculator sessions are also captured as warm leads) to actually deliver submissions somewhere a human will see them. The two lowest-effort options, in rough order of speed-to-implement:
-   - **Fastest:** forward the validated payload via a simple email-send (e.g., Resend, Postmark, or even a transactional email API) to `hello@valfin.tech` — gets you "a human sees every submission" with the least new infrastructure
+   - **Fastest:** forward the validated payload via a simple email-send (e.g., Resend, Postmark, or even a transactional email API) to `hello@valfintech.com` — gets you "a human sees every submission" with the least new infrastructure
    - **More aligned with the existing plan:** wire it into the n8n lead pipeline described in `/docs` and `/workflows` at the project root, which is what the code comments already point toward and what the rest of your operational tooling expects — more setup work, but it's the integration that was clearly always intended, and it gets every inquiry into the same CRM/pipeline as the rest of your lead flow from day one
 2. Either path requires environment variables (an API key, a webhook URL) — see Section 3
 3. Once wired, **submit a real test inquiry through the live form** (with a throwaway name/email you control) and confirm it actually arrives where it's supposed to, before sending any real traffic to the site
@@ -211,7 +209,7 @@ A simple, practical "first two weeks" checklist — not a permanent ops dashboar
 - [ ] Submit one real test inquiry through the contact form and confirm it arrives (Section 7)
 - [ ] Run through the calculator end-to-end on the live domain
 - [ ] Spot-check 3–4 pages on mobile on a real phone (not just devtools emulation)
-- [ ] Confirm `https://www.valfin.tech/sitemap.xml` and `/robots.txt` both load and reference the correct production domain
+- [ ] Confirm `https://valfintech.com/sitemap.xml` and `/robots.txt` both load and reference the correct production domain
 
 **First week:**
 - [ ] Check analytics daily for any obvious anomaly (zero traffic when you expect some = something's broken; a spike of 1-second-duration visits = possibly a crawler or a broken redirect loop)

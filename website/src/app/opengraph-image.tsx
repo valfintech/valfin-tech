@@ -64,7 +64,7 @@ export default async function OpengraphImage() {
         </div>
 
         <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
-          <span style={{ fontSize: 22, color: "#7b7bff", fontWeight: 500 }}>valfin.tech</span>
+          <span style={{ fontSize: 22, color: "#7b7bff", fontWeight: 500 }}>valfintech.com</span>
         </div>
       </div>
     ),

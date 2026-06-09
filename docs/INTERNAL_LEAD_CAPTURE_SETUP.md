@@ -12,7 +12,7 @@ Every "Talk to us" submission on the Valfin website flows through this pipeline:
 
 ```
 Contact Form → /api/contact → n8n Webhook → Google Sheets (append row)
-                                          → Email alert to hello@valfin.tech
+                                          → Email alert to hello@valfintech.com
                                           → SMS alert to your mobile
                                           → Respond { received: true }
 ```
@@ -28,7 +28,7 @@ If n8n is unreachable at submission time, a failsafe email fires via Resend so n
 | n8n (valfin.app.n8n.cloud) | Workflow orchestration | ✅ Already active |
 | Google account (valfintechnologies@gmail.com) | Hosts the Leads Google Sheet | ✅ Already connected |
 | Twilio | SMS alerts to your mobile | ✅ Existing `twilioApi` credential reused |
-| SMTP provider | Email alerts (hello@valfin.tech) | ⚠️ New credential needed |
+| SMTP provider | Email alerts (hello@valfintech.com) | ⚠️ New credential needed |
 | Resend (optional) | Failsafe email if n8n is down | ⚠️ Recommended — free tier sufficient |
 
 ---
@@ -70,20 +70,20 @@ Open the workflow: https://valfin.app.n8n.cloud/workflow/OIakSYLK2iMWsB32
 1. Click **"Send Lead Email Alert"**
 2. Click the **Credential** dropdown → **Create new credential**
 3. Credential type: **SMTP**
-4. Fill in the SMTP settings for `hello@valfin.tech`:
+4. Fill in the SMTP settings for `hello@valfintech.com`:
 
-   **Option A — Gmail / Google Workspace (recommended if hello@valfin.tech is a Google Workspace account)**
+   **Option A — Gmail / Google Workspace (recommended if hello@valfintech.com is a Google Workspace account)**
    - Host: `smtp.gmail.com`
    - Port: `465`
    - SSL: Yes
-   - User: `hello@valfin.tech`
+   - User: `hello@valfintech.com`
    - Password: Create an [App Password](https://myaccount.google.com/apppasswords) (not your regular password — 2FA must be enabled)
 
    **Option B — Any other ESP (Postmark, Mailgun, etc.)**
    - Use the SMTP credentials from that provider's dashboard
 
 5. Save the credential
-6. Verify `From Email` = `hello@valfin.tech` and `To Email` = `hello@valfin.tech`
+6. Verify `From Email` = `hello@valfintech.com` and `To Email` = `hello@valfintech.com`
 
 ---
 
@@ -120,7 +120,7 @@ The production URL is already set. Fill in `RESEND_API_KEY` if you want the fail
 
 ### Step 4b — Resend setup (optional failsafe)
 1. Create a free account at https://resend.com
-2. Add and verify the domain `valfin.tech` (DNS records — adds 3 TXT records to Cloudflare)
+2. Add and verify the domain `valfintech.com` (DNS records — adds 3 TXT records to Cloudflare)
 3. Create an API key → copy it into `RESEND_API_KEY`
 4. This ensures that even if n8n is down, you receive an email with the lead data
 
@@ -155,7 +155,7 @@ curl -X POST https://valfin.app.n8n.cloud/webhook-test/valfin-leads \
 Expected response: `{ "received": true }`
 
 ### Verify the failsafe
-To test the failsafe, temporarily set `N8N_VALFIN_LEADS_WEBHOOK_URL` to an invalid URL and submit the form. With `RESEND_API_KEY` set, a failsafe email should arrive at `hello@valfin.tech`. Without it, the error and lead data appear in Vercel logs (Functions tab).
+To test the failsafe, temporarily set `N8N_VALFIN_LEADS_WEBHOOK_URL` to an invalid URL and submit the form. With `RESEND_API_KEY` set, a failsafe email should arrive at `hello@valfintech.com`. Without it, the error and lead data appear in Vercel logs (Functions tab).
 
 ---
 
