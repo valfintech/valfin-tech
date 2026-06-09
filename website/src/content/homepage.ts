@@ -1,11 +1,14 @@
-import type { CaseStudyResult, FaqItem, Pillar, ProcessStep, Stat } from "@/types/content";
+import type { CaseStudyInProgress, FaqItem, Pillar, ProcessStep, Stat } from "@/types/content";
 
 /**
  * Homepage copy — approved final version.
  *
- * Bracketed placeholders (e.g. [Company Name], [X]) mark the only spots
- * that require real figures from the roofing flagship deployment before
- * this copy goes live. Everything else is final, as-shipped copy.
+ * The `proof.featured` story below is presented honestly as "measurement
+ * in progress" rather than with placeholder figures like [X]% — the
+ * flagship deployment is real and live, but its measurement period
+ * hasn't closed yet, so there are no verified numbers to show. The
+ * moment there are, this becomes the first fully-verified result and the
+ * copy gets replaced with real figures (never invented or rounded ones).
  *
  * Voice rules in effect (see /CLAUDE.md):
  *  - Plain language, five-second clarity, pain-first framing
@@ -109,23 +112,23 @@ export const proof: {
   eyebrow: string;
   headline: string;
   intro: string;
-  featured: CaseStudyResult;
+  featured: CaseStudyInProgress;
 } = {
-  eyebrow: "What actually happened",
-  headline: "We proved this inside a real business first. Here's exactly what happened.",
-  intro: "Before we called this a product, we built it inside a real roofing company — in one of the most competitive, time-sensitive, lead-driven industries there is — and measured everything.",
+  eyebrow: "What's actually happening",
+  headline: "We're proving this inside a real business first — and showing our work as we go.",
+  intro: "Before we called this a product, we put it to work inside a real roofing company — in one of the most competitive, time-sensitive, lead-driven trades there is. That's still running today, and we're measuring it the same way we'll measure every business that comes after it.",
   featured: {
     industryTag: "Roofing",
-    headline: "[Company Name] was missing 4 out of every 10 calls. Here's what changed when something started answering for them.",
-    stats: [
-      { value: "[X]%", label: "of calls now answered within [X] minutes" },
-      { value: "[X]", label: "additional jobs booked per month" },
-      { value: "$[X]", label: "in revenue that would have been lost" },
+    status: "Measurement in progress",
+    headline: "A real roofing company was missing roughly 4 out of every 10 calls. Here's what we're tracking now that something answers for them.",
+    body: "We're partway through the measurement period that will produce our first fully-verified numbers — checked against this business's own call logs, booking calendar, and job records, not our estimates. We'd rather wait and show you the real figures than publish a guess that looks good today and turns out to be wrong later.",
+    metrics: [
+      { label: "Response time", note: "How much faster inbound calls and messages get answered, day and night" },
+      { label: "Jobs booked", note: "How many additional jobs land on the calendar each month" },
+      { label: "Revenue recovered", note: "What those additional jobs are worth, in the business's own numbers" },
     ],
-    quote: "We didn't spend a dollar more on leads. We just stopped losing them.",
-    attribution: "[Owner Name], [Company Name]",
+    commitment: "When the period closes, the verified numbers go here — including this owner's name and their own words, with permission. Not adjusted in our favor. If the honest number is more modest than we hoped, that's what gets published.",
     href: "/results",
-    isPlaceholder: true,
   },
 };
 

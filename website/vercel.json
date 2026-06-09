@@ -1,0 +1,10 @@
+{
+  "redirects": [
+    {
+      "source": "/(.*)",
+      "has": [{ "type": "host", "value": "valfin.tech" }],
+      "destination": "https://www.valfin.tech/$1",
+      "permanent": true
+    }
+  ]
+}

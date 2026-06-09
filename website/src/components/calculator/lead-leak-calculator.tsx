@@ -1,7 +1,6 @@
 "use client";
 
 import { useId, useMemo, useState } from "react";
-import { AnimatePresence, motion, useReducedMotion } from "framer-motion";
 import { ArrowRight, ArrowLeft } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { ButtonLink } from "@/components/ui/button-link";
@@ -12,7 +11,6 @@ import {
   estimateLeakage,
   formatCurrency,
 } from "@/lib/calculator";
-import { duration, easing } from "@/lib/motion-tokens";
 import { cn } from "@/lib/utils";
 
 type Step = "leads" | "value" | "result";
@@ -21,12 +19,6 @@ const STEP_ORDER: Step[] = ["leads", "value", "result"];
 
 const PRESET_LEADS = [10, 25, 50, 100];
 const PRESET_VALUES = [500, 2500, 7500, 15000];
-
-const slideVariants = {
-  enter: { opacity: 0, x: 24 },
-  center: { opacity: 1, x: 0 },
-  exit: { opacity: 0, x: -24 },
-};
 
 /**
  * The Lead Leak Calculator — Valfin's primary conversion mechanism.
@@ -42,7 +34,6 @@ export function LeadLeakCalculator() {
   const [step, setStep] = useState<Step>("leads");
   const [monthlyLeads, setMonthlyLeads] = useState<number | null>(null);
   const [avgCustomerValue, setAvgCustomerValue] = useState<number | null>(null);
-  const shouldReduceMotion = useReducedMotion();
   const leadsInputId = useId();
   const valueInputId = useId();
 
@@ -73,10 +64,6 @@ export function LeadLeakCalculator() {
     setStep("leads");
   }
 
-  const transition = shouldReduceMotion
-    ? { duration: 0 }
-    : { duration: duration.base, ease: easing.out };
-
   return (
     <div className="mx-auto w-full max-w-xl">
       {/* Progress indicator */}
@@ -92,17 +79,33 @@ export function LeadLeakCalculator() {
         ))}
       </div>
 
-      <div className="rounded-2xl border border-ink-700 bg-ink-900/60 p-8 sm:p-10">
-        <AnimatePresence mode="wait" initial={false}>
+      <div className="relative overflow-hidden rounded-2xl border border-ink-700 bg-ink-900/60 p-8 sm:p-10">
+        {/*
+          Defensive design note — this is the site's primary conversion
+          mechanism, so the step transition is built to fail safe:
+
+          1. Only the CURRENT step is ever rendered. There's no "exiting"
+             panel kept around to animate out — when `step` changes, React
+             unmounts the old panel outright on the very same render that
+             mounts the new one. Progress is driven by state, full stop;
+             no animation has to "finish" first, so nothing can block it.
+          2. The crossfade-in is a native CSS `@keyframes` animation
+             (`.calc-step-enter`, see globals.css), re-triggered each time
+             by keying the panel on `step`. CSS animations run on the
+             browser's own compositor — they always play through to their
+             final, fully-visible state on their own, independent of any
+             JS animation engine. A throttled background tab or an
+             environment where requestAnimationFrame never ticks (we hit
+             exactly this in automated testing) can't leave a panel stuck
+             invisible or overlapping the next one.
+
+          Net effect: worst case under a stalled animation engine is that
+          the new step simply appears without its entrance flourish —
+          never blocked, never overlapping, never a dead end.
+        */}
+        <div key={step} className="calc-step-enter">
           {step === "leads" && (
-            <motion.div
-              key="leads"
-              initial="enter"
-              animate="center"
-              exit="exit"
-              variants={slideVariants}
-              transition={transition}
-            >
+            <div>
               <StepQuestion
                 eyebrow="Step 1 of 2"
                 question="About how many new leads does your business get in a typical month?"
@@ -117,18 +120,11 @@ export function LeadLeakCalculator() {
                 onSubmit={handleLeadsSubmit}
                 submitLabel="Continue"
               />
-            </motion.div>
+            </div>
           )}
 
           {step === "value" && (
-            <motion.div
-              key="value"
-              initial="enter"
-              animate="center"
-              exit="exit"
-              variants={slideVariants}
-              transition={transition}
-            >
+            <div>
               <StepQuestion
                 eyebrow="Step 2 of 2"
                 question="And roughly what's an average customer or job worth to your business?"
@@ -152,27 +148,52 @@ export function LeadLeakCalculator() {
                 <ArrowLeft className="size-3.5" />
                 Back
               </button>
-            </motion.div>
+            </div>
           )}
 
           {step === "result" && result && (
-            <motion.div
-              key="result"
-              initial="enter"
-              animate="center"
-              exit="exit"
-              variants={slideVariants}
-              transition={transition}
-            >
-              <ResultPanel
-                monthlyLeads={monthlyLeads ?? 0}
-                avgCustomerValue={avgCustomerValue ?? 0}
-                result={result}
-                onReset={reset}
-              />
-            </motion.div>
+            <ResultPanel
+              monthlyLeads={monthlyLeads ?? 0}
+              avgCustomerValue={avgCustomerValue ?? 0}
+              result={result}
+              onReset={reset}
+            />
           )}
-        </AnimatePresence>
+
+          {/*
+            Defensive fallback: by construction this should never happen —
+            both numbers are validated before we ever advance to "result",
+            and `estimateLeakage` always returns a value for finite,
+            positive inputs. But a calculator that's the site's primary
+            conversion mechanism shouldn't have a single code path that
+            can leave a visitor looking at a blank panel with no way
+            forward. If state ever lands here anyway — a future refactor,
+            an unexpected input edge case, anything — they get a plain
+            explanation and one click back to a working state. Never a
+            dead end.
+          */}
+          {step === "result" && !result && (
+            <div>
+              <p className="text-eyebrow">One moment</p>
+              <h2 className="mt-3 text-xl font-semibold leading-snug text-ink-50 sm:text-2xl">
+                We didn&apos;t catch your numbers — let&apos;s try that again.
+              </h2>
+              <p className="mt-2 text-sm leading-relaxed text-ink-400">
+                Nothing&apos;s wrong on your end — this is just a quick reset so we can calculate your estimate
+                correctly.
+              </p>
+              <Button
+                type="button"
+                size="lg"
+                className="mt-7 bg-accent-500 text-white hover:bg-accent-400"
+                onClick={reset}
+              >
+                Start over
+                <ArrowRight className="ml-1 size-4" />
+              </Button>
+            </div>
+          )}
+        </div>
       </div>
     </div>
   );

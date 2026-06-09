@@ -181,4 +181,37 @@
   .divider-hairline {
     @apply h-px w-full bg-gradient-to-r from-transparent via-ink-700 to-transparent;
   }
+
+  /*
+   * Calculator step transition — deliberately a native CSS animation,
+   * not a JS-driven (Framer Motion) one. The calculator is the site's
+   * primary conversion mechanism, and a JS animation engine that stalls
+   * (a throttled background tab, a testing/automation environment where
+   * requestAnimationFrame doesn't tick, etc.) can leave an exiting panel
+   * stuck mid-fade — overlapping the next step's content. A `@keyframes`
+   * animation runs on the browser's own compositor: it always plays to
+   * completion and always lands in its final state, independent of JS.
+   * Combined with keying the step panel by its step name (so React
+   * unmounts the old one outright, with no exit animation to get stuck
+   * on), this guarantees the visitor only ever sees one panel at a time.
+   */
+  .calc-step-enter {
+    animation: calc-step-enter 320ms cubic-bezier(0.16, 1, 0.3, 1) both;
+  }
+  @media (prefers-reduced-motion: reduce) {
+    .calc-step-enter {
+      animation: none;
+    }
+  }
+}
+
+@keyframes calc-step-enter {
+  from {
+    opacity: 0;
+    transform: translateX(16px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
 }

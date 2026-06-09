@@ -41,6 +41,43 @@ export type CaseStudyResult = {
   isPlaceholder?: boolean;
 };
 
+/**
+ * A case study that is real (not hypothetical, not a demo) but whose
+ * measurement period hasn't closed yet — so no verified figures exist
+ * to publish. This is the honest alternative to showing placeholder
+ * brackets like "[X]%" as if they were real numbers: we name what's
+ * being measured and how, without claiming a result we don't have yet.
+ */
+export type CaseStudyInProgress = {
+  industryTag: string;
+  status: string;
+  headline: string;
+  body: string;
+  metrics: { label: string; note: string }[];
+  commitment: string;
+  href: string;
+};
+
+export type MethodologySection = {
+  heading: string;
+  body: string;
+};
+
+/**
+ * Detail-page content for an in-progress case study — reframed as a
+ * transparent walkthrough of *how* a result will be measured and proven,
+ * rather than a finished narrative wearing placeholder numbers as if
+ * they were real.
+ */
+export type MeasurementMethodology = {
+  slug: string;
+  industryTag: string;
+  title: string;
+  dek: string;
+  sections: MethodologySection[];
+  closingNote: string;
+};
+
 export type IndustryVocabulary = {
   slug: string;
   name: string;

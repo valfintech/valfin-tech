@@ -19,6 +19,7 @@ export function ButtonLink({ variant, size, className, href, children, ...props 
       variant={variant}
       size={size}
       className={className}
+      nativeButton={false}
       render={
         <Link href={href} {...props}>
           {children}

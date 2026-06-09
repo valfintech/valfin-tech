@@ -1,7 +1,7 @@
 import type { MetadataRoute } from "next";
 import { siteConfig } from "@/lib/site-config";
 import { industryList } from "@/content/industries";
-import { caseStudies } from "@/content/results";
+import { caseStudies, flagshipInProgress } from "@/content/results";
 
 /**
  * Dynamic sitemap — generated from the same typed content sources that
@@ -30,7 +30,10 @@ export default function sitemap(): MetadataRoute.Sitemap {
     priority: industry.isFlagship ? 0.8 : 0.6,
   }));
 
-  const caseStudyRoutes: MetadataRoute.Sitemap = caseStudies.map((study) => ({
+  // `caseStudies` stays empty until a result is fully verified (see
+  // src/content/results.ts); the in-progress flagship story still gets
+  // its own detail page and belongs in the sitemap regardless.
+  const caseStudyRoutes: MetadataRoute.Sitemap = [...caseStudies, flagshipInProgress].map((study) => ({
     url: `${baseUrl}${study.href}`,
     lastModified: now,
     changeFrequency: "monthly",

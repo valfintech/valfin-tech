@@ -5,19 +5,21 @@ import { Badge } from "@/components/ui/badge";
 import { ButtonLink } from "@/components/ui/button-link";
 import { ScrollReveal } from "@/components/motion/scroll-reveal";
 import { JsonLd } from "@/components/seo/json-ld";
-import { flagshipCaseStudy } from "@/content/results";
+import { flagshipMethodology } from "@/content/results";
 import { breadcrumbSchema, caseStudyArticleSchema } from "@/lib/structured-data";
 
 type PageProps = { params: Promise<{ slug: string }> };
 
 /**
- * Case study detail template — before / build / after narrative shape.
- * Currently powers only the flagship roofing story; built so that every
- * future documented result slots into the same structure (and the same
- * standard of proof) without a new template.
+ * Case study detail template — currently a transparent "how we measure
+ * this" walkthrough, since the flagship story's measurement period is
+ * still open and there are no verified figures to publish yet. Built so
+ * that the eventual verified result can be added above this methodology
+ * section without retiring it — the methodology is what makes the
+ * eventual numbers credible, not just decorative.
  */
 const caseStudiesBySlug = {
-  [flagshipCaseStudy.slug]: flagshipCaseStudy,
+  [flagshipMethodology.slug]: flagshipMethodology,
 };
 
 export async function generateStaticParams() {
@@ -41,8 +43,6 @@ export default async function CaseStudyPage({ params }: PageProps) {
   const { slug } = await params;
   const study = caseStudiesBySlug[slug as keyof typeof caseStudiesBySlug];
   if (!study) notFound();
-
-  const sections = [study.before, study.build, study.after];
 
   return (
     <>
@@ -78,39 +78,14 @@ export default async function CaseStudyPage({ params }: PageProps) {
       <section className="border-t border-ink-700/60 pb-24 sm:pb-32 lg:pb-40">
         <div className="section-container">
           <div className="mx-auto max-w-3xl space-y-14 pt-16 sm:pt-20">
-            {sections.map((section, index) => (
+            {study.sections.map((section, index) => (
               <ScrollReveal key={section.heading} delay={index * 0.04}>
-                <p className="text-eyebrow">{["Before", "What we built", "What changed"][index]}</p>
-                <h2 className="mt-3 text-2xl font-semibold leading-snug tracking-tight text-ink-50 sm:text-3xl">
+                <h2 className="text-2xl font-semibold leading-snug tracking-tight text-ink-50 sm:text-3xl">
                   {section.heading}
                 </h2>
                 <p className="mt-4 text-base leading-relaxed text-ink-400">{section.body}</p>
-
-                {"stat" in section && section.stat ? (
-                  <div className="mt-6 inline-block rounded-xl border border-ink-700 bg-ink-900/50 px-6 py-4">
-                    <p className="text-2xl font-semibold tracking-tight text-ink-50">{section.stat.value}</p>
-                    <p className="mt-1 text-sm text-ink-400">{section.stat.label}</p>
-                  </div>
-                ) : null}
-
-                {"stats" in section && section.stats ? (
-                  <dl className="mt-6 grid grid-cols-1 gap-6 sm:grid-cols-3">
-                    {section.stats.map((stat) => (
-                      <div key={stat.label} className="rounded-xl border border-ink-700 bg-ink-900/50 p-5">
-                        <dt className="sr-only">{stat.label}</dt>
-                        <dd className="text-2xl font-semibold tracking-tight text-ink-50">{stat.value}</dd>
-                        <p className="mt-1 text-sm text-ink-400">{stat.label}</p>
-                      </div>
-                    ))}
-                  </dl>
-                ) : null}
               </ScrollReveal>
             ))}
-
-            <ScrollReveal delay={0.16} className="border-l-2 border-accent-500/50 pl-5">
-              <p className="text-lg italic leading-relaxed text-ink-200">&ldquo;{study.quote.text}&rdquo;</p>
-              <footer className="mt-2 text-sm text-ink-400">— {study.quote.attribution}</footer>
-            </ScrollReveal>
 
             <ScrollReveal delay={0.2} className="rounded-xl border border-dashed border-ink-700 p-6">
               <p className="text-sm leading-relaxed text-ink-500">{study.closingNote}</p>

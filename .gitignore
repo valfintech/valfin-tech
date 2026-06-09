@@ -1,0 +1,24 @@
+# macOS system files
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+
+# Claude Code local settings (machine-specific, not for version control)
+# Covers all .claude/ directories in the repo (settings.local.json, launch.json, etc.)
+**/.claude/
+
+# Office/binary document files (use Google Docs or export to PDF for versioning)
+*.docx
+*.xlsx
+*.pptx
+
+# Node / build artifacts (also covered in website/.gitignore)
+node_modules/
+.next/
+
+# Environment files
+.env
+.env.local
+.env.*

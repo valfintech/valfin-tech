@@ -42,10 +42,10 @@ export default function PricingPage() {
               <ButtonLink
                 href={pricingPage.calculatorPrompt.href}
                 variant="ghost"
-                className="text-accent-400 hover:bg-ink-800 hover:text-accent-300"
+                className="h-auto w-full max-w-full justify-center whitespace-normal text-wrap py-2.5 text-center text-accent-400 hover:bg-ink-800 hover:text-accent-300 sm:w-auto"
               >
                 {pricingPage.calculatorPrompt.label}
-                <ArrowRight className="ml-1 size-4" />
+                <ArrowRight className="ml-1 hidden size-4 shrink-0 sm:inline-flex" />
               </ButtonLink>
             </div>
           </ScrollReveal>
@@ -54,6 +54,12 @@ export default function PricingPage() {
 
       <section className="pb-24 sm:pb-32">
         <div className="section-container">
+          <SectionHeader
+            eyebrow={pricingPage.tiersIntro.eyebrow}
+            headline={pricingPage.tiersIntro.headline}
+            subheadline={pricingPage.tiersIntro.subheadline}
+            className="mb-10 sm:mb-12"
+          />
           <ScrollRevealGroup className="grid gap-6 lg:grid-cols-3" staggerAmount={0.06}>
             {pricingPlans.map((plan) => (
               <ScrollRevealItem key={plan.name}>

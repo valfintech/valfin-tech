@@ -19,6 +19,20 @@ export const pricingPage = {
     label: "Not sure where you'd land? See your number first",
     href: "/calculator",
   },
+  /**
+   * Short orientation copy shown directly above the three plan cards.
+   * Added to address "pricing clarity" — visitors were landing on three
+   * cards that all say "Custom" / "Let's talk" with no immediate sense
+   * of how to tell them apart or which one fits their situation. This
+   * gives a one-glance frame for reading the cards before the FAQ (which
+   * explains *why* there's no published price) ever comes into view.
+   */
+  tiersIntro: {
+    eyebrow: "How the three compare",
+    headline: "One system, three starting points",
+    subheadline:
+      "All three are the same underlying system — the difference is how much of your pipeline it's covering on day one. Most businesses start with Foundation or Growth; \"Built for you\" exists for the handful of operations complex enough to need a custom shape from the start.",
+  },
 };
 
 export const pricingPlans: PricingPlan[] = [
