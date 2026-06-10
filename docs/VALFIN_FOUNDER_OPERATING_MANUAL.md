@@ -40,8 +40,8 @@ Valfin Tech builds Revenue Operations Infrastructure for local service businesse
 - Marketing website live at `https://valfintech.com` (Vercel + Cloudflare, SSL active, deployed Jun 9 2026)
 - Internal lead capture (contact form → n8n → Sheet + Gmail + SMS) wired and verified end-to-end as of Jun 10 2026
 - Zero paying clients (the roofing deployment is the founding internal case study, not a paid client)
-- **One open item stands between "live" and "fully working for visitors":** a Vercel domain-redirect-direction setting needs to be flipped in the dashboard (5-minute fix, account-access only — see Section 19, top row). Until that's done, `valfintech.com` may show a redirect-loop error to visitors.
-- V1 is declared launch-ready — all tooling, documentation, and operational assets exist to acquire and deploy client #1
+- All previously identified launch blockers are resolved: domain redirect fixed, env vars confirmed, real test lead submitted and received via Gmail
+- V1 is operationally launch-ready — all tooling, documentation, and operational assets exist to acquire and deploy client #1
 
 **The fundamental business idea:** Local service businesses (roofing, HVAC, plumbing, dental, legal, etc.) lose revenue not because they lack leads, but because those leads go unanswered or un-followed-up. The Revenue Recovery System fixes that, automatically, 24/7. One recovered job per month typically pays for the system many times over.
 
@@ -766,11 +766,11 @@ The Revenue Recovery System and the website were developed in parallel sessions 
 
 | Gap | Severity | Status | Who must act |
 |---|---|---|---|
-| **Vercel domain redirect direction (`valfintech.com` ↔ `www`)** | **LAUNCH BLOCKER — highest priority** | Unresolved | Vercel dashboard → Settings → Domains: set `valfintech.com` as primary (no redirect), `www.valfintech.com` → "Redirect to valfintech.com". 5-minute fix, requires Kejsi's Vercel login |
+| Vercel domain redirect direction (`valfintech.com` ↔ `www`) | **LAUNCH** | ✅ Resolved — site loads cleanly, no redirect loop | Vercel + Cloudflare |
 | Contact form wiring to n8n | **OPERATIONAL** | ✅ Resolved — wired Jun 9 2026 | n8n workflow `OIakSYLK2iMWsB32` active |
-| Vercel env var `N8N_VALFIN_LEADS_WEBHOOK_URL` | **OPERATIONAL** | Needs confirmation | Confirm set in Vercel dashboard → Settings → Env Vars (without it, `/api/contact` falls back to failsafe/log-only) |
+| Vercel env var `N8N_VALFIN_LEADS_WEBHOOK_URL` | **OPERATIONAL** | ✅ Resolved — confirmed set | — |
 | Internal lead capture pipeline | **OPERATIONAL** | ✅ Resolved — active + verified end-to-end (Jun 10 2026) | Sheet, SMS, and Gmail alert all confirmed via test executions 144/145 |
-| Real-world test lead through live `/company` form | **OPERATIONAL** | Not yet observed | Submit one real test lead on `valfintech.com` and confirm the email arrives at `valfintechnologies@gmail.com` |
+| Real-world test lead through live `/company` form | **OPERATIONAL** | ✅ Resolved — real test lead submitted, Gmail alert received | — |
 | Website deployed to production | **LAUNCH** | ✅ Resolved — live at valfintech.com Jun 9 2026 | Vercel + Cloudflare |
 | n8n Gmail email node | ✅ Resolved Jun 10 2026 | Fixed: restored `resource`/`operation`/credential, verified via executions 144/145 (Gmail `SENT`) | — |
 | Twilio toll-free verification | Medium | Submitted, pending Twilio review | No action — wait for carrier review |
