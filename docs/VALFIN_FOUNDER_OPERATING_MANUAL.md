@@ -34,11 +34,13 @@
 
 Valfin Tech builds Revenue Operations Infrastructure for local service businesses. The core product is the **Revenue Recovery System** — an end-to-end automated system that captures every inbound lead (calls, texts, forms), responds within seconds, follows up automatically across multiple touches, and books appointments onto the business's calendar.
 
-**Where we are today (2026-06-08):**
+**Where we are today (2026-06-10):**
 - V1 of the Revenue Recovery System is fully built, live, and tested inside a Boston-area roofing company
-- 12 workflows running in production on n8n (valfin.app.n8n.cloud)
+- 12 workflows + 1 internal lead-capture workflow running in production on n8n (valfin.app.n8n.cloud)
 - Marketing website live at `https://valfintech.com` (Vercel + Cloudflare, SSL active, deployed Jun 9 2026)
+- Internal lead capture (contact form → n8n → Sheet + Gmail + SMS) wired and verified end-to-end as of Jun 10 2026
 - Zero paying clients (the roofing deployment is the founding internal case study, not a paid client)
+- **One open item stands between "live" and "fully working for visitors":** a Vercel domain-redirect-direction setting needs to be flipped in the dashboard (5-minute fix, account-access only — see Section 19, top row). Until that's done, `valfintech.com` may show a redirect-loop error to visitors.
 - V1 is declared launch-ready — all tooling, documentation, and operational assets exist to acquire and deploy client #1
 
 **The fundamental business idea:** Local service businesses (roofing, HVAC, plumbing, dental, legal, etc.) lose revenue not because they lack leads, but because those leads go unanswered or un-followed-up. The Revenue Recovery System fixes that, automatically, 24/7. One recovered job per month typically pays for the system many times over.
@@ -393,13 +395,13 @@ Every "Talk to us" submission on valfintech.com flows through the internal lead 
 ```
 Contact Form → /api/contact → n8n Webhook (OIakSYLK2iMWsB32)
     → Google Sheet ("Valfin Internal Leads")
-    → Email alert to hello@valfintech.com
+    → Gmail alert to valfintechnologies@gmail.com
     → SMS alert to Kejsi's mobile
 ```
 
-**Status as of 2026-06-08:** Workflow created, website code wired. Requires one-time configuration before activating. See `docs/INTERNAL_LEAD_CAPTURE_SETUP.md` for the full setup checklist.
+**Status as of 2026-06-10:** ✅ Live and verified. `/api/contact` forwards every submission to the n8n webhook (`OIakSYLK2iMWsB32`), which appends a row to the Google Sheet, sends a Gmail alert to `valfintechnologies@gmail.com`, and texts Kejsi's mobile. The Gmail alert node was the last piece — fixed and verified via two successful test sends (executions 144/145) on 2026-06-10. See `docs/INTERNAL_LEAD_CAPTURE_SETUP.md` for the full reference.
 
-**Critical: This pipeline is currently a no-op stub in production.** The website code submits form data to the API route, which validates it and returns a success response — but does NOT forward it anywhere. A prospect who fills out the contact form today receives a "we'll be in touch" message and is then permanently lost. **This is a launch blocker.** Do not launch the website until this is wired.
+**One thing not yet confirmed:** a *real* end-to-end test — submitting the live `/company` contact form on `valfintech.com` and confirming the email actually lands — hasn't been observed yet (only n8n's internal test executions have been verified). Also confirm `N8N_VALFIN_LEADS_WEBHOOK_URL` is set in Vercel's production environment variables — without it, `/api/contact` silently falls back to the Resend/log failsafe instead of the full pipeline.
 
 ### Internal Lead Tracking (Google Sheet: "Valfin Internal Leads")
 Columns: Lead ID | Date Created | Source | Name | Email | Phone | Business Name | Message | Calc Monthly Leads | Calc Avg Value | Calc Monthly Loss | Status | Last Contact | Notes
@@ -764,17 +766,20 @@ The Revenue Recovery System and the website were developed in parallel sessions 
 
 | Gap | Severity | Status | Who must act |
 |---|---|---|---|
+| **Vercel domain redirect direction (`valfintech.com` ↔ `www`)** | **LAUNCH BLOCKER — highest priority** | Unresolved | Vercel dashboard → Settings → Domains: set `valfintech.com` as primary (no redirect), `www.valfintech.com` → "Redirect to valfintech.com". 5-minute fix, requires Kejsi's Vercel login |
 | Contact form wiring to n8n | **OPERATIONAL** | ✅ Resolved — wired Jun 9 2026 | n8n workflow `OIakSYLK2iMWsB32` active |
-| Vercel env var `N8N_VALFIN_LEADS_WEBHOOK_URL` | **OPERATIONAL BLOCKER** | Pending | Add in Vercel dashboard → Settings → Env Vars |
-| Internal lead capture pipeline | **OPERATIONAL** | ✅ Resolved — active + verified | Sheet, SMS chain working; Gmail node pending credential |
+| Vercel env var `N8N_VALFIN_LEADS_WEBHOOK_URL` | **OPERATIONAL** | Needs confirmation | Confirm set in Vercel dashboard → Settings → Env Vars (without it, `/api/contact` falls back to failsafe/log-only) |
+| Internal lead capture pipeline | **OPERATIONAL** | ✅ Resolved — active + verified end-to-end (Jun 10 2026) | Sheet, SMS, and Gmail alert all confirmed via test executions 144/145 |
+| Real-world test lead through live `/company` form | **OPERATIONAL** | Not yet observed | Submit one real test lead on `valfintech.com` and confirm the email arrives at `valfintechnologies@gmail.com` |
 | Website deployed to production | **LAUNCH** | ✅ Resolved — live at valfintech.com Jun 9 2026 | Vercel + Cloudflare |
-| n8n Gmail email node | Medium | Pending 1-click OAuth | Open workflow in n8n, connect Google account |
-| Twilio toll-free verification outstanding | Medium | Unresolved | Submit at twilio.com/console (after site is live — which it now is) |
-| Twilio trial account (SMS only to verified numbers) | Medium | Unresolved | Add +18575261499 as Verified Caller ID; upgrade from trial |
+| n8n Gmail email node | ✅ Resolved Jun 10 2026 | Fixed: restored `resource`/`operation`/credential, verified via executions 144/145 (Gmail `SENT`) | — |
+| Twilio toll-free verification | Medium | Submitted, pending Twilio review | No action — wait for carrier review |
+| Twilio trial account (SMS only to verified numbers) | Medium | Unresolved | Add +18575261499 as Verified Caller ID in Twilio console |
 | Service agreement template needs attorney review | Medium | Unresolved | Route to attorney before first signature |
 | No published case study (roofing measurement in progress) | Medium | In progress | Completes naturally 60–90 days after client #1 is live |
-| Vercel Analytics | ✅ Added | Resolves on redeploy | @vercel/analytics added to layout.tsx |
+| Vercel Analytics | ✅ Added | Live | @vercel/analytics added to layout.tsx |
 | Privacy policy / Terms pages missing from website | Medium | Unresolved | Needed for Twilio verification submission |
+| Resend failsafe domain verification | Low (optional) | Unresolved | Verify `valfintech.com` in Resend, add `RESEND_API_KEY` to Vercel |
 | No second or third verified case study | Low | Expected post-V1 | Completes naturally with each new client deployment |
 | Phase 5 retention workflows (review requests, referrals) | Low | Deferred to V2 | Developer when client demand justifies |
 | Framework architecture doc (technical) | Low | Deferred to post-client-#1 | Better written from real clone experience |
@@ -782,4 +787,4 @@ The Revenue Recovery System and the website were developed in parallel sessions 
 ---
 
 *End of Valfin Founder Operating Manual v1.0*
-*Next version should be updated after: (1) client #1 is signed and live, (2) the roofing case study measurement period closes, (3) Gmail node connected in n8n + Twilio toll-free verification submitted.*
+*Next version should be updated after: (1) the Vercel domain redirect-direction fix is applied and `valfintech.com` loads cleanly for an outside visitor, (2) a real end-to-end test lead is confirmed via the live contact form, (3) client #1 is signed and live, (4) the roofing case study measurement period closes.*

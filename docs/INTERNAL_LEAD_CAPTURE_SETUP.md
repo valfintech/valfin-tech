@@ -1,6 +1,9 @@
 # Valfin Internal Lead Capture — Setup Guide
 
-**Status:** Workflow created, website wired. Requires one-time configuration before activating.  
+**Status (2026-06-10): ✅ Active and verified end-to-end.** Workflow is live, website is wired, Sheet/SMS/Gmail all confirmed working via n8n test executions 144–145. The sections below are kept as a reference for how the pipeline is configured — most setup steps are already done. The one remaining item is a **real-world test**: submit the live `/company` contact form on `valfintech.com` and confirm the email actually arrives at `valfintechnologies@gmail.com` (only n8n's internal test executions have been observed so far).
+
+**Note on the email step:** the original plan below (Step 2c) describes a generic SMTP credential. **The actual implementation uses n8n's native Gmail node with OAuth2** (credential "Gmail OAuth2 API", `resource: "message"`, `operation: "send"`, `emailType: "html"`) sending to `valfintechnologies@gmail.com` — simpler than SMTP since it reuses the same Google account already connected for Sheets. If you ever need to rebuild this node, use the Gmail node + OAuth2 connection, not SMTP.
+
 **Workflow:** `Valfin — Website Lead Capture` (n8n ID: `OIakSYLK2iMWsB32`)  
 **URL:** https://valfin.app.n8n.cloud/workflow/OIakSYLK2iMWsB32
 
@@ -12,7 +15,7 @@ Every "Talk to us" submission on the Valfin website flows through this pipeline:
 
 ```
 Contact Form → /api/contact → n8n Webhook → Google Sheets (append row)
-                                          → Email alert to hello@valfintech.com
+                                          → Gmail alert to valfintechnologies@gmail.com
                                           → SMS alert to your mobile
                                           → Respond { received: true }
 ```
@@ -26,10 +29,9 @@ If n8n is unreachable at submission time, a failsafe email fires via Resend so n
 | Account | Purpose | Status |
 |---|---|---|
 | n8n (valfin.app.n8n.cloud) | Workflow orchestration | ✅ Already active |
-| Google account (valfintechnologies@gmail.com) | Hosts the Leads Google Sheet | ✅ Already connected |
+| Google account (valfintechnologies@gmail.com) | Hosts the Leads Google Sheet + sends Gmail alerts | ✅ Connected — Gmail OAuth2 verified Jun 10 2026 (executions 144/145) |
 | Twilio | SMS alerts to your mobile | ✅ Existing `twilioApi` credential reused |
-| SMTP provider | Email alerts (hello@valfintech.com) | ⚠️ New credential needed |
-| Resend (optional) | Failsafe email if n8n is down | ⚠️ Recommended — free tier sufficient |
+| Resend (optional) | Failsafe email if n8n is down | ⚠️ Recommended — free tier sufficient, not yet set up |
 
 ---
 
@@ -66,34 +68,17 @@ Open the workflow: https://valfin.app.n8n.cloud/workflow/OIakSYLK2iMWsB32
 3. Set **To** to your personal mobile number (E.164 format, e.g. `+16175550100`)
 4. The **Twilio** credential shows "Twilio account" — this is the same credential the roofing workflows use. No action needed.
 
-### 2c — Email node (SMTP credential — new)
-1. Click **"Send Lead Email Alert"**
-2. Click the **Credential** dropdown → **Create new credential**
-3. Credential type: **SMTP**
-4. Fill in the SMTP settings for `hello@valfintech.com`:
+### 2c — Email node (Gmail OAuth2 — already configured) ✅
+**This is done.** The "Send Lead Email Alert" node uses n8n's native **Gmail node** (`resource: "message"`, `operation: "send"`, `emailType: "html"`) with the **"Gmail OAuth2 API"** credential, sending to `valfintechnologies@gmail.com`. Verified via two successful test sends (executions 144 and 145, both Gmail `SENT`) on 2026-06-10.
 
-   **Option A — Gmail / Google Workspace (recommended if hello@valfintech.com is a Google Workspace account)**
-   - Host: `smtp.gmail.com`
-   - Port: `465`
-   - SSL: Yes
-   - User: `hello@valfintech.com`
-   - Password: Create an [App Password](https://myaccount.google.com/apppasswords) (not your regular password — 2FA must be enabled)
-
-   **Option B — Any other ESP (Postmark, Mailgun, etc.)**
-   - Use the SMTP credentials from that provider's dashboard
-
-5. Save the credential
-6. Verify `From Email` = `hello@valfintech.com` and `To Email` = `hello@valfintech.com`
+If this node is ever broken again (e.g. by a manual edit that strips fields), restore: `resource: "message"`, `operation: "send"`, the `gmailOAuth2` credential binding to "Gmail OAuth2 API", `emailType: "html"`, and the HTML lead-detail template (Lead ID/Date/Source/Name/Email/Phone/Business/Message/Est. Monthly Loss table).
 
 ---
 
-## Step 3 — Activate the workflow
+## Step 3 — Activate the workflow ✅ Done
 
-1. In the workflow editor, toggle **Active** to ON (top-right switch)
-2. The production webhook URL becomes live:  
-   `https://valfin.app.n8n.cloud/webhook/valfin-leads`
-
-> **Important:** The webhook only receives submissions when the workflow is active. In test mode, use the test URL instead (see Step 5).
+The workflow is **published and active**. The production webhook URL is live:  
+`https://valfin.app.n8n.cloud/webhook/valfin-leads`
 
 ---
 
@@ -193,7 +178,7 @@ Update the `Status` and `Last Contact` columns in the Google Sheet after each in
 | n8n workflow | `OIakSYLK2iMWsB32` (new) | Workflows 01–12 (untouched) |
 | Google Sheet | Valfin Internal Leads (new) | `1MxmJouteZhi1K_-KOwgBlJtBFAXtm2G_0H555otTHBQ` (untouched) |
 | Twilio credential | Reuses `twilioApi` (read-only reuse — no changes to existing config) | Same credential |
-| SMTP credential | New credential (Send Lead Email Alert) | Not used in any client workflow |
+| Gmail OAuth2 credential | New credential ("Gmail OAuth2 API", Send Lead Email Alert) | Not used in any client workflow |
 
 No existing roofing client workflow, sheet, or credential was modified.
 
@@ -204,9 +189,8 @@ No existing roofing client workflow, sheet, or credential was modified.
 | Account | Required? | Why |
 |---|---|---|
 | n8n (already active) | Yes | Workflow orchestration |
-| Google Workspace / Gmail | Yes | Google Sheets leads database |
+| Google Workspace / Gmail | Yes | Google Sheets leads database + Gmail email alerts (OAuth2) |
 | Twilio (already active) | Yes | SMS alerts |
-| SMTP provider | Yes | Email alerts (new credential in n8n) |
 | Resend | Strongly recommended | Failsafe email if n8n is unreachable |
 | Vercel | Yes (for production) | Hosts the Next.js website |
 
@@ -219,14 +203,14 @@ No existing roofing client workflow, sheet, or credential was modified.
 
 ---
 
-## Checklist before activating
+## Checklist — current status (2026-06-10)
 
-- [ ] Google Sheet created with `Leads` tab and 14 header columns
-- [ ] Sheet ID pasted into the n8n Google Sheets node
-- [ ] Twilio `from` and `to` numbers set in the n8n Twilio node
-- [ ] SMTP credential created and assigned in the n8n Email node
-- [ ] Workflow toggled Active in n8n
-- [ ] `N8N_VALFIN_LEADS_WEBHOOK_URL` set in Vercel environment variables
-- [ ] `RESEND_API_KEY` set in Vercel environment variables (failsafe)
-- [ ] Test submission verified: row appears in Google Sheet, email received, SMS received
+- [x] Google Sheet created with `Leads` tab and 14 header columns
+- [x] Sheet ID pasted into the n8n Google Sheets node
+- [x] Twilio `from` and `to` numbers set in the n8n Twilio node
+- [x] Gmail OAuth2 credential created and assigned in the n8n Email node (verified executions 144/145)
+- [x] Workflow toggled Active in n8n
+- [ ] `N8N_VALFIN_LEADS_WEBHOOK_URL` set in Vercel environment variables — **needs confirmation**
+- [ ] `RESEND_API_KEY` set in Vercel environment variables (optional failsafe)
+- [ ] **Real-world test submission**: submit the live `/company` form on `valfintech.com` and confirm row appears in Sheet, Gmail alert arrives, SMS received (n8n-side test executions already pass — this is the live, real-traffic confirmation)
 - [ ] Failsafe tested: email arrives when n8n webhook URL is invalid

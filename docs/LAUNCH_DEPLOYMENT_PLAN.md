@@ -20,6 +20,7 @@ A `vercel.json` redirect rule (`www.valfintech.com → valfintech.com`, added du
 - Contact form (`/api/contact`) wired to n8n webhook with 8s timeout + Resend failsafe + Vercel-log fallback
 - Internal lead capture system (n8n `OIakSYLK2iMWsB32`) built, active, end-to-end verified
 - Google Sheet `1eCzFh9jrzlqFGu9BoXLAsZ7a76tN7oTApm_bVG2n-zg` — tab `Leads`, 14 headers, formatting applied
+- **n8n Gmail alert (Jun 10 2026)** — "Send Lead Email Alert" node fixed and live: was missing `resource: "message"`, `operation: "send"`, and the `gmailOAuth2` credential binding (stripped during manual edits, causing an indefinite hang with no error). Restored those three fields, re-attached the "Gmail OAuth2 API" credential, restored the production HTML lead-detail email template (Lead ID/Date/Source/Name/Email/Phone/Business/Message/Est. Monthly Loss table), and set `emailType: "html"` so it renders correctly. Verified via two successful test sends (executions 144 and 145, both returned Gmail `SENT` status). Published as the active workflow version.
 - Security headers: HSTS, X-Frame-Options, CSP, nosniff, Referrer-Policy on all routes
 - Vercel Analytics (`@vercel/analytics/react`) in root layout — auto-activates on Vercel
 - Canonical URL updated throughout codebase: `https://valfintech.com`
@@ -29,9 +30,9 @@ A `vercel.json` redirect rule (`www.valfintech.com → valfintech.com`, added du
 **⏳ Still requires Kejsi:**
 1. **Fix Vercel domain redirect direction** (see redirect-loop fix above) — **this is the live-site blocker right now**
 2. **Vercel env vars** — confirm `N8N_VALFIN_LEADS_WEBHOOK_URL=https://valfin.app.n8n.cloud/webhook/valfin-leads` is set in Vercel dashboard (Settings → Environment Variables) — required for production lead capture to work
-3. **n8n Gmail node** — open workflow `OIakSYLK2iMWsB32` → click "Send Lead Email Alert" node → Connect Google account (OAuth, 1 click) → re-enable the node
-4. **Twilio** — add `+18575261499` as Verified Caller ID in Twilio console (immediate SMS testing); upgrade from trial + submit toll-free verification (production SMS)
-5. **Resend** (optional failsafe) — verify `valfintech.com` domain in Resend → add `RESEND_API_KEY` to Vercel env vars
+3. **Twilio** — add `+18575261499` as Verified Caller ID in Twilio console (immediate SMS testing); toll-free verification submitted, pending Twilio review (production SMS)
+4. **Resend** (optional failsafe) — verify `valfintech.com` domain in Resend → add `RESEND_API_KEY` to Vercel env vars
+5. **Send a real test lead** through the live `/company` contact form to confirm an actual email lands in `valfintechnologies@gmail.com` (the n8n test executions confirm the Gmail node itself works — an end-to-end real-world send hasn't been observed yet)
 
 **What remains in this document:** Sections below are now partially historical. Sections 4–6 (domain/DNS/SSL) are complete pending the redirect-direction fix above. Section 7 (lead capture) is wired and working. Section 10 (toll-free verification) is still pending.
 
