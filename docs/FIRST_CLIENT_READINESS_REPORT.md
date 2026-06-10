@@ -8,7 +8,7 @@ This report answers one question: **is Valfin ready to onboard its first paying 
 
 ## Verdict
 
-**Yes — Valfin can take on its first paying client now.** The product (the 12-workflow roofing/demo automation system), the deployment process (`CLIENT_DEPLOYMENT_GUIDE.md`), the onboarding process (`ONBOARDING_SOP.md`, `CLIENT_ONBOARDING_INTAKE.md`), and the commercial paperwork (`CLIENT_SERVICE_AGREEMENT_TEMPLATE.md`, `PRICING_PACKAGING.md`) all exist and are documented. Valfin's own marketing site and lead pipeline — the thing that brings a client *to* Valfin — is live, tested, and legally covered (Privacy Policy, Terms, SMS consent).
+**Yes — Valfin can take on its first paying client now.** The product (the 12-workflow roofing/demo automation system), the deployment process (`CLIENT_DEPLOYMENT_GUIDE.md`), the onboarding process (`ONBOARDING_SOP.md`, `CLIENT_ONBOARDING_INTAKE.md`), and the commercial paperwork (`CLIENT_SERVICE_AGREEMENT_TEMPLATE.md`, `PRICING_PACKAGING.md`) all exist and are documented. The full founder-led journey from interested prospect to paying client — discovery call, proposal, agreement, and payment (`CLIENT_ACCEPTANCE_FLOW.md` and its component docs, added 2026-06-10) — is now also documented end-to-end. Valfin's own marketing site and lead pipeline — the thing that brings a client *to* Valfin — is live, tested, and legally covered (Privacy Policy, Terms, SMS consent).
 
 The gaps below are real but **non-blocking** — none of them prevent signing and onboarding a first client; they're things to close in parallel or shortly after.
 
@@ -29,6 +29,9 @@ The gaps below are real but **non-blocking** — none of them prevent signing an
 | Onboarding process | ✅ `ONBOARDING_SOP.md` + `CLIENT_ONBOARDING_INTAKE.md` exist |
 | Commercial paperwork | ✅ `CLIENT_SERVICE_AGREEMENT_TEMPLATE.md`, `PRICING_PACKAGING.md`, `CLIENT_WELCOME_GUIDE_TEMPLATE.md` exist |
 | Day-to-day lead handling | ✅ `DAY_1_OPERATIONS_CHECKLIST.md` (this session) |
+| Discovery call package | ✅ `DISCOVERY_CALL_WORKBOOK.md`, `DISCOVERY_CALL_NOTES_TEMPLATE.md`, `DISCOVERY_CALL_SCORECARD.md` (added 2026-06-10) |
+| Proposal system | ✅ `CLIENT_PROPOSAL_TEMPLATE.docx`, `PROPOSAL_PLAYBOOK.md` (added 2026-06-10) |
+| Payment system | ✅ `PAYMENT_PROCESS.md`, `STRIPE_SETUP_GUIDE.md`, `INVOICE_TEMPLATE.docx`, `CLIENT_ACCEPTANCE_FLOW.md` (added 2026-06-10) — Stripe Payment Links for setup fee + recurring monthly fee, not yet activated (no live Stripe account created yet — see `STRIPE_SETUP_GUIDE.md` §1) |
 
 ---
 
@@ -46,6 +49,8 @@ These don't stop a first client deal, but should be tracked and closed:
 
 5. **No real client has been run through the deployment/onboarding process yet.** The docs are thorough but unvalidated against a live client. Expect minor friction/edits the first time through — this is normal and not a reason to delay starting.
 
+6. **No live Stripe account created yet.** `STRIPE_SETUP_GUIDE.md` is a complete step-by-step (account creation, branding, Payment Link creation per client), but the account itself hasn't been created. This is a one-time, ~15-minute human action item — do it before the first signed agreement reaches Phase 0's payment step, not during a live client conversation.
+
 ---
 
 ## Recommendation
@@ -53,6 +58,7 @@ These don't stop a first client deal, but should be tracked and closed:
 Proceed with first-client outreach and sales conversations now. In parallel (no client-facing dependency):
 - Monitor Twilio toll-free verification status — no action needed until it clears
 - Set up the Resend failsafe (small, contained task)
+- Create the live Stripe account and Branding settings (`STRIPE_SETUP_GUIDE.md` §1-2) — a one-time ~15-minute task, do it before it's needed mid-conversation
 - When the first client is signed, follow `CLIENT_DEPLOYMENT_GUIDE.md` step-by-step and use that pass to tighten any rough edges in the onboarding docs for client #2
 
 **Bottom line: the gaps are operational polish, not missing infrastructure. Valfin is ready for its first paying client.**

@@ -14,10 +14,12 @@ This is the step-by-step playbook **you** (the operator) follow from "prospect s
 
 > **Don't have a prospect yet?** This phase assumes one already exists — that assumption was identified as the single highest-leverage gap in the whole sequence (2026-06-08 architect-level review, see `ROADMAP.md`). **Start with `docs/CLIENT_ACQUISITION_PLAYBOOK.md`** — it covers the ICP, concrete this-week sourcing channels for Boston-area roofing prospects, first-contact scripts, and the discovery-call structure that hands directly into step 1 below the moment someone says "tell me more."
 
+> **Have a prospect, but haven't closed yet?** Everything between "discovery call happened" and "agreement signed + setup fee paid" is now its own documented sequence — **`docs/CLIENT_ACCEPTANCE_FLOW.md`** (added 2026-06-10). It covers running the discovery call (`docs/DISCOVERY_CALL_WORKBOOK.md`), sending the proposal (`docs/PROPOSAL_PLAYBOOK.md` + `docs/CLIENT_PROPOSAL_TEMPLATE.docx`), and collecting the setup-fee payment via Stripe (`docs/PAYMENT_PROCESS.md` + `docs/STRIPE_SETUP_GUIDE.md`). Steps 1-3 below summarize that sequence's endpoint — read `CLIENT_ACCEPTANCE_FLOW.md` for the full step-by-step.
+
 1. Open `docs/PRICING_PACKAGING.md` — confirm which tier you're proposing (default pitch: **Growth**, matching the live website's `isFeatured: true` recommendation — see that doc's reconciliation note for why the naming changed from "Tier 2")
 2. Send/sign the service agreement — use `docs/CLIENT_SERVICE_AGREEMENT_TEMPLATE.md` as the starting draft (created 2026-06-07, closing the item formerly flagged here as "not yet written"). **Read its top warning before sending anything**: it is a structured starting point, not an attorney-reviewed final contract — fill in every `[BRACKETED]` value, and get a real legal review before the first signature. Until that review lands, the template still upgrades the interim "document terms via email" approach by giving you (and the prospect) a complete, professional, single-source-of-truth document to work from instead of an ad hoc email thread
-3. Collect the setup fee (or first invoice) before configuration work begins
-4. **Do not proceed to Phase 1 without a signed agreement and payment terms confirmed** — this is the one hard gate in the whole sequence
+3. Collect the setup fee via the Stripe Payment Link (`docs/STRIPE_SETUP_GUIDE.md` §3) and send `docs/INVOICE_TEMPLATE.docx` alongside it — before configuration work begins
+4. **Do not proceed to Phase 1 without a signed agreement and the setup-fee payment confirmed in Stripe** — this is the one hard gate in the whole sequence (see `docs/CLIENT_ACCEPTANCE_FLOW.md` Step 6)
 
 ## Phase 1 — Kick Off Intake (Day 0–1)
 **Trigger:** Agreement signed.
@@ -61,7 +63,8 @@ This is the step-by-step playbook **you** (the operator) follow from "prospect s
 1. **Fill out `docs/CLIENT_WELCOME_GUIDE_TEMPLATE.md` for this client** (created 2026-06-08, closing the "client gets nothing durable at go-live" gap identified in that day's architect-level review — see `ROADMAP.md`) — every `[BRACKETED]` value comes straight from the intake answers and `CLIENT_DEPLOYMENT_GUIDE.md` §3, so this should take minutes, not hours. Then schedule a short walkthrough call and **read the filled-in guide together, section by section**: where their leads land (the CRM sheet — guide §3), what their customers will receive (read 2–3 actual SMS scripts aloud — guide §4), and what *they'll* receive on what schedule (guide §2 — the daily digest / weekly report / hot-lead alerts / monthly ROI recap). Leave the filled-in copy with them — that's the entire point; a guide that's only spoken aloud is forgotten by week 3, one they can hold and re-read isn't
 2. Set expectations for what "normal operation" looks like in week 1 (e.g., "you'll get a text within seconds of every missed call," "you'll get an evening digest every day at 6 PM") — this is now also written down for them in guide §2 and §6, so the call reinforces the document rather than being the only record of it
 3. Give them a direct way to report anything that looks off (see Phase 6) — also now durably documented in guide §5, in the client's own hands, not just spoken once on a call
-4. Flip every workflow to active, if not already
+4. **Set up the recurring monthly Payment Link live, on this call** (`docs/STRIPE_SETUP_GUIDE.md` §4) — frame it as part of the celebratory "you're officially live" moment, not a separate billing chore (see `docs/PAYMENT_PROCESS.md` §3)
+5. Flip every workflow to active, if not already
 
 ## Phase 6 — Ongoing Support & Client Success (Week 2 onward — repeats indefinitely)
 **Trigger:** Client is live.

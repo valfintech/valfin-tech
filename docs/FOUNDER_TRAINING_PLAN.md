@@ -97,7 +97,7 @@ You've got this when you can answer, instantly and conversationally, without loo
 
 ## Module 3 — Run discovery calls
 
-**Source material:** `CLIENT_ACQUISITION_PLAYBOOK.md` §"The first real conversation (the 15-minute discovery call)" — read the four-step structure closely; it is deliberately sequenced (listen first, *then* use the calculator, *then* make the offer, *then* handle "not yet" gracefully) and that sequence is the entire skill.
+**Source material:** `CLIENT_ACQUISITION_PLAYBOOK.md` §"The first real conversation (the 15-minute discovery call)" — read the four-step structure closely; it is deliberately sequenced (listen first, *then* use the calculator, *then* make the offer, *then* handle "not yet" gracefully) and that sequence is the entire skill. **`docs/DISCOVERY_CALL_WORKBOOK.md`** (added 2026-06-10) is the live, run-the-call companion built from this same structure — open it during the actual call, and pair it with `DISCOVERY_CALL_NOTES_TEMPLATE.md` and `DISCOVERY_CALL_SCORECARD.md` for capturing and reviewing each conversation.
 
 **What to internalize, specifically:**
 - **Step 1 is the one people skip, and it's the one that matters most.** Asking "how do you currently handle calls and leads, and what happens after hours?" — and then *actually listening to the answer* — does more in two minutes than any pitch could in twenty. If you did the "mystery customer" exercise on this exact business beforehand (the playbook tells you to), this is the moment to use it: *"actually, I called your office last week pretending to be a customer, and here's what happened..."* That sentence alone usually ends any need to "convince" anyone of anything.

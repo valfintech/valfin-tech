@@ -242,7 +242,7 @@ Three templates in the acquisition playbook for warm intro, cold outreach, and i
 - **Ask for 15 minutes.** Not a demo, not a pitch — a conversation.
 
 ### Step 3: The 15-Minute Discovery Call
-Structured sequence:
+Structured sequence — the full talk track, with exact language for each step and an objection-handling reference table, lives in `docs/DISCOVERY_CALL_WORKBOOK.md` (added 2026-06-10). Fill in `docs/DISCOVERY_CALL_NOTES_TEMPLATE.md` during/after every call, and `docs/DISCOVERY_CALL_SCORECARD.md` afterward — after 3-5 calls, the scorecards reveal patterns worth feeding back into this playbook. Summary:
 1. **Listen first.** Ask how they currently handle inbound calls and leads, and what happens after hours. If you ran the mystery-customer test on their specific business, reference it.
 2. **Run the Lead Leak Calculator** (valfintech.com/calculator) with their real numbers — monthly leads, average job value. Let the number they generate do the persuading. Do not narrate over it; let the silence work.
 3. **Make the founding-partner offer explicitly** (if they seem receptive). This is the moment the conversation either advances or schedules a follow-up.
@@ -253,10 +253,12 @@ Structured sequence:
 - Default pitch: Growth tier (matches the website's featured/recommended tier)
 - **Never state a price first.** The calculator number sets the frame. Let them anchor against what they're losing, not against what software usually costs.
 - Frame setup fee as "installing your revenue infrastructure," not as a deposit or trial fee
+- Within 24-48 hours, send `docs/CLIENT_PROPOSAL_TEMPLATE.docx` filled in with this prospect's numbers — see `docs/PROPOSAL_PLAYBOOK.md` (added 2026-06-10) for exactly how to fill it out and send it
 - The service agreement template (`CLIENT_SERVICE_AGREEMENT_TEMPLATE.md`) formalizes the deal — **have a lawyer review it before the first real signature**
+- Once signed, send the setup-fee Stripe Payment Link + `docs/INVOICE_TEMPLATE.docx` (`docs/STRIPE_SETUP_GUIDE.md` §3, `docs/PAYMENT_PROCESS.md`) — payment confirmed in Stripe is the hard gate before any configuration work begins
 
 ### Step 5: Handoff to Onboarding
-Once "yes" — move to `ONBOARDING_SOP.md` Phase 0. The acquisition phase is complete.
+Once "yes" — move to `ONBOARDING_SOP.md` Phase 0. The full proposal → agreement → payment sequence is documented end-to-end in `docs/CLIENT_ACCEPTANCE_FLOW.md` (added 2026-06-10), which is the connective document between this section and the onboarding SOP. The acquisition phase is complete.
 
 ### Common Objections and Honest Responses
 
@@ -278,7 +280,7 @@ Once "yes" — move to `ONBOARDING_SOP.md` Phase 0. The acquisition phase is com
 ### The Six Phases
 
 **Phase 0 — Close the Deal**
-Hard gate: signed agreement + payment terms confirmed before any configuration work. No exceptions.
+Hard gate: signed agreement + setup-fee payment confirmed in Stripe before any configuration work. No exceptions. Full sequence (proposal → agreement → Stripe setup-fee Payment Link → confirmation) documented in `docs/CLIENT_ACCEPTANCE_FLOW.md` and `docs/PAYMENT_PROCESS.md`.
 
 **Phase 1 — Kick Off Intake (Day 0–1)**
 Send `CLIENT_ONBOARDING_INTAKE.md` the same day the agreement is signed. Momentum matters.
@@ -301,7 +303,7 @@ Follow `CLIENT_DEPLOYMENT_GUIDE.md` §4 exactly. Key decisions:
 Run every workflow against real data, in order. Check compliance paths (opt-out handling) and timezone alignment. Do not announce go-live until a real end-to-end SMS has been sent to a real phone.
 
 **Phase 5 — Go Live (Day 5–14)**
-Fill in `CLIENT_WELCOME_GUIDE_TEMPLATE.md` from the intake answers. Read it aloud together with the client — this is not documentation to email over silently. Walk through what they'll receive and when, read real SMS scripts aloud, confirm the support channel.
+Fill in `CLIENT_WELCOME_GUIDE_TEMPLATE.md` from the intake answers. Read it aloud together with the client — this is not documentation to email over silently. Walk through what they'll receive and when, read real SMS scripts aloud, confirm the support channel. On the same call, set up the recurring monthly Stripe Payment Link together (`docs/STRIPE_SETUP_GUIDE.md` §4) — framed as part of the "you're officially live" moment.
 
 **Phase 6 — Ongoing Support & Client Success**
 - First month: weekly health checks
@@ -783,6 +785,7 @@ The Revenue Recovery System and the website were developed in parallel sessions 
 | No second or third verified case study | Low | Expected post-V1 | Completes naturally with each new client deployment |
 | Phase 5 retention workflows (review requests, referrals) | Low | Deferred to V2 | Developer when client demand justifies |
 | Framework architecture doc (technical) | Low | Deferred to post-client-#1 | Better written from real clone experience |
+| No discovery-call workbook, proposal template, or payment process | **GAP** | ✅ Resolved 2026-06-10 | `DISCOVERY_CALL_WORKBOOK.md`/`SCORECARD`/`NOTES_TEMPLATE`, `PROPOSAL_PLAYBOOK.md` + `CLIENT_PROPOSAL_TEMPLATE.docx`, `PAYMENT_PROCESS.md` + `STRIPE_SETUP_GUIDE.md` + `INVOICE_TEMPLATE.docx`, and `CLIENT_ACCEPTANCE_FLOW.md` (the connective doc) now cover the full Interested Prospect → Discovery → Proposal → Agreement → Payment → Kickoff → Deployment journey |
 
 ---
 
