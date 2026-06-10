@@ -1,6 +1,18 @@
 # Valfin Website — Launch Deployment Plan & Execution Checklist (v1)
 
-**Status — updated Jun 9 2026 (LIVE):** Site is live at `https://valfintech.com`. Domain connected via Vercel + Cloudflare. SSL active.
+**Status — updated Jun 9 2026 (LIVE, redirect-loop fix applied):** Site is live at `https://valfintech.com`. Domain connected via Vercel + Cloudflare. SSL active.
+
+**🔴 Redirect loop fix (Jun 9 2026):**
+A `vercel.json` redirect rule (`www.valfintech.com → valfintech.com`, added during the earlier domain migration) was conflicting with a Vercel **dashboard-level domain redirect** going the opposite direction (`valfintech.com → www.valfintech.com`). The two redirects bounced traffic back and forth forever — `ERR_TOO_MANY_REDIRECTS` on both `valfintech.com` and `www.valfintech.com`. (`valfin-tech.vercel.app` was unaffected because it has no custom-domain redirect config.)
+
+**Fix applied:** `website/vercel.json` deleted — it contained only this one conflicting redirect rule, nothing else.
+
+**⚠️ Action still required from Kejsi (this is the other half of the loop, and it lives in the Vercel dashboard, not the code):**
+> Go to **Vercel → your project → Settings → Domains**. You'll see both `valfintech.com` and `www.valfintech.com` listed. One of them is currently configured to "Redirect to" the other — almost certainly `valfintech.com → www.valfintech.com` (backwards from what we want).
+>
+> Fix: click into `valfintech.com` and make sure it's set as the **primary/serving domain (no redirect)**. Then click into `www.valfintech.com` and set it to **"Redirect to valfintech.com"** (301). This makes the apex canonical, matches `siteConfig.url`, and the redirect direction only goes one way — no loop possible.
+>
+> Once that's set, removing `vercel.json`'s redirect was correct — Vercel's dashboard-level redirect handles the www→apex case at the edge, before the app is even invoked, so an app-level rule would be redundant (and risks reintroducing a loop if the directions ever disagree again).
 
 **✅ Complete — site is live:**
 - Root `.gitignore` — covers `.env*`, `.claude/`, `.DS_Store`, binary docs, build artifacts
@@ -10,18 +22,18 @@
 - Google Sheet `1eCzFh9jrzlqFGu9BoXLAsZ7a76tN7oTApm_bVG2n-zg` — tab `Leads`, 14 headers, formatting applied
 - Security headers: HSTS, X-Frame-Options, CSP, nosniff, Referrer-Policy on all routes
 - Vercel Analytics (`@vercel/analytics/react`) in root layout — auto-activates on Vercel
-- `vercel.json` — permanent 301 redirect: `www.valfintech.com` → `valfintech.com` (canonical apex)
 - Canonical URL updated throughout codebase: `https://valfintech.com`
 - Production build clean: 26/26 pages, 0 errors, 3.4s compile
 - Domain connected, Cloudflare DNS configured, SSL active
 
 **⏳ Still requires Kejsi:**
-1. **Vercel env vars** — confirm `N8N_VALFIN_LEADS_WEBHOOK_URL=https://valfin.app.n8n.cloud/webhook/valfin-leads` is set in Vercel dashboard (Settings → Environment Variables) — required for production lead capture to work
-2. **n8n Gmail node** — open workflow `OIakSYLK2iMWsB32` → click "Send Lead Email Alert" node → Connect Google account (OAuth, 1 click) → re-enable the node
-3. **Twilio** — add `+18575261499` as Verified Caller ID in Twilio console (immediate SMS testing); upgrade from trial + submit toll-free verification (production SMS)
-4. **Resend** (optional failsafe) — verify `valfintech.com` domain in Resend → add `RESEND_API_KEY` to Vercel env vars
+1. **Fix Vercel domain redirect direction** (see redirect-loop fix above) — **this is the live-site blocker right now**
+2. **Vercel env vars** — confirm `N8N_VALFIN_LEADS_WEBHOOK_URL=https://valfin.app.n8n.cloud/webhook/valfin-leads` is set in Vercel dashboard (Settings → Environment Variables) — required for production lead capture to work
+3. **n8n Gmail node** — open workflow `OIakSYLK2iMWsB32` → click "Send Lead Email Alert" node → Connect Google account (OAuth, 1 click) → re-enable the node
+4. **Twilio** — add `+18575261499` as Verified Caller ID in Twilio console (immediate SMS testing); upgrade from trial + submit toll-free verification (production SMS)
+5. **Resend** (optional failsafe) — verify `valfintech.com` domain in Resend → add `RESEND_API_KEY` to Vercel env vars
 
-**What remains in this document:** Sections below are now partially historical. Sections 4–6 (domain/DNS/SSL) are complete. Section 7 (lead capture) is wired and working. Section 10 (toll-free verification) is still pending.
+**What remains in this document:** Sections below are now partially historical. Sections 4–6 (domain/DNS/SSL) are complete pending the redirect-direction fix above. Section 7 (lead capture) is wired and working. Section 10 (toll-free verification) is still pending.
 
 This document assumes the codebase stays exactly as it is structurally — **no redesign, no architecture rebuild, no major visual changes.** Every item here is operational/launch-mechanics, not product work.
 
