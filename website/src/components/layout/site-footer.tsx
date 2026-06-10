@@ -64,6 +64,20 @@ export function SiteFooter() {
 
         <div className="flex flex-col items-start justify-between gap-4 text-xs text-ink-400 sm:flex-row sm:items-center">
           <p>&copy; {new Date().getFullYear()} {siteConfig.name}. All rights reserved.</p>
+          <div className="flex items-center gap-5">
+            <Link
+              href="/privacy"
+              className="text-ink-400 transition-colors hover:text-ink-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent-500 rounded-sm"
+            >
+              Privacy Policy
+            </Link>
+            <Link
+              href="/terms"
+              className="text-ink-400 transition-colors hover:text-ink-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent-500 rounded-sm"
+            >
+              Terms &amp; Conditions
+            </Link>
+          </div>
           <p className="text-ink-600">Built in the field. Proven before promised.</p>
         </div>
       </div>

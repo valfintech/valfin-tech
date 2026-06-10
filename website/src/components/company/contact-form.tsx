@@ -137,6 +137,11 @@ export function ContactForm() {
       <p className="mt-4 text-xs text-ink-600">
         No spam, no automated drip campaign — just a real reply from a real person at Valfin.
       </p>
+      <p className="mt-3 text-xs leading-relaxed text-ink-600">
+        By submitting this form, you consent to receive communications from Valfin Tech regarding your inquiry,
+        including SMS messages related to your request. Message frequency varies. Message and data rates may
+        apply. Reply STOP to opt out of SMS communications at any time.
+      </p>
     </form>
   );
 }
