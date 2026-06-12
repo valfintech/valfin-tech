@@ -40,7 +40,7 @@ export default function ResultsPage() {
           <ScrollReveal>
             <Link
               href={flagshipInProgress.href}
-              className="group block rounded-2xl border border-ink-700 bg-gradient-to-br from-ink-900 to-ink-900/40 p-8 transition-colors hover:border-accent-500/40 sm:p-10 lg:p-12"
+              className="group block rounded-2xl border border-ink-700 bg-gradient-to-br from-ink-900 to-ink-900/40 p-8 transition-all duration-200 hover:-translate-y-1 hover:border-accent-500/40 hover:shadow-lg hover:shadow-black/20 sm:p-10 lg:p-12"
             >
               <div className="flex flex-wrap items-center gap-3">
                 <Badge variant="outline" className="border-accent-500/40 bg-accent-500/10 text-accent-400">
@@ -84,7 +84,7 @@ export default function ResultsPage() {
               ever appear on this page.
             </p>
             <div className="mt-6">
-              <ButtonLink href="/calculator" size="lg" className="bg-accent-500 text-white hover:bg-accent-400">
+              <ButtonLink href="/calculator" size="lg" className="bg-accent-500 text-white hover:-translate-y-0.5 hover:bg-accent-400">
                 See what your number might look like
                 <ArrowRight className="ml-1 size-4" />
               </ButtonLink>

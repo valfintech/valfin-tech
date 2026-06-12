@@ -43,7 +43,7 @@ export default function IndustriesPage() {
               <ScrollRevealItem key={industry.slug}>
                 <Link
                   href={`/industries/${industry.slug}`}
-                  className="group flex h-full flex-col rounded-xl border border-ink-700 bg-ink-900/40 p-6 transition-colors hover:border-accent-500/40 hover:bg-ink-900/70"
+                  className="group flex h-full flex-col rounded-xl border border-ink-700 bg-ink-900/40 p-6 transition-all duration-200 hover:-translate-y-1 hover:border-accent-500/40 hover:bg-ink-900/70 hover:shadow-lg hover:shadow-black/20"
                 >
                   <div className="flex items-center justify-between">
                     <h2 className="text-lg font-semibold text-ink-50">{industry.name}</h2>
@@ -69,7 +69,7 @@ export default function IndustriesPage() {
               <ButtonLink
                 href="/company#contact"
                 size="lg"
-                className="bg-accent-500 text-white hover:bg-accent-400"
+                className="bg-accent-500 text-white hover:-translate-y-0.5 hover:bg-accent-400"
               >
                 Talk to us about your business
                 <ArrowRight className="ml-1 size-4" />

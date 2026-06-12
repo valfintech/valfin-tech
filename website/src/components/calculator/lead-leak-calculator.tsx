@@ -321,7 +321,7 @@ function NumberStepForm({
       <Button
         type="submit"
         size="lg"
-        className="mt-7 w-full bg-accent-500 text-white hover:bg-accent-400 sm:w-auto"
+        className="mt-7 w-full bg-accent-500 text-white hover:-translate-y-0.5 hover:bg-accent-400 sm:w-auto"
       >
         {submitLabel}
         <ArrowRight className="ml-1 size-4" />
@@ -391,7 +391,7 @@ function ResultPanel({
         <ButtonLink
           href="/company#contact"
           size="lg"
-          className="bg-accent-500 text-white hover:bg-accent-400"
+          className="bg-accent-500 text-white hover:-translate-y-0.5 hover:bg-accent-400"
         >
           Talk to us about this number
           <ArrowRight className="ml-1 size-4" />

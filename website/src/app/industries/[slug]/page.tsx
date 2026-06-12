@@ -82,7 +82,7 @@ export default async function IndustryPage({ params }: PageProps) {
               <ButtonLink
                 href="/calculator"
                 size="lg"
-                className="bg-accent-500 text-white shadow-[0_0_0_1px_var(--accent-600)] transition-all hover:bg-accent-400 hover:shadow-[0_0_24px_-4px_var(--accent-500)]"
+                className="bg-accent-500 text-white shadow-[0_0_0_1px_var(--accent-600)] transition-all hover:-translate-y-0.5 hover:bg-accent-400 hover:shadow-[0_8px_24px_-4px_var(--accent-500)]"
               >
                 See what slow follow-up is costing you
                 <ArrowRight className="ml-1 size-4" />
@@ -172,7 +172,7 @@ export default async function IndustryPage({ params }: PageProps) {
                 <ButtonLink
                   href={`/industries/${other.slug}`}
                   variant="ghost"
-                  className="group flex h-full w-full flex-col items-start rounded-xl border border-ink-700 bg-ink-900/30 p-5 text-left hover:border-accent-500/40 hover:bg-ink-900/60"
+                  className="group flex h-full w-full flex-col items-start rounded-xl border border-ink-700 bg-ink-900/30 p-5 text-left transition-all duration-200 hover:-translate-y-1 hover:border-accent-500/40 hover:bg-ink-900/60 hover:shadow-lg hover:shadow-black/20"
                 >
                   <span className="text-base font-semibold text-ink-50">{other.name}</span>
                   <span className="mt-2 inline-flex items-center gap-1.5 text-sm text-accent-400 transition-colors group-hover:text-accent-300">
@@ -205,7 +205,7 @@ export default async function IndustryPage({ params }: PageProps) {
               <ButtonLink
                 href="/calculator"
                 size="lg"
-                className="bg-accent-500 text-white shadow-[0_0_0_1px_var(--accent-600)] transition-all hover:bg-accent-400 hover:shadow-[0_0_24px_-4px_var(--accent-500)]"
+                className="bg-accent-500 text-white shadow-[0_0_0_1px_var(--accent-600)] transition-all hover:-translate-y-0.5 hover:bg-accent-400 hover:shadow-[0_8px_24px_-4px_var(--accent-500)]"
               >
                 See my number
                 <ArrowRight className="ml-1 size-4" />

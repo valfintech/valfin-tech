@@ -129,7 +129,7 @@ export function ContactForm() {
         type="submit"
         size="lg"
         disabled={status === "submitting"}
-        className="mt-7 w-full bg-accent-500 text-white hover:bg-accent-400 disabled:opacity-60 sm:w-auto"
+        className="mt-7 w-full bg-accent-500 text-white hover:-translate-y-0.5 hover:bg-accent-400 disabled:opacity-60 sm:w-auto"
       >
         {status === "submitting" ? "Sending..." : "Send it over"}
         <ArrowRight className="ml-1 size-4" />

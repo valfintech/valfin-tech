@@ -27,7 +27,7 @@ export function Hero() {
             <ButtonLink
               href={hero.primaryCta.href}
               size="lg"
-              className="bg-accent-500 text-white shadow-[0_0_0_1px_var(--accent-600)] transition-all hover:bg-accent-400 hover:shadow-[0_0_24px_-4px_var(--accent-500)]"
+              className="bg-accent-500 text-white shadow-[0_0_0_1px_var(--accent-600)] transition-all hover:-translate-y-0.5 hover:bg-accent-400 hover:shadow-[0_8px_24px_-4px_var(--accent-500)]"
             >
               {hero.primaryCta.label}
               <ArrowRight className="ml-1 size-4 transition-transform group-hover:translate-x-0.5" />

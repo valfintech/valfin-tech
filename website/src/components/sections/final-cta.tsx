@@ -21,7 +21,7 @@ export function FinalCta() {
             <ButtonLink
               href={finalCta.primaryCta.href}
               size="lg"
-              className="bg-accent-500 text-white shadow-[0_0_0_1px_var(--accent-600)] transition-all hover:bg-accent-400 hover:shadow-[0_0_24px_-4px_var(--accent-500)]"
+              className="bg-accent-500 text-white shadow-[0_0_0_1px_var(--accent-600)] transition-all hover:-translate-y-0.5 hover:bg-accent-400 hover:shadow-[0_8px_24px_-4px_var(--accent-500)]"
             >
               {finalCta.primaryCta.label}
               <ArrowRight className="ml-1 size-4" />

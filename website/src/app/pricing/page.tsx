@@ -102,7 +102,7 @@ export default function PricingPage() {
                       className={cn(
                         "w-full",
                         plan.isFeatured
-                          ? "bg-accent-500 text-white hover:bg-accent-400"
+                          ? "bg-accent-500 text-white hover:-translate-y-0.5 hover:bg-accent-400"
                           : "border border-ink-700 bg-transparent text-ink-50 hover:bg-ink-800"
                       )}
                     >
@@ -154,7 +154,7 @@ export default function PricingPage() {
               <ButtonLink
                 href="/calculator"
                 size="lg"
-                className="bg-accent-500 text-white shadow-[0_0_0_1px_var(--accent-600)] transition-all hover:bg-accent-400 hover:shadow-[0_0_24px_-4px_var(--accent-500)]"
+                className="bg-accent-500 text-white shadow-[0_0_0_1px_var(--accent-600)] transition-all hover:-translate-y-0.5 hover:bg-accent-400 hover:shadow-[0_8px_24px_-4px_var(--accent-500)]"
               >
                 See my number
                 <ArrowRight className="ml-1 size-4" />
