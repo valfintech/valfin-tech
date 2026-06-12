@@ -78,6 +78,7 @@ Valfin's mission is to close that gap — instantly, automatically, and honestly
 | 10 | Reschedule/Cancel | Inbound SMS → classify reschedule/cancel/opt-out → update Appointments → reply + alert owner. Opt-out keywords silently suppressed. |
 | 11 | System Health Monitor | Daily check of CRM data freshness vs. 09/05's own thresholds → alerts the Valfin operator if something looks stale. |
 | 12 | Client ROI Report | Every 30 days, emails the client a plain-language recap of leads/bookings/missed-calls-recovered — the renewal-justification tool. |
+| 13 | Appointment Reschedule Notifier | Hourly; detects owner-initiated `Appt Date`/`Appt Time` changes (vs. `Notified Appt Date`/`Notified Appt Time`) on a `Scheduled` appointment, texts the customer the new time, emails the owner, resets reminder flags, and logs the SMS. Added 2026-06-12 (V1.1 reconciliation fix). |
 
 Full per-workflow detail, CONFIG keys, and cloning instructions: `docs/CLIENT_CLONING_MASTER_PROMPT.md`.
 
@@ -117,7 +118,7 @@ Full per-workflow detail, CONFIG keys, and cloning instructions: `docs/CLIENT_CL
 
 ## 8. Templates and Exports
 
-- **`workflows/01_*.json` – `12_*.json`** — all 12 workflows, real importable exports matching the live, validated n8n instance (`valfin.app.n8n.cloud`). `workflows/11_system_health_monitor.ts` is a retained SDK-source file kept for its design-rationale comments — the `.json` is the source of truth for import.
+- **`workflows/01_*.json` – `13_*.json`** — all 13 workflows, real importable exports matching the live, validated n8n instance (`valfin.app.n8n.cloud`). `workflows/11_system_health_monitor.ts` is a retained SDK-source file kept for its design-rationale comments — the `.json` is the source of truth for import.
 - **`templates/Roofing_CRM_Google_Sheets_TEMPLATE.xlsx`** + **`templates/build_crm_template.py`** — ready-to-clone 8-tab CRM spreadsheet (3 verified-live tabs + 5 reconstructed/proposal tabs), regenerated to match the 17-column `Leads` schema.
 - **`docs/*.docx`/`.pptx`** — `CLIENT_PROPOSAL_TEMPLATE.docx`, `INVOICE_TEMPLATE.docx`, `VALFIN_EXECUTIVE_BRIEF.docx`, `VALFIN_PARTNER_TRAINING_DECK.pptx` — real deliverables, force-tracked in git despite the general `docs/*.docx`/`*.pptx` gitignore pattern.
 

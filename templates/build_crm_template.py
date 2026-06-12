@@ -65,19 +65,24 @@ make_sheet(
 make_sheet(
     "Appointments",
     ["Appt ID", "Lead ID", "Customer Name", "Phone", "Address", "Service Type", "Appt Date", "Appt Time",
-     "Status", "Team Member", "Team Approval", "Calendar Event ID", "Reminder 24h", "Reminder 2h", "Notes"],
+     "Status", "Team Member", "Team Approval", "Calendar Event ID", "Reminder 24h", "Reminder 2h", "Notes",
+     "Notified Appt Date", "Notified Appt Time"],
     [
         ["EXAMPLE-APT-20260603100000", "EXAMPLE-LEAD-0001", "Maria Santos", "16175550111",
          "42 Beacon St, Boston, MA", "Roof Inspection", "2026-06-10", "10:00 AM", "Scheduled",
-         "J. Reyes", "", "", "", "", "Example row — booked via owner-facing form (workflow 06)."],
+         "J. Reyes", "", "", "", "", "Example row — booked via owner-facing form (workflow 06).",
+         "2026-06-10", "10:00 AM"],
     ],
-    col_widths=[24, 18, 16, 14, 24, 16, 12, 12, 12, 14, 14, 18, 14, 12, 40],
+    col_widths=[24, 18, 16, 14, 24, 16, 12, 12, 12, 14, 14, 18, 14, 12, 40, 18, 18],
     note=("SOURCE OF TRUTH: matches the exact column set written by workflow 06's 'Write Appointment' "
-          "node (live, verified) — 15 columns. 'Appt Date' must stay 'YYYY-MM-DD' and 'Appt Time' must "
-          "stay 'H:MM AM/PM' — both workflow 09 (Reminders) and workflow 11 (Health Monitor) parse these "
-          "with strict regexes. 'Reminder 24h'/'Reminder 2h' are write-only flag columns — leave them "
-          "blank; the system manages them. 'Team Approval' and 'Calendar Event ID' are reserved for "
-          "future phases (crew-approval workflow, calendar sync) — currently always blank."),
+          "node (live, verified) — 17 columns. 'Appt Date' must stay 'YYYY-MM-DD' and 'Appt Time' must "
+          "stay 'H:MM AM/PM' — workflows 09 (Reminders), 11 (Health Monitor), and 13 (Reschedule "
+          "Notifier) parse these with strict regexes. 'Reminder 24h'/'Reminder 2h' are write-only flag "
+          "columns — leave them blank; the system manages them. 'Team Approval' and 'Calendar Event ID' "
+          "are reserved for future phases (crew-approval workflow, calendar sync) — currently always "
+          "blank. 'Notified Appt Date'/'Notified Appt Time' (added 2026-06-12) should be seeded equal "
+          "to 'Appt Date'/'Appt Time' at booking time — workflow 13 compares against these to detect "
+          "owner-initiated reschedules and notify the customer."),
 )
 
 # 3. Quotes — NOT YET BUILT. Reconstructed schema (no live workflow references this tab).

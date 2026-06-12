@@ -211,7 +211,7 @@ Per `CLIENT_DEPLOYMENT_GUIDE.md` §3e, a few values are **business-rule judgment
 - Booking time slots — **must match the client's actual hours** (Section C), this one always needs confirming
 
 ### After the clone
-- Claude should leave you with: the new client's workflow IDs (especially 01 and 04, which others reference), confirmation that all 12 workflows are configured and verification-checklist-passed, and a list of anything it flagged as a judgment call for you to confirm before go-live.
+- Claude should leave you with: the new client's workflow IDs (especially 01 and 04, which others reference), confirmation that all 13 workflows are configured and verification-checklist-passed, and a list of anything it flagged as a judgment call for you to confirm before go-live.
 - **You still run §8 (testing/go-live) and the human-facing parts** — Claude executes the technical clone, you run the relationship.
 
 ---
@@ -225,7 +225,7 @@ Per `CLIENT_DEPLOYMENT_GUIDE.md` §3e, a few values are **business-rule judgment
 | **Phase 0 — Close Deal** | Before Day 0 | Hard gate: signed agreement + setup fee paid in Stripe. Do not proceed without both. | `CLIENT_ACCEPTANCE_FLOW.md`, `PAYMENT_PROCESS.md` |
 | **Phase 1 — Kickoff Intake** | Day 0-1 | Send `CLIENT_ONBOARDING_INTAKE.md`, record deal-closed date, start Twilio verification | §4/§5 above |
 | **Phase 2 — Carrier Verification** | Parallel, days | Twilio A2P 10DLC/toll-free — runs in the background while Phase 3 happens | `CLIENT_DEPLOYMENT_GUIDE.md` §1.2 |
-| **Phase 3 — Configure Deployment** | Day 1-3 | Clone CRM sheet, credentials, all 12 workflows; rewrite customer-facing copy in client's voice; hand over `SMS_CONSENT_LANGUAGE_GUIDE.md` if Section G revealed a gap | §6 above, `CLIENT_DEPLOYMENT_GUIDE.md` §4 |
+| **Phase 3 — Configure Deployment** | Day 1-3 | Clone CRM sheet, credentials, all 13 workflows; rewrite customer-facing copy in client's voice; hand over `SMS_CONSENT_LANGUAGE_GUIDE.md` if Section G revealed a gap | §6 above, `CLIENT_DEPLOYMENT_GUIDE.md` §4 |
 | **Phase 4 — Verify Before Go-Live** | Day 3-5 | Full verification checklist on every workflow, end-to-end real-SMS smoke test once Twilio clears | `CLIENT_DEPLOYMENT_GUIDE.md` §5 |
 | **Phase 5 — Go Live** | Day 5-14 | Walkthrough call: hand over `CLIENT_WELCOME_GUIDE_TEMPLATE.md`, read 2-3 real SMS scripts aloud, set up the **recurring monthly Stripe Payment Link live on the call**, then flip every workflow to active | §8/§9 below, `STRIPE_SETUP_GUIDE.md` §4 |
 | **Phase 6 — Ongoing Support** | Week 2+ | Health monitor (Workflow 11) + ROI report (Workflow 12) running automatically; best-effort support; 60-90 day case-study capture | §10/§11/§12 below |
@@ -257,7 +257,7 @@ This is the experience you're selling — and it's fully described from the clie
 - **Every missed call** → an instant text-back within seconds, acknowledging it and inviting them to share what they need
 - **Every new lead** (form, referral, etc.) → read, scored, and replied to automatically; urgent ones flagged straight to the owner's phone the moment they arrive
 - **Leads that don't book right away** → followed up automatically on a schedule (Day 1/3/7 by default), never just "forgotten"
-- **Appointments** → confirmed, reminded (24h + 2h), and tracked; reschedule/cancel requests handled conversationally via SMS reply
+- **Appointments** → confirmed, reminded (24h + 2h), and tracked; reschedule/cancel requests handled conversationally via SMS reply; if the owner manually moves an appointment, the customer is texted the new time automatically
 - **The owner gets told what's happening** on a predictable schedule (see §10) — without having to ask or check anything
 
 The client's own customers experience a business that "never goes home for the night." The client (the owner) experiences a system that **tells them what they need to know, when they need to know it**, and otherwise stays out of their way.
@@ -324,7 +324,7 @@ Once client #1 is live and the 60-90 day case study (`CASE_STUDY_DATA_PLAN.md`) 
 | | Automated (the system does this) | Manual (you do this) |
 |---|---|---|
 | **Lead response** | Missed-call SMS, form-capture confirmation, every-lead owner alert (email by default, SMS optional), follow-up sequence | — |
-| **Appointments** | Booking confirmations, reminders (24h/2h), reschedule/cancel handling | Booking the appointment itself happens via the owner-facing form (someone enters it) |
+| **Appointments** | Booking confirmations, reminders (24h/2h), reschedule/cancel handling, owner-reschedule customer notification | Booking the appointment itself happens via the owner-facing form (someone enters it) |
 | **Reporting** | Daily digest, weekly report, monthly ROI report, daily health monitor | Glancing at the monthly ROI report (§10); responding if a client asks about it |
 | **Compliance backstop** | Opt-out keyword detection (STOP/UNSUBSCRIBE/etc.) | Verifying the client's *own* intake forms carry consent language (`SMS_CONSENT_LANGUAGE_GUIDE.md`) — this can never be automated, it lives on the client's forms |
 | **Sales** | Lead Leak Calculator (on the website, runs itself) | Sourcing prospects, discovery calls, proposals, follow-up — all of Stages 1-4 |

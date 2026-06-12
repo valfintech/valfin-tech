@@ -41,23 +41,24 @@ Every cloning decision falls into exactly one of these two buckets. Knowing whic
 
 This is the engine. It is industry-agnostic by design and should be imported and wired up identically for every client:
 
-- **All 12 workflow structures** (node graphs, branching logic, error handling, sub-workflow architecture)
-- **The CRM Adapter pattern** (Workflow 01 — the sole Google-Sheets-writing sub-workflow, called by 02/03/05/06/10)
-- **The Google Sheets CRM schema** (`Leads` 17 cols, `Appointments` 15 cols, `Communication Log` 9 cols — see `docs/CRM_SHEET_SCHEMA.md`)
+- **All 13 workflow structures** (node graphs, branching logic, error handling, sub-workflow architecture)
+- **The CRM Adapter pattern** (Workflow 01 — the sole Google-Sheets-writing sub-workflow, called by 02/03/05/06/10/13)
+- **The Google Sheets CRM schema** (`Leads` 17 cols, `Appointments` 17 cols, `Communication Log` 9 cols — see `docs/CRM_SHEET_SCHEMA.md`)
 - **The dual-gate email/SMS notification pattern** (Code node → "Check Email Enabled" IF → Gmail → converge → "Check SMS Enabled" IF → Twilio)
 - **The `CONFIG` block pattern** itself (the mechanism, not its values)
 - **Luxon/`America/New_York`-style DST-safe time handling** (the pattern — the actual timezone value is client-specific, see below)
 - **The follow-up cadence logic** (Day 1/3/7, stop at 3 attempts or status change)
 - **The reminder-window logic** (24h/2h windows, idempotency flags)
 - **The reschedule/cancel keyword-classification + opt-out-detection logic**
+- **The owner-initiated reschedule detection logic** (Workflow 13 — `Appt Date`/`Appt Time` vs. `Notified Appt Date`/`Notified Appt Time` comparison, with its own duplicate-notification guard)
 - **The metrics computed by Workflows 07/08/11/12** (new leads, bookings, stale leads, missed-calls-recovered, etc. — these are universal service-business vocabulary)
 
 ### 3b. The Industry-Specific Customization Layer (this is what you change per client)
 
 This is the surface. Every item below is a deliberate per-client edit, sourced from the client's intake answers:
 
-- **`CONFIG` block values** in Workflows 04, 06, 07, 08, 09, 10, 11, 12 (company name, contact info, timezone, business hours, toggles — see §4 and §6.4 of `docs/CLIENT_DEPLOYMENT_GUIDE.md`)
-- **Customer-facing copy**: SMS templates (Workflows 02, 03, 05, 06, 09, 10), the Workflow 02 AI confirmation-SMS prompt (`prompts/form_confirmation.system.md` — specifically the `company` field and tone), and all owner/client-facing email bodies (04, 07, 08, 11, 12)
+- **`CONFIG` block values** in Workflows 04, 06, 07, 08, 09, 10, 11, 12, 13 (company name, contact info, timezone, business hours, toggles — see §4 and §6.4 of `docs/CLIENT_DEPLOYMENT_GUIDE.md`)
+- **Customer-facing copy**: SMS templates (Workflows 02, 03, 05, 06, 09, 10, 13), the Workflow 02 AI confirmation-SMS prompt (`prompts/form_confirmation.system.md` — specifically the `company` field and tone), and all owner/client-facing email bodies (04, 07, 08, 11, 12, 13)
 - **The lead-intake form** (Workflow 02) and **booking form** (Workflow 06) — field labels, services-offered dropdown, branding
 - **Credentials** — every client gets their own Google Sheets, Twilio, and Gmail credentials (never reuse another client's)
 - **The Google Sheet itself** — a fresh copy of `templates/Roofing_CRM_Google_Sheets_TEMPLATE.xlsx` per client (rename tabs/headers only if the industry genuinely needs different fields — see §14)
@@ -67,7 +68,7 @@ This is the surface. Every item below is a deliberate per-client edit, sourced f
 
 ---
 
-## 4. The 12 Workflows — Complete Reference
+## 4. The 13 Workflows — Complete Reference
 
 | # | Workflow | File | Trigger | Mandatory? | Has `CONFIG`? | Email | SMS | Key Integrations |
 |---|---|---|---|---|---|---|---|---|
@@ -83,8 +84,9 @@ This is the surface. Every item below is a deliberate per-client edit, sourced f
 | 10 | Reschedule/Cancel | `10_reschedule_cancel.json` | Twilio inbound-SMS trigger | Optional | **Yes** | No | Yes — dual (reschedule/cancel) | Sheets, Twilio |
 | 11 | System Health Monitor | `11_system_health_monitor.json` | Schedule, daily 4 PM UTC | Optional | **Yes** | Yes — default **ON** | Yes — built, default **OFF** | Sheets, Gmail, Twilio |
 | 12 | Client ROI Report | `12_client_roi_report.json` | Schedule, every 30 days, 9 AM ET | Optional | **Yes** | Yes — default **ON** | Yes — built, default **OFF** | Sheets, Gmail, Twilio |
+| 13 | Appointment Reschedule Notifier | `13_appointment_reschedule_notifier.json` | Schedule | Optional (strongly recommended alongside 06/09) | **Yes** | Yes — default **ON** | Yes — built, default **OFF** | Sheets, Gmail, Twilio, CRM Adapter |
 
-> **"Mandatory" means**: the system does not function as a Revenue Recovery System without it, OR another mandatory workflow calls it as a sub-workflow. "Optional" workflows add reporting/retention value but the core capture→respond→follow-up→book loop works without them. **Tier mapping** (see `docs/PRICING_PACKAGING.md`): **Foundation** = Workflows 01–05. **Growth** (default/recommended) = Foundation + Workflows 06–10. **Built for you** = Growth + à la carte (Workflows 11/12 are typically included in Growth and above as retention infrastructure; confirm against the client's signed proposal).
+> **"Mandatory" means**: the system does not function as a Revenue Recovery System without it, OR another mandatory workflow calls it as a sub-workflow. "Optional" workflows add reporting/retention value but the core capture→respond→follow-up→book loop works without them. **Tier mapping** (see `docs/PRICING_PACKAGING.md`): **Foundation** = Workflows 01–05. **Growth** (default/recommended) = Foundation + Workflows 06–10. **Built for you** = Growth + à la carte (Workflows 11/12 are typically included in Growth and above as retention infrastructure; confirm against the client's signed proposal). **Workflow 13 should be cloned alongside 06 and 09 whenever appointment booking is in scope** — without it, an owner-initiated reschedule (a routine scheduling-conflict resolution) leaves the customer un-notified, which is the exact gap it was built to close.
 
 ### 4.1 What each workflow does
 
@@ -100,6 +102,7 @@ This is the surface. Every item below is a deliberate per-client edit, sourced f
 10. **Reschedule/Cancel** — inbound SMS → keyword-classifies reschedule vs. cancel vs. opt-out vs. irrelevant → finds the customer's nearest upcoming `Scheduled` appointment by phone → updates `Status`/`Notes` → replies to the customer → alerts the owner. Standalone opt-out keywords (`STOP`, `UNSUBSCRIBE`, etc.) are routed to silent suppression — **never auto-replied to**.
 11. **System Health Monitor** — daily 4 PM UTC (deliberately after 05/09 run). Checks live CRM data freshness against 05's and 09's own "overdue" thresholds (with safety buffers). Emails the *operator* (not the client) one consolidated alert if anything looks stale; silent otherwise.
 12. **Client ROI Report** — every 30 days. Computes trailing-window metrics (new leads, missed calls recovered, appointments booked/kept) and emails the *client* (addressed to their own brand) a plain-language recap. This is the recurring-fee-justification / renewal tool — distinct in *purpose* from 07/08.
+13. **Appointment Reschedule Notifier** — on a schedule, compares each `Scheduled` appointment's `Appt Date`/`Appt Time` against `Notified Appt Date`/`Notified Appt Time`. On a mismatch (the owner changed the appointment after the customer was told), texts the customer the new date/time with an invitation to reply or call if it doesn't work, emails the owner, updates the `Notified` columns, clears `Reminder 24h`/`Reminder 2h` so Workflow 09 sends fresh reminders, and logs the SMS via the CRM Adapter. Matching rows are skipped — the duplicate-notification guard.
 
 ### 4.2 Owner-facing vs. client-facing alerts — email or SMS?
 
@@ -110,24 +113,25 @@ This is the surface. Every item below is a deliberate per-client edit, sourced f
 | 08 — Weekly Pipeline Report | Owner | Email | Yes, toggle `SMS_ALERTS_ENABLED` |
 | 11 — System Health Monitor | Operator (Valfin, not the client) | Email | Yes, toggle `SMS_ALERTS_ENABLED` |
 | 12 — Client ROI Report | Client (`CLIENT_EMAIL`/`CLIENT_PHONE`) | Email | Yes, toggle `SMS_ALERTS_ENABLED` |
+| 13 — Appointment Reschedule Notifier | Customer (always, via SMS — not gated) + Owner (`OWNER_EMAIL`/`OWNER_PHONE`) | Customer: SMS. Owner: Email | Owner SMS via toggle `SMS_ALERTS_ENABLED` |
 
-All five follow the same dual-gate pattern (§3a). **Default every new client to email-only** unless the intake explicitly asks for SMS alerts (intake §I, below) — email is free, richer, and doesn't depend on Twilio toll-free verification.
+All follow the same dual-gate pattern (§3a) for the *owner/internal* alert — Workflow 13's customer-facing reschedule SMS is the core notification itself, not a gated alert, and always sends. **Default every new client to email-only** unless the intake explicitly asks for SMS alerts (intake §I, below) — email is free, richer, and doesn't depend on Twilio toll-free verification.
 
 ---
 
-## 5. The `CONFIG` Block Reference (8 workflows, all client-specific values)
+## 5. The `CONFIG` Block Reference (9 workflows, all client-specific values)
 
 | Constant | Used in | What it controls | Source for new client |
 |---|---|---|---|
-| `COMPANY_NAME` | 04, 07, 08, 11, 12 | Business name shown in emails/SMS | Intake §A1 |
-| `OWNER_EMAIL` | 04, 07, 08, 11 | Where owner alerts/digests/reports/health-monitor go | Intake §B |
-| `OWNER_PHONE` | 04, 06, 07, 08, 09, 10, 11 | Owner SMS recipient (alerts if enabled, reschedule/cancel alerts always) | Intake §B1 |
+| `COMPANY_NAME` | 04, 07, 08, 11, 12, 13 | Business name shown in emails/SMS | Intake §A1 |
+| `OWNER_EMAIL` | 04, 07, 08, 11, 13 | Where owner alerts/digests/reports/health-monitor go | Intake §B |
+| `OWNER_PHONE` | 04, 06, 07, 08, 09, 10, 11, 13 | Owner SMS recipient (alerts if enabled, reschedule/cancel alerts always) | Intake §B1 |
 | `CLIENT_EMAIL` | 12 | Where the ROI report goes (often same as owner) | Intake §B / confirm with client |
 | `CLIENT_PHONE` | 12 | ROI report SMS recipient if enabled | Intake §B / confirm with client |
-| `TWILIO_FROM_NUMBER` | 02, 03, 04, 05, 06, 09, 10, 11, 12 | The client's provisioned Twilio number | Intake §B2 / Twilio provisioning |
-| `EMAIL_ALERTS_ENABLED` | 04, 07, 08, 11, 12 | Email channel on/off (default `true`) | Intake §I, default `true` |
-| `SMS_ALERTS_ENABLED` | 04, 07, 08, 11, 12 | SMS channel on/off (default `false`) | Intake §I, default `false` |
-| `DEFAULT_TIMEZONE` | 04, 06, 07, 08, 09, 10, 11, 12 | IANA timezone string, e.g. `'America/New_York'` | Intake §C3 |
+| `TWILIO_FROM_NUMBER` | 02, 03, 04, 05, 06, 09, 10, 11, 12, 13 | The client's provisioned Twilio number | Intake §B2 / Twilio provisioning |
+| `EMAIL_ALERTS_ENABLED` | 04, 07, 08, 11, 12, 13 | Email channel on/off (default `true`) | Intake §I, default `true` |
+| `SMS_ALERTS_ENABLED` | 04, 07, 08, 11, 12, 13 | SMS channel on/off — gates the *owner* alert only; Workflow 13's customer SMS always sends (default `false`) | Intake §I, default `false` |
+| `DEFAULT_TIMEZONE` | 04, 06, 07, 08, 09, 10, 11, 12, 13 | IANA timezone string, e.g. `'America/New_York'` | Intake §C3 |
 | `BUSINESS_START_HOUR` | 06 | First bookable hour (24h, integer) | Intake §C1 |
 | `BUSINESS_END_HOUR` | 06 | Last bookable hour (24h, integer) | Intake §C1 |
 | `APPOINTMENT_INCREMENT_MINUTES` | 06 | Booking slot size in minutes | Intake §C2 |
@@ -137,10 +141,10 @@ Also client-specific but **not** in a `CONFIG` block (hardcoded constants inside
 
 | Value | Appears in | Notes |
 |---|---|---|
-| Google Sheet ID (CRM spreadsheet) | 01, 05, 06, 07, 08, 09, 10, 11, 12 | The single most-referenced per-client value — every workflow that touches the CRM needs it |
+| Google Sheet ID (CRM spreadsheet) | 01, 05, 06, 07, 08, 09, 10, 11, 12, 13 | The single most-referenced per-client value — every workflow that touches the CRM needs it |
 | Company name (string, pre-CONFIG workflows) | 02, 03, 05, 06, 09, 10 | Same value as `COMPANY_NAME`, but these workflows predate the CONFIG pattern — set the literal string |
 | Twilio from-number (pre-CONFIG workflows) | 02, 03, 05, 06 | Same value as `TWILIO_FROM_NUMBER`, set as a literal |
-| CRM Adapter sub-workflow ID | 02, 03, 05, 06, 10 (`executeWorkflow` node) | The new instance's freshly-minted ID for Workflow 01 |
+| CRM Adapter sub-workflow ID | 02, 03, 05, 06, 10, 13 (`executeWorkflow` node) | The new instance's freshly-minted ID for Workflow 01 |
 | Every Lead Alert sub-workflow ID | 02 (`executeWorkflow` node) | The new instance's freshly-minted ID for Workflow 04 |
 | `prompts/form_confirmation.system.md` → `company` field | 02 (`Build Confirmation Request` Code node) | Hardcoded `'Valfin Tech'` in the reference build — set to the client's real business name |
 | Monitored-workflow text labels | 11 (alert copy) | Update if workflow names differ in the new instance |
@@ -327,6 +331,7 @@ For each workflow, use the n8n `test_workflow` / `get_execution` pattern with pi
 | 10 — Reschedule/Cancel | `test_workflow` with pinned inbound SMS for all 4 paths: reschedule-found, cancel-found, not-found, and a standalone opt-out keyword (e.g., `"STOP"`) → confirm the opt-out path produces **zero** automated reply. |
 | 11 — System Health Monitor | `test_workflow` twice: once with deliberately stale data (confirm alert fires, correctly formatted) and once with clean data (confirm zero-item silent pass — no email/SMS sent). |
 | 12 — Client ROI Report | `test_workflow` with pinned data spanning inside/outside the `WINDOW_DAYS` boundary → confirm all computed metrics match hand-verified expectations and the email reads naturally with the client's brand name. |
+| 13 — Appointment Reschedule Notifier | Run twice on a pinned `Scheduled` row: (1) `Appt Date`/`Appt Time` deliberately mismatched against `Notified Appt Date`/`Notified Appt Time` → confirm customer SMS, owner email, `Notified` columns updated, `Reminder 24h`/`Reminder 2h` cleared, and a Communication Log entry via the CRM Adapter; (2) immediately re-run with no further changes → confirm zero items detected and no duplicate send. |
 
 **Final step — real end-to-end SMS smoke test**: from a real phone, trigger a missed call and a form submission against the live client number, and confirm real SMS arrives. This is the one test that cannot be faked with pinned data and is the actual go/no-go signal for Twilio readiness.
 
@@ -344,7 +349,7 @@ For each workflow, use the n8n `test_workflow` / `get_execution` pattern with pi
 - [ ] All hardcoded per-client constants set (spreadsheet ID, company name, Twilio number — in 02, 03, 05, 06, 09, 10 where not yet CONFIG-driven)
 - [ ] All customer-facing copy rewritten in the client's brand voice (intake §E) — nothing Valfin-roofing-flavored remains
 - [ ] Intake §G1 (SMS consent) gap addressed — `docs/SMS_CONSENT_LANGUAGE_GUIDE.md` handed to client if needed, and confirmed implemented (not just "recommended")
-- [ ] All 12 workflows activated
+- [ ] All 13 workflows activated
 - [ ] Per-workflow verification (§10) completed for every workflow
 - [ ] Twilio number verified (A2P 10DLC / toll-free) — confirmed via a real outbound SMS to an unverified-class number
 - [ ] Real end-to-end SMS smoke test passed (missed call + form submission, both produce real SMS)
@@ -404,7 +409,7 @@ The framework (§3a) is identical across industries. What changes is entirely in
 - **CRM tab vocabulary**, if the industry genuinely needs different fields than `Leads`/`Appointments`/`Communication Log` cover (e.g., a dental practice might want a "Procedure Type" column). Add columns to the cloned spreadsheet and to the relevant CRM Adapter (01) `Resolve & Build Lead Row` node — this is the one place a structural change might be warranted, and it should only be made if the standard 17/15/9-column schema genuinely can't represent the client's data, not as a default.
 
 **What stays exactly the same:**
-- All 12 workflow node graphs and connections
+- All 13 workflow node graphs and connections
 - The CRM Adapter pattern and sub-workflow architecture
 - The dual-gate email/SMS notification pattern
 - The `CONFIG` block mechanism

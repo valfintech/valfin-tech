@@ -36,7 +36,7 @@ Valfin Tech builds Revenue Operations Infrastructure for local service businesse
 
 **Where we are today (2026-06-10):**
 - V1 of the Revenue Recovery System is fully built, live, and tested inside a Boston-area roofing company
-- 12 workflows + 1 internal lead-capture workflow running in production on n8n (valfin.app.n8n.cloud)
+- 13 workflows + 1 internal lead-capture workflow running in production on n8n (valfin.app.n8n.cloud)
 - Marketing website live at `https://valfintech.com` (Vercel + Cloudflare, SSL active, deployed Jun 9 2026)
 - Internal lead capture (contact form → n8n → Sheet + Gmail + SMS) wired and verified end-to-end as of Jun 10 2026
 - Zero paying clients (the roofing deployment is the founding internal case study, not a paid client)
@@ -437,7 +437,7 @@ The System Health Monitor (Workflow 11) runs daily and will often catch issues b
 
 | Layer | Technology | Purpose |
 |---|---|---|
-| Workflow orchestration | n8n (valfin.app.n8n.cloud) | Runs all 12 workflows + internal lead capture |
+| Workflow orchestration | n8n (valfin.app.n8n.cloud) | Runs all 13 workflows + internal lead capture |
 | Database | Google Sheets (Google account: valfintechnologies@gmail.com) | CRM — Leads, Appointments, Communication Log |
 | SMS | Twilio | Confirmation/follow-up/reminder SMS; webhook trigger for missed calls; SMS alerts built but off by default (V1.1) |
 | Email | Gmail OAuth2 (`valfintechnologies@gmail.com`) | Owner/client alerts and reports (04, 07, 08, 11, 12) — default delivery channel as of V1.1 |
@@ -495,7 +495,7 @@ This was one of the best early decisions. Do not break this pattern in future wo
 ```
 valfin-tech/
 ├── README.md                    — Project overview + workflow inventory
-├── workflows/                   — Importable JSON exports for all 12 workflows
+├── workflows/                   — Importable JSON exports for all 13 workflows
 │   ├── 01_crm_adapter_google_sheets.json
 │   ├── 02_form_capture_scoring.json
 │   ├── ...
@@ -536,7 +536,7 @@ valfin-tech/
 
 ## 13. Workflow Inventory
 
-All 12 workflows are live in production and have importable JSON exports in `workflows/`.
+All 13 workflows are live in production and have importable JSON exports in `workflows/`.
 
 | # | Name | n8n ID | Schedule/Trigger | What it does | Who receives output |
 |---|---|---|---|---|---|
@@ -552,6 +552,7 @@ All 12 workflows are live in production and have importable JSON exports in `wor
 | 10 | Reschedule/Cancel | `Bj5b3sUexa8EeQcK` | Inbound SMS (Twilio Trigger) | Classifies inbound texts as reschedule/cancel/other. Updates appointment status, replies to customer, alerts owner. | Customer (SMS) + owner (SMS) |
 | 11 | System Health Monitor | `U6t0b7M6lN8eA1JO` | Daily 4 PM UTC | Checks CRM data freshness. Emails the operator if appointment reminders or follow-up sequences look stale (SMS optional via `CONFIG`). Silent if clean. | Operator (email by default, SMS optional) |
 | 12 | Client ROI Report | `ocAnTMCh068BxxXz` | Every 30 days, 2 PM UTC | Computes 30-day metrics (leads captured, missed calls recovered, appointments booked/kept). Emails the client in their brand name by default (SMS optional via `CONFIG`). | Client (email by default, SMS optional) |
+| 13 | Appointment Reschedule Notifier | `WzWw9vCYOCS6dSSS` | Hourly check | **Added 2026-06-12.** Detects when the owner manually changes a `Scheduled` appointment's date/time after the customer was already notified (`Appt Date`/`Appt Time` vs. `Notified Appt Date`/`Notified Appt Time`). On a mismatch: texts the customer the new time + invites them to reply/call if it doesn't work, emails the owner (SMS optional via `CONFIG`), updates the `Notified` columns, clears `Reminder 24h`/`Reminder 2h` so Workflow 09 sends fresh reminders, and logs the SMS via the CRM Adapter. Idempotent — matching rows are skipped. | Customer (SMS) + owner (email by default, SMS optional) |
 
 **Internal lead capture (Valfin's own):**
 - Workflow `OIakSYLK2iMWsB32` — "Valfin — Website Lead Capture" — handles valfintech.com contact form submissions → Sheets + email + SMS alert. Requires one-time configuration (see `INTERNAL_LEAD_CAPTURE_SETUP.md`).
@@ -742,7 +743,7 @@ All the infrastructure for deploying, supporting, and retaining clients was buil
 The onboarding SOP (Phase 5) described a verbal walkthrough call where the client would be shown things and told things — but nothing was left with them afterward. No document they could re-read, share with a staff member, or refer to when they forgot something a month later. The `CLIENT_WELCOME_GUIDE_TEMPLATE.md` was created after the system was fully built. **What to do differently:** The client-facing welcome/reference document should be part of the initial onboarding asset set, not a bolt-on. Every client deserves something tangible at go-live.
 
 **Lesson 8: The sub-workflow wiring step is easily forgotten and causes confusing errors.**
-After cloning workflows to a new n8n instance, Workflows 02 and 05 (which call sub-workflows 01 and 04) must be updated to point at the new instance's workflow IDs. This step is documented but not enforced — it's easy to import all 12 workflows and forget to re-point the references, which results in the system silently calling the original Valfin deployment's sub-workflows instead of the client's. **What to do differently:** This is the #1 thing to verify during the post-deployment checklist. Consider adding a named constant for sub-workflow IDs to make the step impossible to miss.
+After cloning workflows to a new n8n instance, Workflows 02 and 05 (which call sub-workflows 01 and 04) must be updated to point at the new instance's workflow IDs. This step is documented but not enforced — it's easy to import all 13 workflows and forget to re-point the references, which results in the system silently calling the original Valfin deployment's sub-workflows instead of the client's. **What to do differently:** This is the #1 thing to verify during the post-deployment checklist. Consider adding a named constant for sub-workflow IDs to make the step impossible to miss.
 
 ### From the Website Build
 

@@ -26,7 +26,7 @@ Rather than trust any prior summary (including this project's own memory files, 
 |---|---|---|
 | `Leads` | `workflows/01_crm_adapter_google_sheets.json` — the adapter's upsert contract | Documented in `docs/PROJECT_AUDIT.md` lines 118–123, cross-checked against the adapter's `Resolve & Build Lead Row` code node |
 | `Communication Log` | `workflows/01_crm_adapter_google_sheets.json` — the adapter's `Build Log Row` / `Append Comm Log` nodes | Documented in `docs/PROJECT_AUDIT.md` lines 125–130 |
-| `Appointments` | `workflows/06_appointment_booking.json` — the **`Write Appointment`** Google Sheets node's `columns.value` mapping (read directly from the live workflow JSON on 2026-06-08, not from a prior summary) | See exact extraction below |
+| `Appointments` | `workflows/06_appointment_booking.json` — the **`Write Appointment`** Google Sheets node's `columns.value` mapping (read directly from the live workflow JSON on 2026-06-08, not from a prior summary). `Notified Appt Date`/`Notified Appt Time` added 2026-06-12 per `workflows/13_appointment_reschedule_notifier.json` — verified end-to-end via live n8n executions 297–299 | See exact extraction below |
 
 If you need to re-verify any of these in the future (e.g. before a client clone), the most reliable method is the same one used here: open the relevant workflow's JSON (or call `get_workflow_details` against its live n8n ID) and read the Google Sheets node's `columns.value` mapping directly — that mapping **is** the schema contract; nothing downstream can disagree with it without breaking.
 
@@ -61,15 +61,16 @@ Follow-up Count | Assigned To | Notes
 
 ---
 
-## ✅ VERIFIED LIVE — Tab 2: `Appointments` (15 columns)
+## ✅ VERIFIED LIVE — Tab 2: `Appointments` (17 columns)
 
-Written directly by **Workflow 06 (Appointment Booking)** — append-only, no dedup concern, intentionally bypasses the CRM Adapter (a documented exception to the "Adapter is the only Sheets-toucher" rule, because this tab is a pure log). Read by workflows 09, 10, 11; updated (specific columns only) by workflows 09 and 10.
+Written directly by **Workflow 06 (Appointment Booking)** — append-only, no dedup concern, intentionally bypasses the CRM Adapter (a documented exception to the "Adapter is the only Sheets-toucher" rule, because this tab is a pure log). Read by workflows 09, 10, 11, 13; updated (specific columns only) by workflows 09, 10, and 13.
 
 Extracted verbatim from the live `Write Appointment` node's column mapping (`workflows/06_appointment_booking.json`):
 
 ```
 Appt ID | Lead ID | Customer Name | Phone | Address | Service Type | Appt Date | Appt Time |
-Status | Team Member | Team Approval | Calendar Event ID | Reminder 24h | Reminder 2h | Notes
+Status | Team Member | Team Approval | Calendar Event ID | Reminder 24h | Reminder 2h | Notes |
+Notified Appt Date | Notified Appt Time
 ```
 
 | Column | Notes |
@@ -77,14 +78,15 @@ Status | Team Member | Team Approval | Calendar Event ID | Reminder 24h | Remind
 | `Appt ID` | **Match key.** Format `APT-` + 14-digit timestamp (e.g. `APT-20260606143052`), minted at booking time |
 | `Customer Name` | Denormalized copy of the lead's name at booking time (not a live join — if the lead's name changes later, this does not update) |
 | `Service Type` | Free text, copied from the lead's `Service Needed` at booking time |
-| `Appt Date` | **Must be exactly `YYYY-MM-DD`.** Workflow 06's booking form uses a structured `date` field to guarantee this (a 2026-06-07 fix — the original free-text field produced unparseable values like `"Tuesday, June 10"`). Workflows 09 and 11 both parse this with the strict regex `/^(\d{4})-(\d{2})-(\d{2})$/` — anything else is silently skipped (by design — see the parsing-guard verification in `docs/PROJECT_AUDIT.md`) |
-| `Appt Time` | **Must be exactly `H:MM AM/PM`** (e.g. `2:00 PM`, `10:00 AM`). Guaranteed by the booking form's fixed-slot `dropdown` field (10 hourly slots, 8 AM–5 PM). Parsed with `/^(\d{1,2}):(\d{2})\s*(AM|PM)$/i` by workflows 09 and 11 |
+| `Appt Date` | **Must be exactly `YYYY-MM-DD`.** Workflow 06's booking form uses a structured `date` field to guarantee this (a 2026-06-07 fix — the original free-text field produced unparseable values like `"Tuesday, June 10"`). Workflows 09, 11, and 13 all parse this with the strict regex `/^(\d{4})-(\d{2})-(\d{2})$/` — anything else is silently skipped (by design — see the parsing-guard verification in `docs/PROJECT_AUDIT.md`) |
+| `Appt Time` | **Must be exactly `H:MM AM/PM`** (e.g. `2:00 PM`, `10:00 AM`). Guaranteed by the booking form's fixed-slot `dropdown` field (10 hourly slots, 8 AM–5 PM). Parsed with `/^(\d{1,2}):(\d{2})\s*(AM|PM)$/i` by workflows 09 and 11. **If this value is ever overwritten outside the booking form's dropdown convention** (e.g. a manual edit entered as a Sheets time-of-day value), Google Sheets may coerce it to 24-hour `H:MM` display — which will then silently fail the `AM/PM` regex in 09/11/13 and skip that row for reminders/health checks. WF13 itself never reformats this column; it only compares the existing string value against `Notified Appt Time` |
 | `Status` | One of `Scheduled` / `Cancelled` (set by workflow 10 on a cancel reply — reschedules leave it `Scheduled`, staff coordinates manually) |
 | `Team Member` | Set from the booking form's optional "Team Member" field |
 | `Team Approval` | **Reserved, currently always blank.** Named in the brief; no live workflow reads or writes it. Presumably intended for a future crew-acceptance step |
 | `Calendar Event ID` | **Reserved, currently always blank.** Presumably intended for a future Google Calendar / Outlook sync (cataloged as an optional enhancement in `CLIENT_DEPLOYMENT_GUIDE.md` §6) |
-| `Reminder 24h` / `Reminder 2h` | **Write-only flag columns**, managed exclusively by workflow 09 (writes an ISO timestamp to whichever flag was just sent, round-trips the other untouched) and read by workflow 11 (treats any non-empty value as "already sent"). Leave blank when seeding new rows — never pre-fill |
+| `Reminder 24h` / `Reminder 2h` | **Write-only flag columns**, managed exclusively by workflow 09 (writes an ISO timestamp to whichever flag was just sent, round-trips the other untouched) and read by workflow 11 (treats any non-empty value as "already sent"). Leave blank when seeding new rows — never pre-fill. **Workflow 13 clears both of these back to `""`** whenever it detects and notifies a reschedule, so workflow 09 issues fresh reminders against the new `Appt Date`/`Appt Time` |
 | `Notes` | Free text; workflow 10 appends timestamped `[ISO] Customer {action} via SMS reply: "..."` entries here, pipe-separated, preserving prior notes |
+| `Notified Appt Date` / `Notified Appt Time` | **Added 2026-06-12 (Workflow 13).** Snapshot of the `Appt Date`/`Appt Time` the customer was last notified about. Seeded by workflow 06 at booking time (equal to the initial `Appt Date`/`Appt Time`, so a brand-new appointment never looks "rescheduled"). Workflow 13 runs on a schedule, compares `Appt Date`/`Appt Time` against these two columns for every `Scheduled` row, and — on a mismatch — sends the customer a reschedule SMS, then updates these two columns to match the new `Appt Date`/`Appt Time` (and clears `Reminder 24h`/`Reminder 2h`). If the values already match, the row is skipped — this is the duplicate-notification guard |
 
 ---
 

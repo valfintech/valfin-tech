@@ -1,0 +1,306 @@
+{
+  "_comment": "Local reference copy — created from live n8n on 2026-06-12 (V1.1 reconciliation, post-go-live QA finding). Live ID: WzWw9vCYOCS6dSSS. New workflow: detects when the owner manually changes an appointment's Appt Date/Appt Time after the customer was already notified (tracked via 'Notified Appt Date'/'Notified Appt Time' columns on the Appointments sheet, added in this same pass — see CRM_SHEET_SCHEMA.md). When a mismatch is found, sends the customer a reschedule SMS, updates the Notified columns + resets Reminder 24h/2h flags (so WF09 sends fresh reminders for the new time), logs the SMS to the Communication Log via the CRM Adapter, and alerts the owner (email by default, SMS optional via CONFIG.SMS_ALERTS_ENABLED). Rows with blank Notified columns (legacy appointments) are silently backfilled with their current Appt Date/Time on the first run instead of triggering a false reschedule notice.",
+  "name": "Appointment Reschedule Notifier",
+  "active": false,
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "nodes": [
+    {
+      "id": "f7c3d68a-fa0e-46c8-9c6f-67112b448c4e",
+      "name": "Hourly Trigger",
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.3,
+      "position": [0, 0],
+      "parameters": {
+        "rule": { "interval": [{ "field": "hours", "hoursInterval": 1 }] }
+      }
+    },
+    {
+      "id": "dab4d5e7-5743-4620-9332-89b74ffa0512",
+      "name": "Get All Appointments",
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.7,
+      "position": [224, 0],
+      "parameters": {
+        "resource": "sheet",
+        "operation": "read",
+        "documentId": { "__rl": true, "mode": "id", "value": "1MxmJouteZhi1K_-KOwgBlJtBFAXtm2G_0H555otTHBQ" },
+        "sheetName": { "__rl": true, "mode": "name", "value": "Appointments" },
+        "options": {}
+      },
+      "retryOnFail": true,
+      "maxTries": 3,
+      "waitBetweenTries": 2000,
+      "credentials": { "googleSheetsOAuth2Api": { "id": "", "name": "Google Sheets account" } }
+    },
+    {
+      "id": "bb292755-847d-4023-9fa9-f817c8827c08",
+      "name": "Detect Appointment Changes",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [448, 0],
+      "parameters": {
+        "mode": "runOnceForAllItems",
+        "language": "javaScript",
+        "jsCode": "const CONFIG = {\n  COMPANY_NAME: \"Valfin Tech\",\n  OWNER_PHONE: \"+18575261499\",\n  OWNER_EMAIL: \"valfintechnologies@gmail.com\",\n  TWILIO_FROM_NUMBER: \"+18889839308\",\n  EMAIL_ALERTS_ENABLED: true,\n  SMS_ALERTS_ENABLED: false,\n  DEFAULT_TIMEZONE: \"America/New_York\"\n};\n\nconst rows = $input.all().map(i => i.json);\nconst out = [];\n\nfor (const row of rows) {\n  const status = String(row[\"Status\"] || \"\").trim();\n  if (status !== \"Scheduled\") continue;\n\n  const apptDate = String(row[\"Appt Date\"] || \"\").trim();\n  const apptTime = String(row[\"Appt Time\"] || \"\").trim();\n  if (!apptDate || !apptTime) continue;\n\n  const notifiedDate = String(row[\"Notified Appt Date\"] || \"\").trim();\n  const notifiedTime = String(row[\"Notified Appt Time\"] || \"\").trim();\n\n  if (!notifiedDate || !notifiedTime) {\n    out.push({ json: Object.assign({}, row, { action: \"backfill\" }) });\n    continue;\n  }\n\n  if (notifiedDate === apptDate && notifiedTime === apptTime) {\n    continue;\n  }\n\n  out.push({ json: Object.assign({}, row, {\n    action: \"notify\",\n    oldApptDate: notifiedDate,\n    oldApptTime: notifiedTime,\n    newApptDate: apptDate,\n    newApptTime: apptTime,\n    emailEnabled: CONFIG.EMAIL_ALERTS_ENABLED,\n    smsEnabled: CONFIG.SMS_ALERTS_ENABLED,\n    ownerEmail: CONFIG.OWNER_EMAIL,\n    ownerPhone: CONFIG.OWNER_PHONE,\n    twilioFrom: CONFIG.TWILIO_FROM_NUMBER,\n    companyName: CONFIG.COMPANY_NAME,\n    timezone: CONFIG.DEFAULT_TIMEZONE\n  })});\n}\n\nreturn out;"
+      }
+    },
+    {
+      "id": "cd313893-80cd-478b-835a-e38d09e3280f",
+      "name": "Is Notify?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.3,
+      "position": [672, 0],
+      "parameters": {
+        "conditions": {
+          "options": { "caseSensitive": true, "leftValue": "", "typeValidation": "strict" },
+          "conditions": [
+            {
+              "id": "is-notify",
+              "leftValue": "={{ $json.action }}",
+              "rightValue": "notify",
+              "operator": { "type": "string", "operation": "equals" }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      }
+    },
+    {
+      "id": "39a77e6f-8431-40ac-95fa-1382e33b200f",
+      "name": "Build Reschedule Notification Content",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [896, -120],
+      "parameters": {
+        "mode": "runOnceForAllItems",
+        "language": "javaScript",
+        "jsCode": "function normalizePhone(raw) {\n  const digits = String(raw || \"\").replace(/\\D/g, \"\");\n  if (digits.length === 11 && digits.startsWith(\"1\")) return \"+\" + digits;\n  if (digits.length === 10) return \"+1\" + digits;\n  return null;\n}\n\nfunction formatFriendlyDate(dateStr, zone) {\n  const parts = String(dateStr).split(\"-\").map(Number);\n  return DateTime.fromObject({ year: parts[0], month: parts[1], day: parts[2] }, { zone: zone }).toFormat(\"cccc, LLLL d\");\n}\n\nreturn $input.all().map(item => {\n  const j = item.json;\n  const firstName = String(j[\"Customer Name\"] || \"\").trim().split(\" \")[0] || \"there\";\n  const newFriendly = formatFriendlyDate(j.newApptDate, j.timezone) + \" at \" + j.newApptTime;\n  const oldFriendly = formatFriendlyDate(j.oldApptDate, j.timezone) + \" at \" + j.oldApptTime;\n\n  const smsMessage = \"Hi \" + firstName + \", thank you for scheduling with \" + j.companyName + \". Unfortunately, we weren't available at your originally requested appointment time. We've reserved \" + newFriendly + \" instead. If this time doesn't work for you, please reply to this message or contact us and we'll gladly help you find another time that fits your schedule.\";\n\n  const emailSubject = \"Appointment Rescheduled: \" + j[\"Customer Name\"] + \" (\" + j[\"Appt ID\"] + \")\";\n  const emailHtml = \"<p>Appointment <strong>\" + j[\"Appt ID\"] + \"</strong> for <strong>\" + j[\"Customer Name\"] + \"</strong> changed automatically.</p>\" +\n    \"<p>Previously notified time: \" + oldFriendly + \"<br>New time: \" + newFriendly + \"</p>\" +\n    \"<p>The customer was notified via SMS with the new time.</p>\";\n\n  const ownerSmsMessage = \"Reschedule alert: \" + j[\"Customer Name\"] + \" (\" + j[\"Appt ID\"] + \") moved from \" + oldFriendly + \" to \" + newFriendly + \". Customer notified via SMS.\";\n\n  return { json: Object.assign({}, j, {\n    customerPhone: normalizePhone(j[\"Phone\"]),\n    smsMessage: smsMessage,\n    emailSubject: emailSubject,\n    emailHtml: emailHtml,\n    ownerSmsMessage: ownerSmsMessage\n  })};\n});"
+      }
+    },
+    {
+      "id": "44c86c65-0add-4d66-a7d2-7227f6f9e6b1",
+      "name": "Send Customer SMS",
+      "type": "n8n-nodes-base.twilio",
+      "typeVersion": 1,
+      "position": [1120, -240],
+      "parameters": {
+        "resource": "sms",
+        "operation": "send",
+        "from": "={{ $json.twilioFrom }}",
+        "to": "={{ $json.customerPhone }}",
+        "message": "={{ $json.smsMessage }}",
+        "options": {}
+      },
+      "retryOnFail": true,
+      "maxTries": 3,
+      "waitBetweenTries": 3000,
+      "credentials": { "twilioApi": { "id": "", "name": "Twilio account" } }
+    },
+    {
+      "id": "5258b170-6421-4c45-b29e-479055671b94",
+      "name": "Update Appointment Row",
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.7,
+      "position": [1344, -240],
+      "parameters": {
+        "resource": "sheet",
+        "operation": "appendOrUpdate",
+        "documentId": { "__rl": true, "mode": "id", "value": "1MxmJouteZhi1K_-KOwgBlJtBFAXtm2G_0H555otTHBQ" },
+        "sheetName": { "__rl": true, "mode": "name", "value": "Appointments" },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "Appt ID": "={{ $(\"Build Reschedule Notification Content\").item.json[\"Appt ID\"] }}",
+            "Notified Appt Date": "={{ $(\"Build Reschedule Notification Content\").item.json.newApptDate }}",
+            "Notified Appt Time": "={{ $(\"Build Reschedule Notification Content\").item.json.newApptTime }}",
+            "Reminder 24h": "",
+            "Reminder 2h": ""
+          },
+          "matchingColumns": ["Appt ID"],
+          "schema": []
+        },
+        "options": {}
+      },
+      "retryOnFail": true,
+      "maxTries": 3,
+      "waitBetweenTries": 2000,
+      "credentials": { "googleSheetsOAuth2Api": { "id": "", "name": "Google Sheets account" } }
+    },
+    {
+      "id": "51127f6d-bfc1-489a-a592-c2427f5190da",
+      "name": "CRM: Log Outbound SMS",
+      "type": "n8n-nodes-base.executeWorkflow",
+      "typeVersion": 1.3,
+      "position": [1568, -240],
+      "parameters": {
+        "source": "database",
+        "workflowId": { "__rl": true, "mode": "id", "value": "wVRHChyFrUNRaH4M" },
+        "mode": "each",
+        "workflowInputs": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "leadId": "={{ $(\"Build Reschedule Notification Content\").item.json[\"Lead ID\"] }}",
+            "logChannel": "SMS",
+            "logDirection": "Outbound",
+            "logHandler": "System",
+            "logSummary": "={{ \"Appointment rescheduled - notified customer of new time \" + $(\"Build Reschedule Notification Content\").item.json.newApptDate + \" \" + $(\"Build Reschedule Notification Content\").item.json.newApptTime }}",
+            "logNotes": "={{ $(\"Build Reschedule Notification Content\").item.json.smsMessage }}"
+          },
+          "matchingColumns": [],
+          "schema": [],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": true
+        },
+        "options": {}
+      }
+    },
+    {
+      "id": "6152b25c-8527-44bc-8d3a-6e5e643b4a9f",
+      "name": "Check Email Enabled",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.3,
+      "position": [1792, -360],
+      "parameters": {
+        "conditions": {
+          "options": { "caseSensitive": true, "leftValue": "", "typeValidation": "strict" },
+          "conditions": [
+            {
+              "id": "email-enabled",
+              "leftValue": "={{ $(\"Build Reschedule Notification Content\").item.json.emailEnabled }}",
+              "rightValue": true,
+              "operator": { "type": "boolean", "operation": "true" }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      }
+    },
+    {
+      "id": "12ce8e94-aa55-43c7-bb2a-e605fee88288",
+      "name": "Send Owner Email",
+      "type": "n8n-nodes-base.gmail",
+      "typeVersion": 2.2,
+      "position": [2016, -440],
+      "parameters": {
+        "resource": "message",
+        "operation": "send",
+        "sendTo": "={{ $(\"Build Reschedule Notification Content\").item.json.ownerEmail }}",
+        "subject": "={{ $(\"Build Reschedule Notification Content\").item.json.emailSubject }}",
+        "emailType": "html",
+        "message": "={{ $(\"Build Reschedule Notification Content\").item.json.emailHtml }}",
+        "options": { "appendAttribution": false }
+      },
+      "webhookId": "a0c3c5d9-51f6-473a-979a-1186fad28cad",
+      "credentials": { "gmailOAuth2": { "id": "", "name": "Gmail account" } }
+    },
+    {
+      "id": "c427fb67-61ef-484b-acce-57d1041cac59",
+      "name": "Check SMS Enabled",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.3,
+      "position": [1792, -120],
+      "parameters": {
+        "conditions": {
+          "options": { "caseSensitive": true, "leftValue": "", "typeValidation": "strict" },
+          "conditions": [
+            {
+              "id": "sms-enabled",
+              "leftValue": "={{ $(\"Build Reschedule Notification Content\").item.json.smsEnabled }}",
+              "rightValue": true,
+              "operator": { "type": "boolean", "operation": "true" }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      }
+    },
+    {
+      "id": "83ef878d-1da6-4e81-a310-d7250a68cef6",
+      "name": "Send Owner SMS",
+      "type": "n8n-nodes-base.twilio",
+      "typeVersion": 1,
+      "position": [2016, -120],
+      "parameters": {
+        "resource": "sms",
+        "operation": "send",
+        "from": "={{ $(\"Build Reschedule Notification Content\").item.json.twilioFrom }}",
+        "to": "={{ $(\"Build Reschedule Notification Content\").item.json.ownerPhone }}",
+        "message": "={{ $(\"Build Reschedule Notification Content\").item.json.ownerSmsMessage }}",
+        "options": {}
+      },
+      "retryOnFail": true,
+      "maxTries": 3,
+      "waitBetweenTries": 3000,
+      "credentials": { "twilioApi": { "id": "", "name": "Twilio account" } }
+    },
+    {
+      "id": "43af5b67-8463-42f6-836f-be9fd54675d2",
+      "name": "Backfill Notified Columns",
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.7,
+      "position": [896, 200],
+      "parameters": {
+        "resource": "sheet",
+        "operation": "appendOrUpdate",
+        "documentId": { "__rl": true, "mode": "id", "value": "1MxmJouteZhi1K_-KOwgBlJtBFAXtm2G_0H555otTHBQ" },
+        "sheetName": { "__rl": true, "mode": "name", "value": "Appointments" },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "Appt ID": "={{ $json[\"Appt ID\"] }}",
+            "Notified Appt Date": "={{ $json[\"Appt Date\"] }}",
+            "Notified Appt Time": "={{ $json[\"Appt Time\"] }}"
+          },
+          "matchingColumns": ["Appt ID"],
+          "schema": []
+        },
+        "options": {}
+      },
+      "retryOnFail": true,
+      "maxTries": 3,
+      "waitBetweenTries": 2000,
+      "credentials": { "googleSheetsOAuth2Api": { "id": "", "name": "Google Sheets account" } }
+    },
+    {
+      "id": "sticky-13",
+      "name": "Sticky Note",
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [0, -560],
+      "parameters": {
+        "content": "Hourly: reads the Appointments sheet and compares 'Appt Date'/'Appt Time' (current) against 'Notified Appt Date'/'Notified Appt Time' (what the customer was last told) for every row with Status = Scheduled. If they differ, the owner changed the appointment — sends the customer a reschedule SMS with the new time, updates the Notified columns and clears Reminder 24h/2h so WF09 sends fresh reminders for the new time, logs the SMS to the Communication Log via the CRM Adapter, and alerts the owner (email by default, SMS optional via CONFIG.SMS_ALERTS_ENABLED). Rows with blank Notified columns (e.g. brand-new or legacy appointments) are backfilled with their current Appt Date/Time instead of triggering a false notice. CONFIG block lives at the top of 'Detect Appointment Changes'.",
+        "height": 280,
+        "width": 400
+      }
+    }
+  ],
+  "connections": {
+    "Hourly Trigger": { "main": [[{ "node": "Get All Appointments", "type": "main", "index": 0 }]] },
+    "Get All Appointments": { "main": [[{ "node": "Detect Appointment Changes", "type": "main", "index": 0 }]] },
+    "Detect Appointment Changes": { "main": [[{ "node": "Is Notify?", "type": "main", "index": 0 }]] },
+    "Is Notify?": {
+      "main": [
+        [{ "node": "Build Reschedule Notification Content", "type": "main", "index": 0 }],
+        [{ "node": "Backfill Notified Columns", "type": "main", "index": 0 }]
+      ]
+    },
+    "Build Reschedule Notification Content": { "main": [[{ "node": "Send Customer SMS", "type": "main", "index": 0 }]] },
+    "Send Customer SMS": { "main": [[{ "node": "Update Appointment Row", "type": "main", "index": 0 }]] },
+    "Update Appointment Row": { "main": [[{ "node": "CRM: Log Outbound SMS", "type": "main", "index": 0 }]] },
+    "CRM: Log Outbound SMS": {
+      "main": [
+        [
+          { "node": "Check Email Enabled", "type": "main", "index": 0 },
+          { "node": "Check SMS Enabled", "type": "main", "index": 0 }
+        ]
+      ]
+    },
+    "Check Email Enabled": { "main": [[{ "node": "Send Owner Email", "type": "main", "index": 0 }]] },
+    "Check SMS Enabled": { "main": [[{ "node": "Send Owner SMS", "type": "main", "index": 0 }]] }
+  }
+}

@@ -1,5 +1,5 @@
 {
-  "_comment": "Local reference copy — synced from live n8n on 2026-06-11 (V1.1 pass). Live ID: ax2sMbvv0lqyJHMg. Phase 3 workflow. Form URL: https://valfin.app.n8n.cloud/form/eca6bfbb-ef53-4f82-b909-cbd2b818991a. V1.1: structured date picker + 30-min time-slot dropdown (8AM-5PM America/New_York), CONFIG block in 'Build Booking Payload', Luxon-based timestamps, AI lead-scoring fields removed.",
+  "_comment": "Local reference copy — synced from live n8n on 2026-06-12 (WF13 schema migration). Live ID: ax2sMbvv0lqyJHMg. Phase 3 workflow. Form URL: https://valfin.app.n8n.cloud/form/eca6bfbb-ef53-4f82-b909-cbd2b818991a. V1.1: structured date picker + 30-min time-slot dropdown (8AM-5PM America/New_York), CONFIG block in 'Build Booking Payload', Luxon-based timestamps, AI lead-scoring fields removed. 2026-06-12: 'Write Appointment' now seeds 'Notified Appt Date'/'Notified Appt Time' = the booked Appt Date/Time, so WF13 (Appointment Reschedule Notifier) has a correct baseline and won't fire a false reschedule notice for a brand-new appointment.",
   "name": "Appointment Booking",
   "active": false,
   "settings": { "executionOrder": "v1" },
@@ -142,7 +142,9 @@
             "Calendar Event ID": "",
             "Reminder 24h": "",
             "Reminder 2h": "",
-            "Notes": "={{ $json.notes }}"
+            "Notes": "={{ $json.notes }}",
+            "Notified Appt Date": "={{ $json.apptDate }}",
+            "Notified Appt Time": "={{ $json.apptTime }}"
           },
           "matchingColumns": [],
           "schema": []
