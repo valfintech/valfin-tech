@@ -80,7 +80,7 @@ Both parties acknowledge that automated text messaging to customers is subject t
 
 > **This is the section most likely to need real attorney customization for your jurisdiction — what follows is a structural placeholder, not language to use verbatim.**
 
-- The System depends on third-party infrastructure (Twilio/carriers for SMS delivery, Google for data storage, Anthropic for AI-based scoring and message generation) that is outside Provider's direct control; Provider does not guarantee uninterrupted delivery or availability of these third-party services.
+- The System depends on third-party infrastructure (Twilio/carriers for SMS delivery, Google for data storage and email delivery, Anthropic for AI-based message generation) that is outside Provider's direct control; Provider does not guarantee uninterrupted delivery or availability of these third-party services.
 - Provider does not guarantee any specific number of leads, bookings, conversions, or amount of revenue — the System is a tool that improves response speed and consistency; business outcomes depend on many factors outside the System's control (market conditions, Client's pricing, crew availability, etc.).
 - [Standard limitation-of-liability cap language — e.g., "Provider's total liability under this Agreement shall not exceed the fees paid by Client in the [3/6/12] months preceding the claim" — to be set with attorney input]
 - [Standard disclaimer of warranties language — to be set with attorney input]

@@ -1,9 +1,11 @@
 {
+  "_comment": "Local reference copy — synced from live n8n on 2026-06-11 (V1.1 pass). Live ID: ocAnTMCh068BxxXz",
   "name": "Client ROI Report",
-  "active": true,
+  "active": false,
   "settings": {
     "executionOrder": "v1",
-    "availableInMCP": true
+    "availableInMCP": true,
+    "binaryMode": "separate"
   },
   "nodes": [
     {
@@ -72,7 +74,7 @@
       "parameters": {
         "mode": "runOnceForAllItems",
         "language": "javaScript",
-        "jsCode": "const WINDOW_DAYS = 30;\nconst items = $input.all();\nconst now = new Date();\nconst windowStart = new Date(now.getTime() - WINDOW_DAYS * 24 * 60 * 60 * 1000);\nlet newLeads = 0;\nlet hotOrUrgentLeads = 0;\nfor (const item of items) {\n  const lead = item.json;\n  const createdRaw = (lead['Date Created'] || '').toString().trim();\n  if (!createdRaw) continue;\n  const created = new Date(createdRaw);\n  if (isNaN(created.getTime())) continue;\n  if (created >= windowStart && created <= now) {\n    newLeads++;\n    const temp = (lead['Temperature'] || '').toString().trim();\n    const urgency = (lead['Urgency'] || '').toString().trim();\n    if (temp === 'Hot' || urgency === 'Emergency') hotOrUrgentLeads++;\n  }\n}\nreturn [{ json: { metricGroup: 'leads', newLeads: newLeads, hotOrUrgentLeads: hotOrUrgentLeads } }];"
+        "jsCode": "const CONFIG = { DEFAULT_TIMEZONE: 'America/New_York', WINDOW_DAYS: 30 };\nconst items = $input.all();\nconst now = DateTime.now().setZone(CONFIG.DEFAULT_TIMEZONE);\nconst windowStart = now.minus({ days: CONFIG.WINDOW_DAYS });\nlet newLeads = 0;\nfor (const item of items) {\n  const lead = item.json;\n  const createdRaw = (lead['Date Created'] || '').toString().trim();\n  if (!createdRaw) continue;\n  const created = DateTime.fromISO(createdRaw, { zone: CONFIG.DEFAULT_TIMEZONE });\n  if (!created.isValid) continue;\n  if (created >= windowStart && created <= now) newLeads++;\n}\nreturn [{ json: { metricGroup: 'leads', newLeads } }];"
       }
     },
     {
@@ -133,7 +135,7 @@
       "parameters": {
         "mode": "runOnceForAllItems",
         "language": "javaScript",
-        "jsCode": "const WINDOW_DAYS = 30;\nconst items = $input.all();\nconst now = new Date();\nconst windowStart = new Date(now.getTime() - WINDOW_DAYS * 24 * 60 * 60 * 1000);\nlet appointmentsBooked = 0;\nlet appointmentsKept = 0;\nfor (const item of items) {\n  const appt = item.json;\n  const apptId = (appt['Appt ID'] || '').toString().trim();\n  const idMatch = apptId.match(/^APT-(\\d{4})(\\d{2})(\\d{2})(\\d{2})(\\d{2})(\\d{2})$/);\n  if (idMatch) {\n    const bookedAt = new Date(Date.UTC(\n      parseInt(idMatch[1], 10), parseInt(idMatch[2], 10) - 1, parseInt(idMatch[3], 10),\n      parseInt(idMatch[4], 10), parseInt(idMatch[5], 10), parseInt(idMatch[6], 10)\n    ));\n    if (bookedAt >= windowStart && bookedAt <= now) appointmentsBooked++;\n  }\n  const status = (appt['Status'] || '').toString().trim();\n  const dateStr = (appt['Appt Date'] || '').toString().trim();\n  const dateMatch = dateStr.match(/^(\\d{4})-(\\d{2})-(\\d{2})$/);\n  if (dateMatch && status !== 'Cancelled') {\n    const apptDate = new Date(Date.UTC(parseInt(dateMatch[1], 10), parseInt(dateMatch[2], 10) - 1, parseInt(dateMatch[3], 10)));\n    if (apptDate >= windowStart && apptDate <= now) appointmentsKept++;\n  }\n}\nreturn [{ json: { metricGroup: 'appointments', appointmentsBooked: appointmentsBooked, appointmentsKept: appointmentsKept } }];"
+        "jsCode": "const CONFIG = { DEFAULT_TIMEZONE: 'America/New_York', WINDOW_DAYS: 30 };\nconst items = $input.all();\nconst now = DateTime.now().setZone(CONFIG.DEFAULT_TIMEZONE);\nconst windowStart = now.minus({ days: CONFIG.WINDOW_DAYS });\nlet appointmentsBooked = 0;\nlet appointmentsKept = 0;\nfor (const item of items) {\n  const appt = item.json;\n  const apptId = (appt['Appt ID'] || '').toString().trim();\n  const idMatch = apptId.match(/^APT-(\\d{4})(\\d{2})(\\d{2})(\\d{2})(\\d{2})(\\d{2})$/);\n  if (idMatch) {\n    const bookedAt = DateTime.fromObject({\n      year: parseInt(idMatch[1], 10), month: parseInt(idMatch[2], 10), day: parseInt(idMatch[3], 10),\n      hour: parseInt(idMatch[4], 10), minute: parseInt(idMatch[5], 10), second: parseInt(idMatch[6], 10)\n    }, { zone: CONFIG.DEFAULT_TIMEZONE });\n    if (bookedAt >= windowStart && bookedAt <= now) appointmentsBooked++;\n  }\n  const status = (appt['Status'] || '').toString().trim();\n  const dateStr = (appt['Appt Date'] || '').toString().trim();\n  const dateMatch = dateStr.match(/^(\\d{4})-(\\d{2})-(\\d{2})$/);\n  if (dateMatch && status !== 'Cancelled') {\n    const apptDate = DateTime.fromObject({ year: parseInt(dateMatch[1], 10), month: parseInt(dateMatch[2], 10), day: parseInt(dateMatch[3], 10) }, { zone: CONFIG.DEFAULT_TIMEZONE });\n    if (apptDate >= windowStart && apptDate <= now) appointmentsKept++;\n  }\n}\nreturn [{ json: { metricGroup: 'appointments', appointmentsBooked: appointmentsBooked, appointmentsKept: appointmentsKept } }];"
       }
     },
     {
@@ -180,7 +182,7 @@
       "parameters": {
         "mode": "runOnceForAllItems",
         "language": "javaScript",
-        "jsCode": "const WINDOW_DAYS = 30;\nconst items = $input.all();\nconst now = new Date();\nconst windowStart = new Date(now.getTime() - WINDOW_DAYS * 24 * 60 * 60 * 1000);\nlet missedCallsRecovered = 0;\nfor (const item of items) {\n  const log = item.json;\n  const channel = (log['Channel'] || '').toString().trim();\n  const summary = (log['Message Summary'] || '').toString().trim();\n  const whenRaw = (log['Date / Time'] || '').toString().trim();\n  if (channel !== 'Phone') continue;\n  if (!/missed call/i.test(summary)) continue;\n  if (!whenRaw) continue;\n  const when = new Date(whenRaw);\n  if (isNaN(when.getTime())) continue;\n  if (when >= windowStart && when <= now) missedCallsRecovered++;\n}\nreturn [{ json: { metricGroup: 'recoveries', missedCallsRecovered: missedCallsRecovered } }];"
+        "jsCode": "const CONFIG = { DEFAULT_TIMEZONE: 'America/New_York', WINDOW_DAYS: 30 };\nconst items = $input.all();\nconst now = DateTime.now().setZone(CONFIG.DEFAULT_TIMEZONE);\nconst windowStart = now.minus({ days: CONFIG.WINDOW_DAYS });\nlet missedCallsRecovered = 0;\nfor (const item of items) {\n  const log = item.json;\n  const channel = (log['Channel'] || '').toString().trim();\n  const summary = (log['Message Summary'] || '').toString().trim();\n  const whenRaw = (log['Date / Time'] || '').toString().trim();\n  if (channel !== 'Phone') continue;\n  if (!/missed call/i.test(summary)) continue;\n  if (!whenRaw) continue;\n  const when = DateTime.fromISO(whenRaw, { zone: CONFIG.DEFAULT_TIMEZONE });\n  if (!when.isValid) continue;\n  if (when >= windowStart && when <= now) missedCallsRecovered++;\n}\nreturn [{ json: { metricGroup: 'recoveries', missedCallsRecovered: missedCallsRecovered } }];"
       }
     },
     {
@@ -195,7 +197,99 @@
       "parameters": {
         "mode": "runOnceForAllItems",
         "language": "javaScript",
-        "jsCode": "const COMPANY_NAME = \"Valfin Tech\";\nconst WINDOW_DAYS = 30;\nconst items = $input.all();\nconst byGroup = {};\nfor (const item of items) {\n  const g = item.json && item.json.metricGroup;\n  if (g) byGroup[g] = item.json;\n}\nconst leads = byGroup.leads || { newLeads: 0, hotOrUrgentLeads: 0 };\nconst appts = byGroup.appointments || { appointmentsBooked: 0, appointmentsKept: 0 };\nconst recoveries = byGroup.recoveries || { missedCallsRecovered: 0 };\nconst lines = [];\nlines.push('Your Valfin System -- Last ' + WINDOW_DAYS + ' Days for ' + COMPANY_NAME);\nlines.push('');\nlines.push('New leads captured: ' + leads.newLeads);\nif (leads.hotOrUrgentLeads > 0) {\n  lines.push('  -> ' + leads.hotOrUrgentLeads + ' flagged Hot/urgent and texted to you the moment they came in');\n}\nlines.push('Missed calls recovered with an instant text-back: ' + recoveries.missedCallsRecovered);\nlines.push('Appointments booked: ' + appts.appointmentsBooked);\nlines.push('Appointments kept (not cancelled): ' + appts.appointmentsKept);\nlines.push('');\nlet closing = 'That is ' + appts.appointmentsBooked + ' potential job(s) this system helped put on your calendar';\nif (recoveries.missedCallsRecovered > 0) {\n  closing += ', including ' + recoveries.missedCallsRecovered + ' that started as a missed call your business would not have otherwise followed up on.';\n} else {\n  closing += '.';\n}\nlines.push(closing);\nlines.push('');\nlines.push('Want the math behind any of these numbers, or to talk about what is next? Just reply -- happy to walk through it.');\nconst message = lines.join('\\n');\nreturn [{ json: {\n  reportWindowDays: WINDOW_DAYS,\n  newLeads: leads.newLeads,\n  hotOrUrgentLeads: leads.hotOrUrgentLeads,\n  missedCallsRecovered: recoveries.missedCallsRecovered,\n  appointmentsBooked: appts.appointmentsBooked,\n  appointmentsKept: appts.appointmentsKept,\n  reportMessage: message\n} }];"
+        "jsCode": "const CONFIG = {\n  COMPANY_NAME: 'Valfin Tech',\n  CLIENT_EMAIL: 'valfintechnologies@gmail.com',\n  CLIENT_PHONE: '+18575261499',\n  TWILIO_FROM_NUMBER: '+18889839308',\n  EMAIL_ALERTS_ENABLED: true,\n  SMS_ALERTS_ENABLED: false,\n  DEFAULT_TIMEZONE: 'America/New_York',\n  WINDOW_DAYS: 30\n};\n\nconst items = $input.all();\nconst byGroup = {};\nfor (const item of items) {\n  const g = item.json && item.json.metricGroup;\n  if (g) byGroup[g] = item.json;\n}\nconst leads = byGroup.leads || { newLeads: 0 };\nconst appts = byGroup.appointments || { appointmentsBooked: 0, appointmentsKept: 0 };\nconst recoveries = byGroup.recoveries || { missedCallsRecovered: 0 };\n\nconst dateLabel = DateTime.now().setZone(CONFIG.DEFAULT_TIMEZONE).toFormat('LLLL d, yyyy');\n\nlet closing = 'That is ' + appts.appointmentsBooked + ' potential job(s) this system helped put on your calendar';\nif (recoveries.missedCallsRecovered > 0) {\n  closing += ', including ' + recoveries.missedCallsRecovered + ' that started as a missed call your business would not have otherwise followed up on.';\n} else {\n  closing += '.';\n}\n\nconst smsLines = [];\nsmsLines.push('Your ' + CONFIG.COMPANY_NAME + ' System -- Last ' + CONFIG.WINDOW_DAYS + ' Days');\nsmsLines.push('');\nsmsLines.push('New leads captured: ' + leads.newLeads);\nsmsLines.push('Missed calls recovered with an instant text-back: ' + recoveries.missedCallsRecovered);\nsmsLines.push('Appointments booked: ' + appts.appointmentsBooked);\nsmsLines.push('Appointments kept (not cancelled): ' + appts.appointmentsKept);\nsmsLines.push('');\nsmsLines.push(closing);\nsmsLines.push('');\nsmsLines.push('Want the math behind any of these numbers, or to talk about what is next? Just reply -- happy to walk through it.');\nconst smsMessage = smsLines.join('\\n');\n\nconst emailSubject = 'Your ' + CONFIG.COMPANY_NAME + ' Results — Last ' + CONFIG.WINDOW_DAYS + ' Days';\n\nconst metricRows = [\n  ['New Leads Captured', leads.newLeads],\n  ['Missed Calls Recovered', recoveries.missedCallsRecovered],\n  ['Appointments Booked', appts.appointmentsBooked],\n  ['Appointments Kept', appts.appointmentsKept]\n].map(([label, value]) =>\n  '<tr><td style=\"padding:6px 12px 6px 0;font-weight:bold;color:#374151;\">' + label + '</td><td style=\"padding:6px 0;color:#111827;\">' + value + '</td></tr>'\n).join('');\n\nconst emailHtml =\n  '<div style=\"font-family:Arial,Helvetica,sans-serif;max-width:560px;margin:0 auto;color:#111827;\">' +\n  '<h2 style=\"color:#111827;border-bottom:2px solid #e5e7eb;padding-bottom:8px;\">Your Results, Last ' + CONFIG.WINDOW_DAYS + ' Days</h2>' +\n  '<p style=\"color:#6b7280;margin-top:0;\">' + dateLabel + '</p>' +\n  '<table style=\"width:100%;border-collapse:collapse;margin-top:12px;\">' + metricRows + '</table>' +\n  '<p style=\"margin-top:20px;color:#374151;\">' + closing + '</p>' +\n  '<p style=\"margin-top:16px;color:#374151;\">Want the math behind any of these numbers, or to talk about what is next? Just reply — happy to walk through it.</p>' +\n  '</div>';\n\nreturn [{ json: {\n  emailEnabled: CONFIG.EMAIL_ALERTS_ENABLED,\n  smsEnabled: CONFIG.SMS_ALERTS_ENABLED,\n  clientEmail: CONFIG.CLIENT_EMAIL,\n  clientPhone: CONFIG.CLIENT_PHONE,\n  twilioFrom: CONFIG.TWILIO_FROM_NUMBER,\n  emailSubject,\n  emailHtml,\n  smsMessage,\n  reportWindowDays: CONFIG.WINDOW_DAYS,\n  newLeads: leads.newLeads,\n  missedCallsRecovered: recoveries.missedCallsRecovered,\n  appointmentsBooked: appts.appointmentsBooked,\n  appointmentsKept: appts.appointmentsKept\n} }];"
+      }
+    },
+    {
+      "id": "3952f788-1b05-496d-8f80-42feae76a96b",
+      "name": "Check Email Enabled",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.3,
+      "position": [
+        1120,
+        192
+      ],
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict"
+          },
+          "conditions": [
+            {
+              "id": "email-enabled",
+              "leftValue": "={{ $json.emailEnabled }}",
+              "rightValue": true,
+              "operator": {
+                "type": "boolean",
+                "operation": "true"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      }
+    },
+    {
+      "id": "763c32a7-6f55-4c45-add5-de37b5566dbb",
+      "name": "Send Client Email",
+      "type": "n8n-nodes-base.gmail",
+      "typeVersion": 2.2,
+      "position": [
+        1344,
+        72
+      ],
+      "parameters": {
+        "resource": "message",
+        "operation": "send",
+        "sendTo": "={{ $json.clientEmail }}",
+        "subject": "={{ $json.emailSubject }}",
+        "emailType": "html",
+        "message": "={{ $json.emailHtml }}",
+        "options": {
+          "appendAttribution": false
+        }
+      },
+      "webhookId": "d17d3fd9-f4a7-4cf5-ba4e-73943113dac3",
+      "credentials": {
+        "gmailOAuth2": {
+          "id": "",
+          "name": "Gmail account"
+        }
+      }
+    },
+    {
+      "id": "e446d310-1330-4558-9105-053068a08165",
+      "name": "Check SMS Enabled",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.3,
+      "position": [
+        1568,
+        192
+      ],
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict"
+          },
+          "conditions": [
+            {
+              "id": "sms-enabled",
+              "leftValue": "={{ $json.smsEnabled }}",
+              "rightValue": true,
+              "operator": {
+                "type": "boolean",
+                "operation": "true"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
       }
     },
     {
@@ -204,21 +298,35 @@
       "type": "n8n-nodes-base.twilio",
       "typeVersion": 1,
       "position": [
-        1120,
-        192
+        1792,
+        72
       ],
       "parameters": {
-        "resource": "sms",
-        "operation": "send",
-        "from": "+18889839308",
-        "to": "+18575261499",
-        "message": "={{ $json.reportMessage }}"
+        "from": "={{ $json.twilioFrom }}",
+        "to": "={{ $json.clientPhone }}",
+        "message": "={{ $json.smsMessage }}",
+        "options": {}
       },
       "credentials": {
         "twilioApi": {
           "id": "",
           "name": "Twilio account"
         }
+      }
+    },
+    {
+      "id": "f109a7c0-68f2-4610-ad90-fc3f2a772c54",
+      "name": "Sticky Note",
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        -240,
+        -112
+      ],
+      "parameters": {
+        "content": "This workflow runs every 30 days, computing trailing-30-day metrics from Leads, Appointments, and Communication Log (new leads, missed-call recoveries, appointments booked/kept), and emails the client an outcome-framed recap. Email is sent by default; SMS is built but off by default - both toggled, along with the recipient address/number, via the CONFIG block at the top of 'Build ROI Report'.",
+        "height": 208,
+        "width": 320
       }
     }
   ],
@@ -322,6 +430,46 @@
       ]
     },
     "Build ROI Report": {
+      "main": [
+        [
+          {
+            "node": "Check Email Enabled",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Check Email Enabled": {
+      "main": [
+        [
+          {
+            "node": "Send Client Email",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Check SMS Enabled",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Send Client Email": {
+      "main": [
+        [
+          {
+            "node": "Check SMS Enabled",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Check SMS Enabled": {
       "main": [
         [
           {

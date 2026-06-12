@@ -57,8 +57,8 @@ The foundational package — stops revenue leakage at the top of the funnel.
 |---|---|
 | CRM Adapter (Google Sheets-based CRM, swappable later) | 01 |
 | Missed-Call Auto-SMS (instant recovery text within seconds) | 03 |
-| Form Capture + AI Lead Scoring (Sonnet-graded Hot/Warm/Cold + Emergency flagging) | 02 |
-| Hot Lead Instant Owner Alert | 04 |
+| Form Capture + Confirmation (AI-generated confirmation SMS via Haiku 4.5) | 02 |
+| Instant Owner Alert for Every Lead (email by default, SMS optional) | 04 |
 | Automated Follow-Up Sequence (Day 1 / 3 / 7, auto-stops at booking) | 05 |
 
 **Internal anchor (do not quote verbatim — see reconciliation note above):** ~$1,500 one-time setup + ~$397/month as your private floor-of-reference for this scope of work
@@ -69,8 +69,8 @@ Everything in Tier 1, plus the operational layer that turns captured leads into 
 | Included (in addition to Tier 1) | Workflow(s) |
 |---|---|
 | Appointment Booking (owner-facing form → CRM → confirmation SMS) | 06 |
-| Daily Pipeline Status Digest (owner SMS each evening) | 07 |
-| Weekly Pipeline Report (trailing-7-day metrics SMS) | 08 |
+| Daily Pipeline Status Digest (owner email each evening, SMS optional) | 07 |
+| Weekly Pipeline Report (trailing-7-day metrics, emailed to owner, SMS optional) | 08 |
 | Appointment Reminders (24h + 2h automated SMS, no-show reduction) | 09 |
 | Reschedule/Cancel Handling (inbound-SMS self-service + owner alerting) | 10 |
 
@@ -82,7 +82,7 @@ Everything in Tier 2, plus higher-touch service and the optional enhancements ca
 | Add-on (à la carte or bundled) | Notes |
 |---|---|
 | Branded embeddable web intake form | Replaces the generic n8n-hosted form URL with the client's own branded page |
-| Client-facing ROI / performance report | Distinct from the owner's operational digests — built for "show the client the system is working" / contract-renewal conversations |
+| Client-facing ROI / performance report | Distinct from the owner's operational digests — built for "show the client the system is working" / contract-renewal conversations. Emails the client by default (SMS optional), V1.1 |
 | Priority support SLA (e.g., same-business-day response) | vs. standard best-effort support in Tiers 1–2 |
 | Multi-location / multi-crew configuration | For clients who outgrow the single-owner-phone assumption baked into the current build |
 | CRM migration (e.g., Google Sheets → GoHighLevel) | The CRM Adapter pattern already isolates this swap to one workflow — see `CLIENT_DEPLOYMENT_GUIDE.md` §6 |

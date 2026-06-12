@@ -1,5 +1,5 @@
 {
-  "_comment": "Local reference copy — synced from live n8n on 2026-06-06. Live ID: wVRHChyFrUNRaH4M",
+  "_comment": "Local reference copy — synced from live n8n on 2026-06-11 (V1.1 pass). Live ID: wVRHChyFrUNRaH4M. V1.1: 'Lead Score'/'Temperature'/'Urgency' removed from the Leads tab (20 columns -> 17) and from the adapter's input/output contract; all timestamps now use Luxon DateTime in America/New_York instead of new Date().toISOString().",
   "name": "CRM Adapter (Google Sheets)",
   "active": false,
   "settings": {
@@ -47,7 +47,7 @@
     },
     {
       "parameters": {
-        "jsCode": "const input = $('Input').first().json;\n\nconst isMissedCall =\n  input.source === 'Phone' &&\n  input.logSummary === 'Missed call — auto-SMS sent';\nconst existing = $('Get Leads').all().map(i => i.json);\nconst norm = s => String(s || '').replace(/\\D/g, '');\nconst pad = n => 'LEAD-' + String(n).padStart(4, '0');\nlet row = null;\nif (input.leadId) {\n  row = existing.find(r => String(r['Lead ID'] || '').trim() === String(input.leadId).trim());\n}\nif (!row && input.phone) {\n  row = existing.find(r => norm(r['Phone']) && norm(r['Phone']) === norm(input.phone));\n}\nlet leadId, isNew, dateCreated;\nif (row) {\n  leadId = row['Lead ID'];\n  isNew = false;\n  dateCreated = row['Date Created'] || new Date().toISOString();\n} else {\n  isNew = true;\n  const nums = existing.map(r => parseInt(String(r['Lead ID'] || '').replace(/\\D/g, ''), 10)).filter(n => !isNaN(n));\n  leadId = pad((nums.length ? Math.max(...nums) : 0) + 1);\n  dateCreated = new Date().toISOString();\n}\nconst prev = row || {};\nconst pick = (a, b) => (a !== undefined && a !== null && String(a).trim() !== '') ? a : (b || '');\nconst now = new Date().toISOString();\n\n// Phase 3: accept followUpCount from caller (follow-up sequence); preserve existing if not provided\nconst followUpCount = (input.followUpCount !== undefined && input.followUpCount !== null && String(input.followUpCount).trim() !== '')\n  ? String(input.followUpCount)\n  : pick(prev['Follow-up Count'], '0');\n\nconst leadRow = {\n  'Lead ID': leadId,\n  'Date Created': dateCreated,\n  'Source': pick(input.source, prev['Source']),\n  'First Name': pick(input.firstName, prev['First Name']),\n  'Last Name': pick(input.lastName, prev['Last Name']),\n  'Phone': pick(input.phone, prev['Phone']),\n  'Email': pick(input.email, prev['Email']),\n  'Address': pick(input.address, prev['Address']),\n  'Service Needed': pick(input.serviceNeeded, prev['Service Needed']),\n  'Description': pick(input.description, prev['Description']),\n  'Photos Link': pick(input.photosLink, prev['Photos Link']),\n  'Preferred Time': pick(input.preferredTime, prev['Preferred Time']),\n  'Lead Score': pick(input.leadScore, prev['Lead Score']),\n  'Temperature': pick(input.temperature, prev['Temperature']),\n  'Urgency': pick(input.urgency, prev['Urgency']),\n  'Status': pick(input.status, prev['Status'] || 'New'),\n  'Last Contact': now,\n  'Follow-up Count': followUpCount,\n  'Assigned To': pick(input.assignedTo, prev['Assigned To']),\n  'Notes': pick(input.notes, prev['Notes'])\n};\nreturn [{\n  json: {\n    ...leadRow,\n    _isNew: isNew,\n    skipLeadCreation: isMissedCall\n  }\n}];"
+        "jsCode": "const DEFAULT_TIMEZONE = 'America/New_York';\nconst nowET = () => DateTime.now().setZone(DEFAULT_TIMEZONE).toISO();\n\nconst input = $('Input').first().json;\n\nconst isMissedCall =\n  input.source === 'Phone' &&\n  input.logSummary === 'Missed call — auto-SMS sent';\nconst existing = $('Get Leads').all().map(i => i.json);\nconst norm = s => String(s || '').replace(/\\D/g, '');\nconst pad = n => 'LEAD-' + String(n).padStart(4, '0');\nlet row = null;\nif (input.leadId) {\n  row = existing.find(r => String(r['Lead ID'] || '').trim() === String(input.leadId).trim());\n}\nif (!row && input.phone) {\n  row = existing.find(r => norm(r['Phone']) && norm(r['Phone']) === norm(input.phone));\n}\nlet leadId, isNew, dateCreated;\nif (row) {\n  leadId = row['Lead ID'];\n  isNew = false;\n  dateCreated = row['Date Created'] || nowET();\n} else {\n  isNew = true;\n  const nums = existing.map(r => parseInt(String(r['Lead ID'] || '').replace(/\\D/g, ''), 10)).filter(n => !isNaN(n));\n  leadId = pad((nums.length ? Math.max(...nums) : 0) + 1);\n  dateCreated = nowET();\n}\nconst prev = row || {};\nconst pick = (a, b) => (a !== undefined && a !== null && String(a).trim() !== '') ? a : (b || '');\nconst now = nowET();\n\n// Phase 3: accept followUpCount from caller (follow-up sequence); preserve existing if not provided\nconst followUpCount = (input.followUpCount !== undefined && input.followUpCount !== null && String(input.followUpCount).trim() !== '')\n  ? String(input.followUpCount)\n  : pick(prev['Follow-up Count'], '0');\n\nconst leadRow = {\n  'Lead ID': leadId,\n  'Date Created': dateCreated,\n  'Source': pick(input.source, prev['Source']),\n  'First Name': pick(input.firstName, prev['First Name']),\n  'Last Name': pick(input.lastName, prev['Last Name']),\n  'Phone': pick(input.phone, prev['Phone']),\n  'Email': pick(input.email, prev['Email']),\n  'Address': pick(input.address, prev['Address']),\n  'Service Needed': pick(input.serviceNeeded, prev['Service Needed']),\n  'Description': pick(input.description, prev['Description']),\n  'Photos Link': pick(input.photosLink, prev['Photos Link']),\n  'Preferred Time': pick(input.preferredTime, prev['Preferred Time']),\n  'Status': pick(input.status, prev['Status'] || 'New'),\n  'Last Contact': now,\n  'Follow-up Count': followUpCount,\n  'Assigned To': pick(input.assignedTo, prev['Assigned To']),\n  'Notes': pick(input.notes, prev['Notes'])\n};\nreturn [{\n  json: {\n    ...leadRow,\n    _isNew: isNew,\n    skipLeadCreation: isMissedCall\n  }\n}];"
       },
       "id": "node-resolve",
       "name": "Resolve & Build Lead Row",
@@ -114,9 +114,6 @@
             "Description": "={{ $json.Description }}",
             "Photos Link": "={{ $json['Photos Link'] }}",
             "Preferred Time": "={{ $json['Preferred Time'] }}",
-            "Lead Score": "={{ $json['Lead Score'] }}",
-            "Temperature": "={{ $json.Temperature }}",
-            "Urgency": "={{ $json.Urgency }}",
             "Status": "={{ $json.Status }}",
             "Last Contact": "={{ $json['Last Contact'] }}",
             "Follow-up Count": "={{ $json['Follow-up Count'] }}",
@@ -145,7 +142,7 @@
     },
     {
       "parameters": {
-        "jsCode": "const leadRow = $('Resolve & Build Lead Row').first().json;\nconst input = $('Input').first().json;\nconst name = [leadRow['First Name'], leadRow['Last Name']].filter(Boolean).join(' ').trim();\nconst ts = new Date().toISOString();\nconst logId = 'LOG-' + ts.replace(/[-:T.Z]/g, '').slice(0, 14) + '-' + Math.floor(Math.random() * 1000);\nreturn [{ json: {\n  'Log ID': logId,\n  'Date/Time': ts,\n  'Lead ID': leadRow['Lead ID'],\n  'Customer Name': name,\n  'Channel': input.logChannel || input.source || '',\n  'Direction': input.logDirection || 'Inbound',\n  'Handler': input.logHandler || 'AI',\n  'Message Summary': input.logSummary || '',\n  'Notes': input.logNotes || ''\n}}];"
+        "jsCode": "const DEFAULT_TIMEZONE = 'America/New_York';\nconst nowET = () => DateTime.now().setZone(DEFAULT_TIMEZONE).toISO();\n\nconst leadRow = $('Resolve & Build Lead Row').first().json;\nconst input = $('Input').first().json;\nconst name = [leadRow['First Name'], leadRow['Last Name']].filter(Boolean).join(' ').trim();\nconst ts = nowET();\nconst logId = 'LOG-' + ts.replace(/[-:T.Z]/g, '').slice(0, 14) + '-' + Math.floor(Math.random() * 1000);\nreturn [{ json: {\n  'Log ID': logId,\n  'Date/Time': ts,\n  'Lead ID': leadRow['Lead ID'],\n  'Customer Name': name,\n  'Channel': input.logChannel || input.source || '',\n  'Direction': input.logDirection || 'Inbound',\n  'Handler': input.logHandler || 'AI',\n  'Message Summary': input.logSummary || '',\n  'Notes': input.logNotes || ''\n}}];"
       },
       "id": "node-buildlog",
       "name": "Build Log Row",
@@ -201,7 +198,7 @@
     },
     {
       "parameters": {
-        "jsCode": "const r = $('Resolve & Build Lead Row').first().json;\nreturn [{ json: { leadId: r['Lead ID'], isNew: r._isNew, temperature: r['Temperature'] || '', leadScore: r['Lead Score'] || '', status: r['Status'] || '' } }];"
+        "jsCode": "const r = $('Resolve & Build Lead Row').first().json;\nreturn [{ json: { leadId: r['Lead ID'], isNew: r._isNew, status: r['Status'] || '', dateCreated: r['Date Created'] || '' } }];"
       },
       "id": "node-return",
       "name": "Return",

@@ -111,8 +111,8 @@ Stops revenue leakage at the top of the funnel. Core components:
 |---|---|
 | Single database for all leads (Google Sheets CRM) | 01 — CRM Adapter |
 | Instant text-back on missed calls (within seconds) | 03 — Missed-Call Auto-SMS |
-| Form/webhook capture + AI lead scoring (Hot/Warm/Cold) | 02 — Form Capture + AI Scoring |
-| Instant owner alert when a Hot/Emergency lead comes in | 04 — Hot Lead Alert |
+| Form/webhook capture + CRM upsert + AI confirmation SMS | 02 — Form Capture + Confirmation |
+| Instant owner alert (email by default, SMS optional) for every lead | 04 — Every Lead Alert |
 | Automated Day 1/3/7 follow-up sequence (stops at booking) | 05 — Follow-Up Sequence |
 
 **Internal pricing anchor (do not quote to clients — use the calculator first):** ~$1,500 setup + ~$397/month
@@ -123,8 +123,8 @@ Everything in Foundation plus operational visibility and appointment management:
 | What it adds | Workflow |
 |---|---|
 | Owner books appointments via a simple form | 06 — Appointment Booking |
-| Daily evening SMS digest: pipeline status | 07 — Pipeline Status Digest |
-| Weekly Monday morning SMS: trailing-7-day metrics | 08 — Weekly Pipeline Report |
+| Daily evening email digest: pipeline status (SMS optional) | 07 — Pipeline Status Digest |
+| Weekly Monday morning email: trailing-7-day metrics (SMS optional) | 08 — Weekly Pipeline Report |
 | Automated 24h + 2h appointment reminders | 09 — Appointment Reminders |
 | Inbound SMS handling for reschedule/cancel requests | 10 — Reschedule/Cancel |
 
@@ -325,12 +325,12 @@ Fill in `CLIENT_WELCOME_GUIDE_TEMPLATE.md` from the intake answers. Read it alou
 
 3. **Schedule & Cadence** — all schedule triggers are in UTC. The deployment guide converts to the client's timezone. Confirm with the client that digest/reminder times make sense for how their business actually works.
 
-4. **Business-Rule Constants** — lead score thresholds, follow-up cadence, booking time slots. These are judgment calls that should be confirmed with each client, not assumed to match the roofing defaults.
+4. **Business-Rule Constants** — follow-up cadence, booking time slots/business hours (`CONFIG` block in 06), email/SMS alert toggles (`CONFIG` block in 04/07/08/11/12). These are judgment calls that should be confirmed with each client, not assumed to match the roofing defaults.
 
 ### The Deployment Order That Matters
 Import order matters because of sub-workflow dependencies:
 1. CRM Adapter (01) first — everything else calls this
-2. Hot Lead Alert (04) second — called by Form Capture
+2. Every Lead Alert (04) second — called by Form Capture for every submission
 3. Everything else (02, 03, 05, 06, 10) — after 01/04 are live with their new IDs
 4. Monitoring and reporting (07, 08, 09, 11, 12) last
 
@@ -344,7 +344,7 @@ This is the highest-leverage 30 minutes of any deployment. The client has descri
 - The appointment confirmation and reminders (Workflows 06, 09)
 - The reschedule/cancel replies (Workflow 10)
 - The ROI report message (Workflow 12 — use client's brand name)
-- All Claude system prompts for lead scoring and confirmation generation
+- The Claude system prompt for the Haiku 4.5 confirmation SMS (Workflow 02)
 
 Use the client's actual words from the intake wherever possible. If they said "we're the team Boston trusts to show up on time," that phrase belongs in the SMS.
 
@@ -439,8 +439,9 @@ The System Health Monitor (Workflow 11) runs daily and will often catch issues b
 |---|---|---|
 | Workflow orchestration | n8n (valfin.app.n8n.cloud) | Runs all 12 workflows + internal lead capture |
 | Database | Google Sheets (Google account: valfintechnologies@gmail.com) | CRM — Leads, Appointments, Communication Log |
-| SMS | Twilio | All outbound/inbound SMS; webhook trigger for missed calls |
-| AI | Claude API (Anthropic) — Sonnet 4.6 + Haiku 4.5 | Lead scoring (Sonnet) + SMS generation (Haiku) |
+| SMS | Twilio | Confirmation/follow-up/reminder SMS; webhook trigger for missed calls; SMS alerts built but off by default (V1.1) |
+| Email | Gmail OAuth2 (`valfintechnologies@gmail.com`) | Owner/client alerts and reports (04, 07, 08, 11, 12) — default delivery channel as of V1.1 |
+| AI | Claude API (Anthropic) — Haiku 4.5 | Customer-facing confirmation SMS generation only (V1.1: lead-scoring Sonnet 4.6 calls removed) |
 | Website | Next.js 15, Tailwind CSS v4, shadcn/ui, Framer Motion | Marketing site at valfintech.com |
 | Website hosting | Vercel (deployed Jun 9 2026, Cloudflare DNS) |
 | Domain | valfintech.com (DNS: Cloudflare) |
@@ -449,10 +450,11 @@ The System Health Monitor (Workflow 11) runs daily and will often catch issues b
 ### n8n Architecture
 
 **Instance:** `valfin.app.n8n.cloud`  
-**Authentication:** Three credentials set in n8n UI:
+**Authentication:** Credentials set in n8n UI:
 - Google Sheets OAuth2 (`googleSheetsOAuth2Api`)
-- Anthropic Header Auth (`httpHeaderAuth`, key `x-api-key`)
+- Anthropic Header Auth (`httpHeaderAuth`, key `x-api-key`) — used only by Workflow 02's confirmation-SMS node
 - Twilio API (`twilioApi`)
+- Gmail OAuth2 (`gmailOAuth2`, account `valfintechnologies@gmail.com`) — added V1.1 for email alerts/reports (04, 07, 08, 11, 12)
 
 **Key architectural decision — the CRM Adapter pattern:**
 Workflow 01 is the only workflow that writes to Google Sheets. Every other workflow that needs to create or update a lead record calls Workflow 01 as a sub-workflow. This means:
@@ -464,10 +466,9 @@ Workflow 01 is the only workflow that writes to Google Sheets. Every other workf
 This was one of the best early decisions. Do not break this pattern in future workflow development.
 
 **Key architectural decision — AI model selection:**
-- Lead scoring uses Claude Sonnet 4.6 (higher judgment, runs once per new lead)
 - Customer-facing SMS generation uses Claude Haiku 4.5 (volume, speed, lower cost)
-- All other messages are static templates (zero AI for follow-ups, digests, reports, reminders)
-- This cost/quality split is deliberate — don't add AI where static templates are sufficient
+- All other messages are static templates (zero AI for follow-ups, digests, reports, reminders, owner/client alerts)
+- **V1.1 (2026-06-11):** AI lead scoring (Claude Sonnet 4.6 — `Lead Score`/`Temperature`/`Urgency`) was removed system-wide; Haiku 4.5 is now the only model in production use, for the confirmation SMS only. This cost/quality split is deliberate — don't add AI where static templates are sufficient
 
 ### Twilio Architecture
 
@@ -540,17 +541,17 @@ All 12 workflows are live in production and have importable JSON exports in `wor
 | # | Name | n8n ID | Schedule/Trigger | What it does | Who receives output |
 |---|---|---|---|---|---|
 | 01 | CRM Adapter | `wVRHChyFrUNRaH4M` | Called by other workflows | Writes/updates leads + communication log in Google Sheets. Only workflow that touches the database. | Internal (data layer) |
-| 02 | Form Capture + AI Scoring | `HdJc5cy8cmqMBfGR` | Webhook (form/API submissions) | Scores new leads Hot/Warm/Cold via AI, creates CRM record, sends confirmation SMS. Triggers Hot Lead Alert if needed. | Customer (SMS) + internal (CRM) |
+| 02 | Form Capture + Confirmation | `HdJc5cy8cmqMBfGR` | Webhook (form/API submissions) | Creates/updates the CRM record via the adapter, sends an AI (Haiku 4.5) confirmation SMS, and triggers Every Lead Alert for every submission. **V1.1: AI lead scoring removed — no Hot/Warm/Cold branching.** | Customer (SMS) + internal (CRM) |
 | 03 | Missed-Call Auto-SMS | `u9I1bqrLW6V5LtLp` | Webhook (Twilio call status) | Fires on missed calls. Sends instant recovery text within seconds. Logs to Communication Log only. | Customer (SMS) |
-| 04 | Hot Lead Alert | `KIpMMKM8H5IZB9wb` | Called by Workflow 02 | Sub-workflow. Sends owner instant SMS alert when a Hot/Emergency lead arrives. | Owner (SMS) |
+| 04 | Every Lead Alert (formerly "Hot Lead Alert") | `KIpMMKM8H5IZB9wb` | Called by Workflow 02, every submission | Sub-workflow. Emails the owner a branded summary for every lead (email by default, SMS built but off by default — toggled via `CONFIG`). | Owner (email by default, SMS optional) |
 | 05 | Follow-Up Sequence | `chYfABnQdnPfiHQx` | Daily 9 AM ET | Sends Day 1/3/7 follow-up SMS to unbooked leads. Stops at 3 attempts or status change. Auto-excludes booked leads. | Customer (SMS) |
-| 06 | Appointment Booking | `ax2sMbvv0lqyJHMg` | Owner submits booking form | Takes owner's booking input, writes appointment to CRM, sends customer confirmation SMS, marks lead as Booked. | Customer (SMS) + internal (CRM) |
-| 07 | Pipeline Status Digest | `ehqNYjZRirX5L3sX` | Daily 6 PM ET | Summarizes today's new leads, bookings, and stale warm leads that need attention. Text to owner. | Owner (SMS) |
-| 08 | Weekly Pipeline Report | `Y7ruzhYGMhE001fr` | Monday 8 AM ET | Trailing 7-day metrics: leads, bookings, sources, conversion rate. Text to owner. | Owner (SMS) |
-| 09 | Appointment Reminders | `bJcO5ox2u190bxTr` | Hourly check | Sends 24h and 2h SMS reminders to customers before appointments. Uses idempotency flags to prevent duplicates. | Customer (SMS) |
+| 06 | Appointment Booking | `ax2sMbvv0lqyJHMg` | Owner submits booking form | Takes owner's structured date/time-slot booking input (`CONFIG`-driven business hours), writes appointment to CRM, sends customer confirmation SMS, marks lead as Booked. | Customer (SMS) + internal (CRM) |
+| 07 | Pipeline Status Digest | `ehqNYjZRirX5L3sX` | Daily 6 PM ET | Summarizes today's new leads, bookings, and Stale leads that need attention. Emails the owner by default (SMS optional via `CONFIG`). | Owner (email by default, SMS optional) |
+| 08 | Weekly Pipeline Report | `Y7ruzhYGMhE001fr` | Monday 8 AM ET | Trailing 7-day metrics: leads, bookings, sources, conversion rate. Emails the owner by default (SMS optional via `CONFIG`). | Owner (email by default, SMS optional) |
+| 09 | Appointment Reminders | `bJcO5ox2u190bxTr` | Hourly check | Sends 24h and 2h SMS reminders to customers before appointments using DST-safe Luxon `America/New_York` math. Uses idempotency flags to prevent duplicates. | Customer (SMS) |
 | 10 | Reschedule/Cancel | `Bj5b3sUexa8EeQcK` | Inbound SMS (Twilio Trigger) | Classifies inbound texts as reschedule/cancel/other. Updates appointment status, replies to customer, alerts owner. | Customer (SMS) + owner (SMS) |
-| 11 | System Health Monitor | `U6t0b7M6lN8eA1JO` | Daily 4 PM UTC | Checks CRM data freshness. Alerts operator if appointment reminders or follow-up sequences look stale. Silent if clean. | Operator (SMS) |
-| 12 | Client ROI Report | `ocAnTMCh068BxxXz` | Every 30 days, 2 PM UTC | Computes 30-day metrics (leads captured, missed calls recovered, appointments booked/kept). Texts client in their brand name. | Client (SMS) |
+| 11 | System Health Monitor | `U6t0b7M6lN8eA1JO` | Daily 4 PM UTC | Checks CRM data freshness. Emails the operator if appointment reminders or follow-up sequences look stale (SMS optional via `CONFIG`). Silent if clean. | Operator (email by default, SMS optional) |
+| 12 | Client ROI Report | `ocAnTMCh068BxxXz` | Every 30 days, 2 PM UTC | Computes 30-day metrics (leads captured, missed calls recovered, appointments booked/kept). Emails the client in their brand name by default (SMS optional via `CONFIG`). | Client (email by default, SMS optional) |
 
 **Internal lead capture (Valfin's own):**
 - Workflow `OIakSYLK2iMWsB32` — "Valfin — Website Lead Capture" — handles valfintech.com contact form submissions → Sheets + email + SMS alert. Requires one-time configuration (see `INTERNAL_LEAD_CAPTURE_SETUP.md`).
@@ -579,16 +580,15 @@ All 12 workflows are live in production and have importable JSON exports in `wor
 | **n8n** | The workflow automation platform that runs all our workflows. Think "backend logic engine." |
 | **Workflow** | A sequence of automated steps in n8n. We have 12 for the Revenue Recovery System + 1 internal. |
 | **CRM Adapter** | Workflow 01. The single gateway to the Google Sheets database. All other workflows route through it. |
-| **Sub-workflow** | A workflow called by another workflow (not triggered directly). Workflows 01 and 04 are sub-workflows. |
+| **Sub-workflow** | A workflow called by another workflow (not triggered directly). Workflows 01 (CRM Adapter) and 04 (Every Lead Alert) are sub-workflows. |
 | **Twilio** | The phone/SMS service. Handles missed-call detection, all outbound SMS, and inbound SMS processing. |
 | **Toll-free verification / A2P 10DLC** | Carrier-level approval process for business SMS. Required before SMS actually delivers to customers. Can take days to weeks. |
 | **Credential** | An authentication key stored in n8n for a third-party service (Google Sheets, Anthropic, Twilio). Must be re-created and re-assigned when cloning to a new client. |
 | **Execution** | A single run of a workflow. Referenced by ID in n8n. |
 | **Schedule trigger** | A workflow that runs on a timer (e.g., daily at 6 PM ET). |
 | **Webhook** | A URL that receives incoming data from external services (e.g., Twilio sends missed-call data to our webhook). |
-| **Hot / Warm / Cold** | AI-assigned lead temperature. Hot = act now. Warm = normal follow-up. Cold = low priority. |
-| **Lead score** | 1–100 numeric score assigned by Claude Sonnet 4.6. Drives temperature assignment. |
 | **Communication Log** | The audit trail tab in Google Sheets. Every customer interaction is logged here (SMS sent, calls missed, follow-ups, etc.). |
+| **CONFIG block** | A `const CONFIG = {...}` object at the top of a workflow's Code node holding business-rule constants (alert toggles, timezone, business hours, etc.) so they can be changed without redesigning the workflow. Added V1.1 to workflows 04, 06, 07, 08, 09, 10, 11, 12. |
 
 ### CRM Terminology
 
@@ -619,10 +619,11 @@ All 12 workflows are live in production and have importable JSON exports in `wor
 **Risk:** n8n is a dependency. If it changes its pricing or API, our delivery depends on their platform.  
 **What we'd do differently:** Same decision for V1. For V3+ (enterprise), evaluate moving critical paths to custom code.
 
-### Why Two AI Models (Sonnet for Scoring, Haiku for SMS)
-**Decision:** Claude Sonnet 4.6 scores leads; Claude Haiku 4.5 generates confirmation SMS.  
-**Reason:** Lead scoring requires judgment about urgency, fit, and intent — higher reasoning quality justified. Confirmation SMS requires speed and low latency at volume — Haiku is faster and cheaper. Follow-up messages and digests are static templates — no AI needed at all.  
-**Cost principle:** AI should not be used where a static template does the job equally well.
+### Why a Single AI Model (Haiku for Confirmation SMS Only)
+**Decision:** Claude Haiku 4.5 generates the customer-facing confirmation SMS (Workflow 02). Everything else — follow-ups, digests, reports, reminders, owner/client alerts — is a static template.  
+**Reason:** Confirmation SMS requires speed and low latency at volume — Haiku is fast and cheap for that job. Static templates are sufficient everywhere else, and "sufficient" beats "AI everywhere."  
+**Cost principle:** AI should not be used where a static template does the job equally well.  
+**V1.1 (2026-06-11):** Previously, Claude Sonnet 4.6 also scored every lead (`Lead Score`/`Temperature`/`Urgency`) to drive Hot Lead Alert routing. That scoring system was removed system-wide — every lead now follows the same notification path (Every Lead Alert, Workflow 04), and Haiku 4.5 is the only model in production use.
 
 ### Why Industry-Agnostic SMS Copy (In the Architecture, If Not in V1)
 **Decision:** All workflow SMS copy is designed to be brand-voice-rewritten per client, not hardcoded.  

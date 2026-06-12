@@ -68,7 +68,7 @@ This single sentence does more than any pitch. Most owners will laugh, sigh, or 
 **Goal:** transition from "here's the problem" to "here's what fixing it looks like" — and make the no-case-study-yet positioning the most memorable thing said in the call.
 
 **Transition line:**
-> "So here's what this actually is. [Give the 2-minute version from Module 2 — the missed-call story, the form-capture-and-scoring story, the follow-up story, tailored to what they told you in Step 1.]"
+> "So here's what this actually is. [Give the 2-minute version from Module 2 — the missed-call story, the form-capture-and-confirmation story, the follow-up story, tailored to what they told you in Step 1.]"
 
 **Then, the founding-partner offer — verbatim from `CLIENT_ACQUISITION_PLAYBOOK.md`:**
 > "I'll be straight with you — we're early. We built this system inside one real roofing company here in the Boston area, it's live and running their business right now, and we're in the middle of measuring exactly what it's done for them so we can publish real, verified numbers — not estimates, the actual before-and-after from their own records. You'd be one of the first businesses outside that one to run it. Here's what that means for you: you get more attention during setup than a client #50 ever will, you get a say in how it evolves, and you lock in founding pricing that won't be on the table once we have a track record to charge a premium against. In exchange, I'm going to ask if we can use your real numbers — good or not-as-good — in how we tell this story afterward, the same honest way I'm telling it now."

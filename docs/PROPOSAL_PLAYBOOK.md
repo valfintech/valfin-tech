@@ -28,7 +28,7 @@ The template has the following sections — fill in every `[BRACKETED]` field:
 1. **Cover page** — client business name, date, prepared-by (Valfin Tech)
 2. **Your Situation** — 2-3 sentences reflecting back what they told you on the call (their current process, the specific pain point they mentioned). This section is what makes the proposal feel like it was written *for them* — never leave this generic.
 3. **The Opportunity** — restate their Lead Leak Calculator result from the call: "Based on our conversation, we estimate [Business Name] may be losing approximately $[X]/month to slow lead follow-up." This is the same number from Step 2 of the discovery call — repetition reinforces it.
-4. **The Solution** — a plain-language description of what's included, drawn from the chosen tier's workflow list in `PRICING_PACKAGING.md` (e.g., for Growth: instant lead capture and response, missed-call text-back, lead scoring, automated follow-up sequences, appointment booking, monthly ROI reporting). Use outcome language ("you'll know within seconds when a hot lead comes in"), not workflow numbers — workflow IDs are internal implementation detail, not client-facing language.
+4. **The Solution** — a plain-language description of what's included, drawn from the chosen tier's workflow list in `PRICING_PACKAGING.md` (e.g., for Growth: instant lead capture and response, missed-call text-back, instant owner alerts, automated follow-up sequences, appointment booking, monthly ROI reporting). Use outcome language ("you'll know within seconds when a new lead comes in"), not workflow numbers — workflow IDs are internal implementation detail, not client-facing language.
 5. **Investment** — the two numbers:
    - One-time setup fee: $[X]
    - Monthly platform fee: $[Y]

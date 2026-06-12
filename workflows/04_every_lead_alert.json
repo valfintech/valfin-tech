@@ -1,0 +1,183 @@
+{
+  "_comment": "Local reference copy — synced from live n8n on 2026-06-11 (V1.1 pass). Live ID: KIpMMKM8H5IZB9wb. Renamed from 'Hot Lead Alert' to 'Every Lead Alert' — every form submission now triggers an owner notification, with email ON and SMS OFF by default via the CONFIG block in 'Build Alert Content'.",
+  "name": "Every Lead Alert",
+  "active": false,
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "nodes": [
+    {
+      "parameters": {
+        "inputSource": "passthrough"
+      },
+      "id": "node-input",
+      "name": "Input",
+      "type": "n8n-nodes-base.executeWorkflowTrigger",
+      "typeVersion": 1.2,
+      "position": [0, 0]
+    },
+    {
+      "parameters": {
+        "jsCode": "const lead = $input.first().json;\n\nconst CONFIG = {\n  COMPANY_NAME: 'Valfin Tech',\n  OWNER_PHONE: '+18575261499',\n  OWNER_EMAIL: 'valfintechnologies@gmail.com',\n  TWILIO_FROM_NUMBER: '+18889839308',\n  EMAIL_ALERTS_ENABLED: true,\n  SMS_ALERTS_ENABLED: false,\n  DEFAULT_TIMEZONE: 'America/New_York'\n};\n\nconst name = [lead.firstName, lead.lastName].filter(Boolean).join(' ') || 'Unknown';\nconst firstName = lead.firstName || 'there';\nconst phone = lead.phone || 'Not provided';\nconst email = lead.email || 'Not provided';\nconst service = lead.serviceNeeded || 'Not specified';\nconst address = lead.address || 'Not provided';\nconst preferredTime = lead.preferredTime || 'Not specified';\nconst source = lead.source || 'Unknown';\nconst leadId = lead.leadId || '';\n\nlet submitted = 'Just now';\nif (lead.dateCreated) {\n  try {\n    submitted = DateTime.fromISO(lead.dateCreated).setZone(CONFIG.DEFAULT_TIMEZONE).toFormat(\"MMM d, yyyy 'at' h:mm a ZZZZ\");\n  } catch (e) { submitted = lead.dateCreated; }\n}\n\nconst smsMessage = 'New lead: ' + name + ' (' + service + ')\\nPhone: ' + phone + (leadId ? '\\n' + leadId : '');\n\nconst emailSubject = CONFIG.COMPANY_NAME + ' - New Lead: ' + name + ' (' + service + ')';\n\nconst rows = [\n  ['Name', name],\n  ['Phone', phone],\n  ['Email', email],\n  ['Address', address],\n  ['Service Requested', service],\n  ['Preferred Time', preferredTime],\n  ['Lead Source', source],\n  ['Submitted', submitted]\n];\nif (leadId) rows.push(['Lead ID', leadId]);\n\nconst rowsHtml = rows.map(([label, value]) =>\n  '<tr><td style=\"padding:6px 12px 6px 0;font-weight:bold;color:#374151;white-space:nowrap;\">' + label + '</td><td style=\"padding:6px 0;color:#111827;\">' + value + '</td></tr>'\n).join('');\n\nconst emailHtml =\n  '<div style=\"font-family:Arial,Helvetica,sans-serif;max-width:560px;margin:0 auto;color:#111827;\">' +\n  '<h2 style=\"color:#111827;border-bottom:2px solid #e5e7eb;padding-bottom:8px;\">New Lead Received</h2>' +\n  '<table style=\"width:100%;border-collapse:collapse;margin-top:12px;\">' + rowsHtml + '</table>' +\n  '<p style=\"margin-top:20px;\"><a href=\"tel:' + phone + '\" style=\"background:#111827;color:#ffffff;padding:10px 18px;border-radius:6px;text-decoration:none;font-weight:bold;display:inline-block;\">Call ' + firstName + '</a></p>' +\n  '<p style=\"color:#6b7280;font-size:12px;margin-top:24px;\">Sent automatically by ' + CONFIG.COMPANY_NAME + '.</p>' +\n  '</div>';\n\nreturn [{ json: {\n  ...lead,\n  emailEnabled: CONFIG.EMAIL_ALERTS_ENABLED,\n  smsEnabled: CONFIG.SMS_ALERTS_ENABLED,\n  ownerEmail: CONFIG.OWNER_EMAIL,\n  ownerPhone: CONFIG.OWNER_PHONE,\n  twilioFrom: CONFIG.TWILIO_FROM_NUMBER,\n  emailSubject,\n  emailHtml,\n  smsMessage\n}}];"
+      },
+      "id": "node-buildcontent",
+      "name": "Build Alert Content",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [224, 0]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict"
+          },
+          "conditions": [
+            {
+              "id": "email-enabled",
+              "leftValue": "={{ $json.emailEnabled }}",
+              "rightValue": true,
+              "operator": {
+                "type": "boolean",
+                "operation": "true"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "id": "node-check-email-enabled",
+      "name": "Check Email Enabled",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.3,
+      "position": [448, 0]
+    },
+    {
+      "parameters": {
+        "resource": "message",
+        "operation": "send",
+        "sendTo": "={{ $json.ownerEmail }}",
+        "subject": "={{ $json.emailSubject }}",
+        "emailType": "html",
+        "message": "={{ $json.emailHtml }}",
+        "options": {
+          "appendAttribution": false
+        }
+      },
+      "id": "node-send-owner-email",
+      "name": "Send Owner Email",
+      "type": "n8n-nodes-base.gmail",
+      "typeVersion": 2.2,
+      "position": [672, -120],
+      "webhookId": "a779bf5a-4739-479d-b7e6-c5d8b741cc01",
+      "credentials": {
+        "gmailOAuth2": {
+          "id": "",
+          "name": "Gmail account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict"
+          },
+          "conditions": [
+            {
+              "id": "sms-enabled",
+              "leftValue": "={{ $json.smsEnabled }}",
+              "rightValue": true,
+              "operator": {
+                "type": "boolean",
+                "operation": "true"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "id": "node-check-sms-enabled",
+      "name": "Check SMS Enabled",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.3,
+      "position": [896, 0]
+    },
+    {
+      "parameters": {
+        "from": "={{ $json.twilioFrom }}",
+        "to": "={{ $json.ownerPhone }}",
+        "message": "={{ $json.smsMessage }}",
+        "options": {}
+      },
+      "id": "node-send-owner-sms",
+      "name": "Send Owner SMS",
+      "type": "n8n-nodes-base.twilio",
+      "typeVersion": 1,
+      "position": [1120, -120],
+      "retryOnFail": true,
+      "maxTries": 3,
+      "waitBetweenTries": 3000,
+      "credentials": {
+        "twilioApi": {
+          "id": "",
+          "name": "Twilio account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "return [{ json: { alerted: true, alertedAt: DateTime.now().setZone('America/New_York').toISO() } }];"
+      },
+      "id": "node-return",
+      "name": "Return",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [1344, 0]
+    },
+    {
+      "parameters": {
+        "content": "Every Lead Alert: receives lead data from any intake workflow, builds a professional HTML email and a short SMS summary, then sends an email to the owner (default ON) and an SMS (default OFF) per the CONFIG block at the top of 'Build Alert Content'. Both channels are toggled per client without redesigning the workflow.",
+        "height": 220,
+        "width": 320
+      },
+      "id": "node-sticky",
+      "name": "Sticky Note",
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [-320, -272]
+    }
+  ],
+  "connections": {
+    "Input": {
+      "main": [[{ "node": "Build Alert Content", "type": "main", "index": 0 }]]
+    },
+    "Build Alert Content": {
+      "main": [[{ "node": "Check Email Enabled", "type": "main", "index": 0 }]]
+    },
+    "Check Email Enabled": {
+      "main": [
+        [{ "node": "Send Owner Email", "type": "main", "index": 0 }],
+        [{ "node": "Check SMS Enabled", "type": "main", "index": 0 }]
+      ]
+    },
+    "Send Owner Email": {
+      "main": [[{ "node": "Check SMS Enabled", "type": "main", "index": 0 }]]
+    },
+    "Check SMS Enabled": {
+      "main": [
+        [{ "node": "Send Owner SMS", "type": "main", "index": 0 }],
+        [{ "node": "Return", "type": "main", "index": 0 }]
+      ]
+    },
+    "Send Owner SMS": {
+      "main": [[{ "node": "Return", "type": "main", "index": 0 }]]
+    }
+  }
+}

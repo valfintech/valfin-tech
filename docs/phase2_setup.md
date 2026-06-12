@@ -1,6 +1,8 @@
 # Phase 2 Setup — Missed-Call + Form Capture
 
-This guide gets the **Form Capture + AI Scoring** flow live and tested. It depends on the **CRM Adapter** sub-workflow, so we set that up first. (The Missed-Call auto-SMS workflow is the next deliverable and reuses the same adapter.)
+This guide gets the **Form Capture + Confirmation** flow live and tested. It depends on the **CRM Adapter** sub-workflow, so we set that up first. (The Missed-Call auto-SMS workflow is the next deliverable and reuses the same adapter.)
+
+> **V1.1 (2026-06-11):** This workflow was renamed from "Form Capture + AI Scoring" to **"Form Capture + Confirmation"**. AI lead scoring (`leadScore`/`temperature`/`urgency`, Sonnet 4.6) was removed system-wide — see `docs/V1_1_RECONCILIATION.md`. The flow now upserts the lead via the CRM Adapter, sends a Haiku 4.5 confirmation SMS, and triggers "Every Lead Alert" (workflow 04). References to scoring below are historical; the `Anthropic API` credential is still needed for the Haiku 4.5 confirmation SMS.
 
 > You do the clicks in the n8n UI and connect your own Google / Anthropic / Twilio accounts. I can't operate the GUI or hold your credentials — every account step is spelled out below.
 
@@ -46,10 +48,12 @@ Open **CRM Adapter (Google Sheets)**. There are 3 Google Sheets nodes — fix ea
 - The **Upsert Lead** node matches on **`Lead ID`** (already set). The **Append Comm Log** node just appends.
 
 **How the adapter behaves (the modular contract):**
-- Input it expects (any subset): `source, firstName, lastName, phone, email, address, serviceNeeded, description, photosLink, preferredTime, leadScore, temperature, urgency, status, assignedTo, notes, leadId` plus log fields `logChannel, logDirection, logHandler, logSummary, logNotes`.
+- Input it expects (any subset): `source, firstName, lastName, phone, email, address, serviceNeeded, description, photosLink, preferredTime, status, assignedTo, notes, leadId` plus log fields `logChannel, logDirection, logHandler, logSummary, logNotes`.
 - It **upserts the lead**: matches an existing row by `leadId` if you pass one, else by `Phone` (digits only). New leads get a fresh `LEAD-####`. Existing non-empty fields are never blanked out.
 - It **always appends one Communication Log row**.
-- It **returns** `{ leadId, isNew, temperature, leadScore, status }`.
+- It **returns** `{ leadId, isNew, status }`.
+
+> **V1.1 (2026-06-11):** `leadScore`, `temperature`, and `urgency` were removed from the adapter's input/output contract and from the `Leads` tab (now 17 columns, down from 20). See `docs/CRM_SHEET_SCHEMA.md` and `docs/V1_1_RECONCILIATION.md`.
 - **This is the only workflow that touches Google Sheets.** To move to GoHighLevel later, rebuild *only this workflow* with the same input/output contract — nothing else changes.
 
 > ⚠️ ID generation reads the whole `Leads` tab and increments the max. Fine for one business; under truly simultaneous submissions there's a tiny duplicate-ID risk. We'll harden this if volume ever demands it.
@@ -58,7 +62,7 @@ Open **CRM Adapter (Google Sheets)**. There are 3 Google Sheets nodes — fix ea
 
 ## 4. Point the Form workflow at the adapter (`02`)
 
-Open **Form Capture + AI Scoring**. Two nodes call the adapter — **CRM: Upsert + Log Inbound** and **CRM: Log Outbound SMS**. In each:
+Open **Form Capture + Confirmation** (formerly "Form Capture + AI Scoring"). Two nodes call the adapter — **CRM: Upsert + Log Inbound** and **CRM: Log Outbound SMS**. In each:
 - Open the node → **Workflow** field → select **CRM Adapter (Google Sheets)** from the list. (The placeholder ID won't resolve until you pick it.)
 
 Then set the remaining placeholders:
@@ -84,7 +88,7 @@ The two entry points:
 **Test B — Form path without SMS.**
 1. In `02`, temporarily **disable** `Send Confirmation SMS`, `Mark Outbound Log`, and `CRM: Log Outbound SMS` (right-click → Disable) so you can test scoring + CRM before Twilio is connected.
 2. Open **Website Form**, hit the **Test URL**, submit a realistic lead (e.g. "Active leak in the ceiling after last night's storm, need someone ASAP").
-3. In the execution view confirm: **Claude - Score Lead** returns clean JSON; **Parse Score** shows `leadScore`/`temperature`/`urgency`; the Leads row is written with a score and the lead reads **Hot**. ✅
+3. In the execution view confirm the lead is upserted into the **Leads** tab via the CRM Adapter (no scoring step — V1.1 removed `leadScore`/`temperature`/`urgency`; every lead follows the same path). ✅
 
 **Test C — Full path with SMS.**
 1. Connect the **Twilio account** credential, set the **From** number, re-enable the three nodes.

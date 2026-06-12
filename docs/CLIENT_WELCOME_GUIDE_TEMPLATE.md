@@ -54,13 +54,10 @@ You don't need to maintain it — the system does that — but you'll want to kn
 
 | Term you'll see | What it means |
 |---|---|
-| **Hot** | This person needs something *now* — usually urgent, usually worth a same-day callback |
-| **Warm** | A real, qualified lead — worth following up on in the normal course of business |
-| **Cold** | Lower priority — still tracked and followed up with, just not urgent |
 | **New / Contacted / Booked / Stale** | Where someone is in your pipeline — straight from "just came in" through "on the calendar," with "Stale" meaning it's been a while since anyone heard back from them (the system will keep gently following up regardless) |
 | **Follow-up Count** | How many times the system has already reached back out to this person — it stops at a sensible limit so nobody gets pestered |
 
-> _Operator note: this table intentionally uses the exact `Temperature` and `Status` vocabulary verified live in `docs/CRM_SHEET_SCHEMA.md` (`Leads` tab) — keep it in sync with that document if the underlying schema or thresholds ever change for this client._
+> _Operator note: this table intentionally uses the exact `Status` vocabulary verified live in `docs/CRM_SHEET_SCHEMA.md` (`Leads` tab) — keep it in sync with that document if the underlying schema ever changes for this client. **V1.1 (2026-06-11):** `Temperature`/`Hot`/`Warm`/`Cold` were removed from the schema — every new lead triggers the same owner notification (email by default), so there's no separate "Hot lead" concept to explain to the client._
 
 ---
 

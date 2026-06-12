@@ -34,27 +34,31 @@ def make_sheet(name, headers, rows, col_widths=None, note=None):
         ws.merge_cells(start_row=note_row, start_column=1, end_row=note_row, end_column=len(headers))
     return ws
 
-# 1. Leads — verified live schema (PROJECT_AUDIT.md / CRM Adapter)
+# 1. Leads — verified live schema (PROJECT_AUDIT.md / CRM Adapter) — V1.1: AI-scoring columns removed
 make_sheet(
     "Leads",
     ["Lead ID", "Date Created", "Source", "First Name", "Last Name", "Phone", "Email", "Address",
-     "Service Needed", "Description", "Photos Link", "Preferred Time", "Lead Score", "Temperature",
-     "Urgency", "Status", "Last Contact", "Follow-up Count", "Assigned To", "Notes"],
+     "Service Needed", "Description", "Photos Link", "Preferred Time", "Status", "Last Contact",
+     "Follow-up Count", "Assigned To", "Notes"],
     [
-        ["EXAMPLE-LEAD-0001", "2026-06-01T09:14:00Z", "Website Form", "Maria", "Santos", "16175550111",
+        ["EXAMPLE-LEAD-0001", "2026-06-01T09:14:00.000-04:00", "Website Form", "Maria", "Santos", "16175550111",
          "maria.santos@example.com", "42 Beacon St, Boston, MA", "Roof Inspection",
          "Noticed a leak near the chimney after last week's storm", "", "Weekday mornings",
-         86, "Hot", "Emergency", "Booked", "2026-06-01T09:20:00Z", 1, "J. Reyes",
-         "Example row — replace with real data. Active leak, scored Hot/Emergency by AI scoring (workflow 02)."],
-        ["EXAMPLE-LEAD-0002", "2026-06-02T14:02:00Z", "Phone (Missed Call)", "David", "Chen", "16175550222",
-         "", "", "", "", "", "", "", "Cold", "", "New", "", 0, "",
+         "Booked", "2026-06-01T09:20:00.000-04:00", 1, "J. Reyes",
+         "Example row — replace with real data."],
+        ["EXAMPLE-LEAD-0002", "2026-06-02T14:02:00.000-04:00", "Phone (Missed Call)", "David", "Chen", "16175550222",
+         "", "", "", "", "", "", "New", "", 0, "",
          "Example row — missed-call auto-SMS sent (workflow 03); no Lead record is normally created for pure missed calls — this row illustrates what a follow-up form submission from the same number would look like once captured."],
     ],
-    col_widths=[16, 18, 16, 12, 12, 14, 24, 24, 16, 32, 14, 16, 10, 12, 12, 12, 18, 14, 12, 40],
+    col_widths=[16, 18, 16, 12, 12, 14, 24, 24, 16, 32, 14, 16, 12, 18, 14, 12, 40],
     note=("SOURCE OF TRUTH: matches the live CRM Adapter sub-workflow contract exactly (workflow 01, "
           "id wVRHChyFrUNRaH4M) — verified against production data. 'Lead ID' and 'Phone' are the match "
           "keys; new leads get LEAD-#### minted by the adapter. Do not rename/remove columns — every "
-          "workflow that scores, follows up, reminds, or reports on leads depends on these exact header names."),
+          "workflow that follows up, reminds, or reports on leads depends on these exact header names. "
+          "V1.1 (2026-06-11): 'Lead Score', 'Temperature', and 'Urgency' columns were removed system-wide "
+          "— AI lead scoring was removed; every lead now follows the same 'Every Lead Alert' notification "
+          "path (see docs/V1_1_RECONCILIATION.md). All timestamps are ISO 8601 in America/New_York "
+          "(Boston time), the system-wide default timezone."),
 )
 
 # 2. Appointments — verified live schema (extracted from workflow 06 'Write Appointment' node)
@@ -179,26 +183,25 @@ ws = make_sheet(
     ["Metric", "Value", "Notes"],
     [
         ["Total Active Leads", 0,
-         "PLACEHOLDER — replace with e.g. =COUNTIFS(Leads!P:P,\"<>Booked\",Leads!P:P,\"<>Lost\") once real data exists."],
+         "PLACEHOLDER — replace with e.g. =COUNTIFS(Leads!M:M,\"<>Booked\",Leads!M:M,\"<>Lost\") once real data exists. ('Status' is column M in the V1.1 17-column Leads schema.)"],
         ["New Leads This Week", 0, "PLACEHOLDER — e.g. =COUNTIFS(Leads!B:B, \">=\"&TODAY()-7)"],
-        ["Hot/Emergency Leads (Open)", 0,
-         "PLACEHOLDER — e.g. =COUNTIFS(Leads!N:N,\"Hot\",Leads!P:P,\"<>Booked\")  (combine with an OR for Urgency=\"Emergency\" via SUMPRODUCT if needed)"],
         ["Appointments This Week", 0, "PLACEHOLDER — e.g. =COUNTIFS(Appointments!G:G, \">=\"&TEXT(TODAY()-7,\"YYYY-MM-DD\"))"],
         ["Jobs Completed This Month", 0,
          "PLACEHOLDER — depends on the Jobs tab going live first (see that tab's note); e.g. =COUNTIFS(Jobs!I:I,\"Completed\",Jobs!K:K,\">=\"&EOMONTH(TODAY(),-1)+1)"],
         ["Stale Leads (No Contact 7+ Days)", 0,
-         "PLACEHOLDER — mirrors workflow 07's own 'Stale' definition; e.g. =COUNTIFS(Leads!Q:Q,\"<\"&TEXT(TODAY()-7,\"YYYY-MM-DD\"))  — keep this formula in sync with whatever workflow 07 (Pipeline Status Digest) uses internally so the dashboard never disagrees with the SMS digest"],
+         "PLACEHOLDER — mirrors workflow 07's own 'Stale' definition; e.g. =COUNTIFS(Leads!N:N,\"<\"&TEXT(TODAY()-7,\"YYYY-MM-DD\"))  — keep this formula in sync with whatever workflow 07 (Pipeline Status Digest) uses internally so the dashboard never disagrees with its email digest. ('Last Contact' is column N in the V1.1 17-column Leads schema.)"],
     ],
     col_widths=[34, 12, 90],
     note=("⚠️ THIS TAB IS A SUMMARY VIEW, NOT A DATA-ENTRY TAB — it is meant to hold live formulas that "
           "reference the other tabs, not raw rows. No workflow currently writes to or reads from it; "
-          "the system's owner-facing reporting is delivered instead via SMS digests (workflows 07/08) "
-          "and (as of 2026-06-07) Workflow 11's health alerts. The 'Value' column above is intentionally "
-          "left at 0/placeholder — replace each with a live formula (see the Notes column for a starting "
-          "point per metric) once the sheet has real rows to compute against. Keep every formula's "
-          "definition of a status ('Stale', 'Hot', etc.) in sync with the corresponding live workflow's "
-          "own definition — a Dashboard that disagrees with the SMS digest the owner already trusts is "
-          "worse than no Dashboard at all."),
+          "the system's owner-facing reporting is delivered instead via email digests (workflows 07/08, "
+          "converted from SMS to email in V1.1) and Workflow 11's health alerts. The 'Value' column above "
+          "is intentionally left at 0/placeholder — replace each with a live formula (see the Notes "
+          "column for a starting point per metric) once the sheet has real rows to compute against. Keep "
+          "every formula's definition of a status ('Stale', etc.) in sync with the corresponding live "
+          "workflow's own definition — a Dashboard that disagrees with the email digest the owner already "
+          "trusts is worse than no Dashboard at all. V1.1 (2026-06-11): the 'Hot/Emergency Leads (Open)' "
+          "metric was removed along with AI lead scoring system-wide."),
 )
 for row in ws.iter_rows(min_row=2, max_row=7, min_col=2, max_col=2):
     for cell in row:

@@ -60,7 +60,7 @@ This system was built with exactly the kind of structured, queryable logging tha
 ### 2. Post-launch response rate & speed (`results.ts:63` first stat — "[X]% of inbound contacts now answered within [X] minutes")
 **Source:** the **Communication Log** tab (written by the CRM Adapter, workflow 01) plus direct execution-timestamp deltas:
 - For missed calls: workflow 03 fires the auto-SMS within seconds of the Twilio call-status webhook — the delta between `call received` and `SMS sent` timestamps in the Communication Log is the "answered within X minutes" number, and it will be dramatic (seconds, not hours)
-- For form submissions: workflow 02's AI-scoring + confirmation-SMS pipeline runs end-to-end in well under a minute — same measurement, same log
+- For form submissions: workflow 02's CRM-upsert + confirmation-SMS pipeline runs end-to-end in well under a minute — same measurement, same log
 - **The "% of inbound contacts now answered" is simply: (count of Communication Log entries logged within the target window) ÷ (total inbound contacts in the measurement period)** — and given the system answers *everything* by design, this should approach 100%, which is the dramatic flip side of the baseline's "4 out of 10 missed"
 
 ### 3. Additional jobs booked per month (`results.ts:64`)

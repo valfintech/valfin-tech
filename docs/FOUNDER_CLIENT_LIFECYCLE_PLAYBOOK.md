@@ -102,8 +102,8 @@ The shape, every time:
 ### The 4-step demo flow (fits in ~5 minutes)
 
 1. **Open with the missed-call moment.** "Let's say it's 11 PM on a Saturday and your phone rings, you're asleep, you miss it..." — then *show the actual text* that goes out within seconds. Read it aloud.
-2. **Walk to the CRM sheet.** Show how that same lead appears — scored, tagged Hot/Warm/Cold, full history in one place. Don't explain "Google Sheets" as a technology — frame it as "your customer record system" (this is the exact framing `CLIENT_WELCOME_GUIDE_TEMPLATE.md` §3 uses).
-3. **Show the owner-side alert.** "And if this one looked urgent — say, active leak, storm damage — here's what *you'd* see, the same instant, on your phone."
+2. **Walk to the CRM sheet.** Show how that same lead appears — full history in one place, status tracked from New through Booked. Don't explain "Google Sheets" as a technology — frame it as "your customer record system" (this is the exact framing `CLIENT_WELCOME_GUIDE_TEMPLATE.md` §3 uses).
+3. **Show the owner-side alert.** "And the moment that lead came in, here's what *you'd* see — the same instant, on your phone or in your inbox."
 4. **Close the loop.** Show a booking confirmation and a reminder text — completing "missed call → job on the calendar."
 
 ### What to never say in a demo
@@ -129,7 +129,7 @@ This is the practical access map — use it when deciding what to share, what to
 
 ### ❌ The client should NOT see / have access to:
 - **The n8n canvas, workflow JSON, or n8n login** — this is Valfin's operational infrastructure, shared across the product. A client with n8n access could (even accidentally) break their own deployment or see structure that belongs to the product, not the engagement.
-- **AI system prompts** (the lead-scoring/classification prompts in Workflow 02, etc.) — these are Valfin's IP (see §14), and exposing them invites "can you just tweak the prompt yourself" requests that erode the managed-service framing.
+- **AI system prompts** (the confirmation-SMS prompt in Workflow 02, etc.) — these are Valfin's IP (see §14), and exposing them invites "can you just tweak the prompt yourself" requests that erode the managed-service framing.
 - **Other clients' data, sheets, or configurations** — each client's CRM sheet and credentials are isolated; never reference another client by name or show cross-client data, even anonymized, without consent.
 - **Anthropic / Twilio / Google account credentials** that are Valfin-managed (see §4) — the client doesn't need logins to infrastructure they're not operating.
 - **Internal pricing anchors** (`PRICING_PACKAGING.md`'s dollar figures) — verbal/written quotes are always scoped to *them*, never the internal reference numbers.
@@ -145,10 +145,10 @@ This is the practical access map — use it when deciding what to share, what to
 ### What you collect from the client (via the intake packet)
 | Category | What | Why |
 |---|---|---|
-| **Identity** (Section A) | Legal/brand name, service area, service list | Drives every customer-facing message and AI scoring context |
+| **Identity** (Section A) | Legal/brand name, service area, service list | Drives every customer-facing message and the AI confirmation-SMS prompt |
 | **Contact** (Section B) | Owner's mobile (for alerts), existing Twilio account or "need one provisioned," main business phone | Owner-alert routing + missed-call detection |
 | **Hours/Booking** (Section C) | Business hours, appointment slot structure, timezone, reminder windows | Booking form config + all schedule timing |
-| **Lead handling** (Section D) | What makes a lead "urgent," follow-up cadence preference, lead sources, **average job value**, **baseline missed-call/booking rate** | AI scoring tuning + ROI math + case-study baseline (D5 — capture this on Day 1, it's unrecoverable later) |
+| **Lead handling** (Section D) | What makes a lead "urgent," follow-up cadence preference, lead sources, **average job value**, **baseline missed-call/booking rate** | Brand-voice tuning + ROI math + case-study baseline (D5 — capture this on Day 1, it's unrecoverable later) |
 | **Brand voice** (Section E) | Tone (casual/professional), example phrases, things the system should never say | Every customer-facing SMS gets rewritten in this voice before go-live |
 | **Existing tools** (Section F) | Current CRM/spreadsheet (for data migration), other software in use | Data migration scope + future "Built for you" opportunities |
 | **Compliance** (Section G) | Do their intake forms already collect SMS consent? | Determines whether you hand them `SMS_CONSENT_LANGUAGE_GUIDE.md` |
@@ -192,21 +192,21 @@ This is the actual mechanic of Stage 6. **`CLIENT_DEPLOYMENT_GUIDE.md` is the sp
 
 ### Before you start a Claude session for a new client clone
 Have these ready (from the completed intake packet):
-- The new client's brand name, owner phone, Twilio "from" number, and new Google Sheet ID
-- Their business hours/timezone, booking slot structure, lead-score thresholds (if customized), follow-up cadence
+- The new client's brand name, owner phone, owner email, Twilio "from" number, and new Google Sheet ID
+- Their business hours/timezone, booking slot structure (`CONFIG` constants in Workflow 06), email/SMS alert toggles (`CONFIG` in 04/07/08/11/12), follow-up cadence
 - Their brand-voice notes and example phrases (Section E)
 
 ### What to tell Claude
 Give Claude, in one message:
 1. **"We're cloning the Valfin system for a new client — read `docs/CLIENT_DEPLOYMENT_GUIDE.md` for the full spec."**
 2. The new client's configuration values (from the list above) — paste the filled-in intake packet directly, Claude can map answers to deployment-guide rows itself
-3. **The order to follow is `CLIENT_DEPLOYMENT_GUIDE.md` §4** — Claude should import/configure workflow 01 (CRM Adapter) and 04 (Hot Lead Alert) first, note their new workflow IDs, then re-point every other workflow's sub-workflow references to those new IDs before configuring the rest
+3. **The order to follow is `CLIENT_DEPLOYMENT_GUIDE.md` §4** — Claude should import/configure workflow 01 (CRM Adapter) and 04 (Every Lead Alert, formerly "Hot Lead Alert") first, note their new workflow IDs, then re-point every other workflow's sub-workflow references to those new IDs before configuring the rest
 4. **Ask Claude to rewrite all customer-facing SMS copy** in the client's brand voice (Section E answers) — this is the single highest-leverage "feels custom, not templated" step, and Claude can do this directly from the brand-voice notes
 5. **Have Claude run the full verification checklist** (`CLIENT_DEPLOYMENT_GUIDE.md` §5) using `test_workflow`/`get_execution` against pinned/test data for every workflow — do not skip this even though it feels slow; it's what catches a mis-pointed Sheet ID or stale sub-workflow reference before a real customer ever sees it
 
 ### What Claude should NOT need to ask you mid-clone
 Per `CLIENT_DEPLOYMENT_GUIDE.md` §3e, a few values are **business-rule judgment calls**, not pure data — Claude should flag these for your confirmation rather than guess:
-- Lead score thresholds (Hot/Warm/Cold bands) — default is fine for most clients, but ask if the client's intake (D1) suggested otherwise
+- Email/SMS alert toggles (`CONFIG` in 04/07/08/11/12) — default is email-on/SMS-off for most clients, but ask if the client's intake suggested otherwise
 - Follow-up cadence (default Day 1/3/7, stop at 3) — some clients may want more/fewer touches (D2)
 - Booking time slots — **must match the client's actual hours** (Section C), this one always needs confirming
 
@@ -323,7 +323,7 @@ Once client #1 is live and the 60-90 day case study (`CASE_STUDY_DATA_PLAN.md`) 
 
 | | Automated (the system does this) | Manual (you do this) |
 |---|---|---|
-| **Lead response** | Missed-call SMS, form-capture confirmation, AI scoring, hot-lead alerts, follow-up sequence | — |
+| **Lead response** | Missed-call SMS, form-capture confirmation, every-lead owner alert (email by default, SMS optional), follow-up sequence | — |
 | **Appointments** | Booking confirmations, reminders (24h/2h), reschedule/cancel handling | Booking the appointment itself happens via the owner-facing form (someone enters it) |
 | **Reporting** | Daily digest, weekly report, monthly ROI report, daily health monitor | Glancing at the monthly ROI report (§10); responding if a client asks about it |
 | **Compliance backstop** | Opt-out keyword detection (STOP/UNSUBSCRIBE/etc.) | Verifying the client's *own* intake forms carry consent language (`SMS_CONSENT_LANGUAGE_GUIDE.md`) — this can never be automated, it lives on the client's forms |

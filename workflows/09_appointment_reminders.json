@@ -1,12 +1,12 @@
 {
-  "_comment": "Local reference copy — created 2026-06-07. Live ID: bJcO5ox2u190bxTr. Phase 4 workflow. Hourly reminder scheduler — sends 24h and 2h pre-appointment SMS to customers, idempotent via Reminder 24h/2h sheet flags. Tested live (execution 55): correctly read the live Appointments tab, recognized the one existing row's legacy free-text date/time ('Friday'/'14:00' — predates the workflow 06 form fix below) as unparseable, and safely skipped it with zero false-positive sends (Build Reminder Batch returned 0 items; loop no-op on empty input). Confirms parsing + zero-item safety logic both work correctly against live production data.",
+  "_comment": "Local reference copy — synced from live n8n on 2026-06-11 (V1.1 pass). Live ID: bJcO5ox2u190bxTr. Hourly: reads Appointments, computes 24h/2h reminder windows (Luxon DateTime, America/New_York, DST-safe), sends personalized SMS, flags sheet to prevent duplicates. AI lead-scoring refs removed in V1.1; legacy Date.UTC(...)+5h hardcoded-EST timestamp logic replaced with Luxon-based CONFIG.DEFAULT_TIMEZONE handling.",
   "name": "Appointment Reminders",
-  "active": true,
+  "active": false,
   "settings": { "executionOrder": "v1" },
   "nodes": [
     {
       "parameters": {
-        "rule": { "interval": [{ "field": "hours", "hoursInterval": 1, "triggerAtMinute": 0 }] }
+        "rule": { "interval": [{ "field": "hours" }] }
       },
       "id": "7c17d63a-7ded-461d-960d-486091a6ea2b",
       "name": "Hourly Reminder Check",
@@ -16,8 +16,6 @@
     },
     {
       "parameters": {
-        "resource": "sheet",
-        "operation": "read",
         "documentId": { "__rl": true, "mode": "id", "value": "1MxmJouteZhi1K_-KOwgBlJtBFAXtm2G_0H555otTHBQ" },
         "sheetName": { "__rl": true, "mode": "name", "value": "Appointments" },
         "options": {}
@@ -35,7 +33,7 @@
     {
       "parameters": {
         "mode": "runOnceForAllItems",
-        "jsCode": "const now = new Date();\nconst appts = $input.all().map(i => i.json);\n\nfunction parseApptDateTime(apptDate, apptTime) {\n  const dm = String(apptDate || '').trim().match(/^(\\d{4})-(\\d{2})-(\\d{2})$/);\n  const tm = String(apptTime || '').trim().match(/^(\\d{1,2}):(\\d{2})\\s*(AM|PM)$/i);\n  if (!dm || !tm) return null;\n  const year = parseInt(dm[1], 10);\n  const month = parseInt(dm[2], 10);\n  const day = parseInt(dm[3], 10);\n  let hour = parseInt(tm[1], 10);\n  const minute = parseInt(tm[2], 10);\n  const ampm = tm[3].toUpperCase();\n  if (ampm === 'PM' && hour !== 12) hour += 12;\n  if (ampm === 'AM' && hour === 12) hour = 0;\n  const utcMs = Date.UTC(year, month - 1, day, hour + 5, minute);\n  return new Date(utcMs);\n}\n\nfunction formatFriendlyDate(ymd) {\n  const m = String(ymd || '').match(/^(\\d{4})-(\\d{2})-(\\d{2})$/);\n  if (!m) return ymd;\n  const dt = new Date(Date.UTC(+m[1], +m[2] - 1, +m[3]));\n  const days = ['Sunday','Monday','Tuesday','Wednesday','Thursday','Friday','Saturday'];\n  const months = ['January','February','March','April','May','June','July','August','September','October','November','December'];\n  return days[dt.getUTCDay()] + ', ' + months[dt.getUTCMonth()] + ' ' + dt.getUTCDate();\n}\n\nconst FROM = '+18889839308';\nconst nowIso = now.toISOString();\nconst reminders = [];\n\nfor (const appt of appts) {\n  const status = (appt['Status'] || '').trim();\n  if (status !== 'Scheduled') continue;\n\n  const apptDateTime = parseApptDateTime(appt['Appt Date'], appt['Appt Time']);\n  if (!apptDateTime) continue;\n\n  const hoursUntil = (apptDateTime.getTime() - now.getTime()) / (1000 * 60 * 60);\n  if (hoursUntil < 0) continue;\n\n  const raw = String(appt['Phone'] || '').replace(/\\D/g, '');\n  const e164 = raw.length === 11 && raw.startsWith('1') ? '+' + raw\n    : raw.length === 10 ? '+1' + raw : null;\n  if (!e164) continue;\n\n  const firstName = String(appt['Customer Name'] || '').trim().split(/\\s+/)[0] || '';\n  const greeting = firstName ? 'Hi ' + firstName + ',' : 'Hi,';\n  const svc = appt['Service Type'] || 'roofing appointment';\n  const dateDisplay = formatFriendlyDate(appt['Appt Date']);\n  const timeDisplay = appt['Appt Time'] || '';\n\n  const reminder24Sent = String(appt['Reminder 24h'] || '').trim();\n  const reminder2Sent = String(appt['Reminder 2h'] || '').trim();\n\n  if (!reminder24Sent && hoursUntil >= 20 && hoursUntil <= 28) {\n    reminders.push({\n      apptId: appt['Appt ID'],\n      reminderType: '24h',\n      e164Phone: e164,\n      from: FROM,\n      sentAt: nowIso,\n      existingReminder24: reminder24Sent,\n      existingReminder2h: reminder2Sent,\n      message: greeting + ' reminder — your ' + svc + ' appointment with Valfin Tech is tomorrow, ' + dateDisplay + ' at ' + timeDisplay + '. Need to reschedule? Call us anytime.'\n    });\n  }\n  if (!reminder2Sent && hoursUntil >= 1 && hoursUntil <= 3) {\n    reminders.push({\n      apptId: appt['Appt ID'],\n      reminderType: '2h',\n      e164Phone: e164,\n      from: FROM,\n      sentAt: nowIso,\n      existingReminder24: reminder24Sent,\n      existingReminder2h: reminder2Sent,\n      message: greeting + ' your ' + svc + ' appointment with Valfin Tech is today at ' + timeDisplay + ' — about 2 hours from now. See you soon!'\n    });\n  }\n}\n\nreturn reminders.map(r => ({ json: r }));"
+        "jsCode": "const CONFIG = {\n  DEFAULT_TIMEZONE: 'America/New_York',\n  TWILIO_FROM_NUMBER: '+18889839308'\n};\n\nconst now = DateTime.now().setZone(CONFIG.DEFAULT_TIMEZONE);\nconst appts = $input.all().map(i => i.json);\n\nfunction parseApptDateTime(apptDate, apptTime) {\n  const dm = String(apptDate || '').trim().match(/^(\\d{4})-(\\d{2})-(\\d{2})$/);\n  const tm = String(apptTime || '').trim().match(/^(\\d{1,2}):(\\d{2})\\s*(AM|PM)$/i);\n  if (!dm || !tm) return null;\n  const year = parseInt(dm[1], 10);\n  const month = parseInt(dm[2], 10);\n  const day = parseInt(dm[3], 10);\n  let hour = parseInt(tm[1], 10);\n  const minute = parseInt(tm[2], 10);\n  const ampm = tm[3].toUpperCase();\n  if (ampm === 'PM' && hour !== 12) hour += 12;\n  if (ampm === 'AM' && hour === 12) hour = 0;\n  return DateTime.fromObject({ year, month, day, hour, minute }, { zone: CONFIG.DEFAULT_TIMEZONE });\n}\n\nfunction formatFriendlyDate(ymd) {\n  const m = String(ymd || '').match(/^(\\d{4})-(\\d{2})-(\\d{2})$/);\n  if (!m) return ymd;\n  const dt = DateTime.fromObject({ year: +m[1], month: +m[2], day: +m[3] }, { zone: CONFIG.DEFAULT_TIMEZONE });\n  return dt.toFormat('cccc, LLLL d');\n}\n\nconst nowIso = now.toISO();\nconst reminders = [];\n\nfor (const appt of appts) {\n  const status = (appt['Status'] || '').trim();\n  if (status !== 'Scheduled') continue;\n\n  const apptDateTime = parseApptDateTime(appt['Appt Date'], appt['Appt Time']);\n  if (!apptDateTime) continue;\n\n  const hoursUntil = apptDateTime.diff(now, 'hours').hours;\n  if (hoursUntil < 0) continue;\n\n  const raw = String(appt['Phone'] || '').replace(/\\D/g, '');\n  const e164 = raw.length === 11 && raw.startsWith('1') ? '+' + raw\n    : raw.length === 10 ? '+1' + raw : null;\n  if (!e164) continue;\n\n  const firstName = String(appt['Customer Name'] || '').trim().split(/\\s+/)[0] || '';\n  const greeting = firstName ? 'Hi ' + firstName + ',' : 'Hi,';\n  const svc = appt['Service Type'] || 'roofing appointment';\n  const dateDisplay = formatFriendlyDate(appt['Appt Date']);\n  const timeDisplay = appt['Appt Time'] || '';\n\n  const reminder24Sent = String(appt['Reminder 24h'] || '').trim();\n  const reminder2Sent = String(appt['Reminder 2h'] || '').trim();\n\n  if (!reminder24Sent && hoursUntil >= 20 && hoursUntil <= 28) {\n    reminders.push({\n      apptId: appt['Appt ID'],\n      reminderType: '24h',\n      e164Phone: e164,\n      from: CONFIG.TWILIO_FROM_NUMBER,\n      sentAt: nowIso,\n      existingReminder24: reminder24Sent,\n      existingReminder2h: reminder2Sent,\n      message: greeting + ' reminder — your ' + svc + ' appointment with Valfin Tech is tomorrow, ' + dateDisplay + ' at ' + timeDisplay + '. Need to reschedule? Call us anytime.'\n    });\n  }\n  if (!reminder2Sent && hoursUntil >= 1 && hoursUntil <= 3) {\n    reminders.push({\n      apptId: appt['Appt ID'],\n      reminderType: '2h',\n      e164Phone: e164,\n      from: CONFIG.TWILIO_FROM_NUMBER,\n      sentAt: nowIso,\n      existingReminder24: reminder24Sent,\n      existingReminder2h: reminder2Sent,\n      message: greeting + ' your ' + svc + ' appointment with Valfin Tech is today at ' + timeDisplay + ' — about 2 hours from now. See you soon!'\n    });\n  }\n}\n\nreturn reminders.map(r => ({ json: r }));"
       },
       "id": "2c8142ed-5a4c-4e06-b453-50a0b319632c",
       "name": "Build Reminder Batch",
@@ -44,7 +42,7 @@
       "position": [448, 0]
     },
     {
-      "parameters": { "batchSize": 1 },
+      "parameters": { "options": {} },
       "id": "1ee0e61b-2d0e-454d-bbf3-fbf8e70ff4e9",
       "name": "Loop Over Reminders",
       "type": "n8n-nodes-base.splitInBatches",
@@ -53,8 +51,6 @@
     },
     {
       "parameters": {
-        "resource": "sms",
-        "operation": "send",
         "from": "={{ $json.from }}",
         "to": "={{ $json.e164Phone }}",
         "message": "={{ $json.message }}",
@@ -72,7 +68,6 @@
     },
     {
       "parameters": {
-        "resource": "sheet",
         "operation": "update",
         "documentId": { "__rl": true, "mode": "id", "value": "1MxmJouteZhi1K_-KOwgBlJtBFAXtm2G_0H555otTHBQ" },
         "sheetName": { "__rl": true, "mode": "name", "value": "Appointments" },
@@ -97,6 +92,18 @@
       "maxTries": 3,
       "waitBetweenTries": 2000,
       "credentials": { "googleSheetsOAuth2Api": { "id": "", "name": "Google Sheets account" } }
+    },
+    {
+      "parameters": {
+        "content": "This workflow runs hourly, retrieves all appointments, identifies which ones need a 24-hour or 2-hour reminder (computed in America/New_York time, DST-safe via Luxon), sends a personalized SMS to each contact, and flags the appointment record so reminders are never duplicated.",
+        "height": 192,
+        "width": 280
+      },
+      "id": "4dd179c8-64a2-4e69-aa44-931fa583c542",
+      "name": "Sticky Note",
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [-384, -256]
     }
   ],
   "connections": {

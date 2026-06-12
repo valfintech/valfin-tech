@@ -1,7 +1,7 @@
 {
-  "_comment": "Local reference copy — updated 2026-06-07. Live ID: Bj5b3sUexa8EeQcK. Phase 4 workflow. Inbound-SMS keyword router for reschedule/cancel requests. Tested live via simulated inbound-SMS pin data (executions 63/64/65): (1) reschedule intent from a phone matching a live Scheduled appointment correctly found the row, replied to the customer, alerted the owner, and appended a Notes entry while preserving Status='Scheduled'; (2) cancel intent on the same row correctly set Status='Cancelled', sent a cancellation+rebooking-invite reply, and alerted the owner to follow up; (3) an unmatched phone number correctly fell through to the 'no appointment found' reply with zero false matches. Irrelevant inbound texts (intent='other') are silently ignored at the 'Is Reschedule or Cancel?' gate — no reply sent, no noise. COMPLIANCE FIX (2026-06-07, executions 67/68): 'Normalize Inbound SMS' was patched to detect standalone SMS opt-out keywords (STOP, UNSUBSCRIBE, QUIT, etc.) as a defense-in-depth backstop — these now route to intent='other' (silently ignored, zero auto-reply) instead of being misclassified as appointment-cancellation requests, removing a real TCPA/carrier-compliance exposure. Verified live: a bare 'STOP' → intent='other' → no reply sent; 'please cancel my roofing appointment, something came up' → intent='cancel' → full cancellation flow runs correctly (the word 'cancel' inside a longer sentence is still recognized as an appointment request, not an opt-out).",
+  "_comment": "Local reference copy — synced from live n8n on 2026-06-11 (V1.1 pass). Live ID: Bj5b3sUexa8EeQcK. Inbound SMS → classifies reschedule/cancel intent, finds the customer's upcoming appointment, updates status/notes, replies to customer, alerts owner. Core reschedule/cancel logic and SMS opt-out compliance backstop unchanged from prior version (no AI-scoring refs existed here); V1.1 moved OWNER_PHONE/TWILIO_FROM_NUMBER into a CONFIG block in 'Build Reply Plan' and switched its timestamp generation to Luxon DateTime in America/New_York.",
   "name": "Reschedule Cancel",
-  "active": true,
+  "active": false,
   "settings": { "executionOrder": "v1" },
   "nodes": [
     {
@@ -28,10 +28,11 @@
     {
       "parameters": {
         "conditions": {
-          "options": { "caseSensitive": true, "leftValue": "", "typeValidation": "strict" },
+          "options": { "caseSensitive": true, "leftValue": "", "typeValidation": "strict", "version": 1 },
           "conditions": [{ "leftValue": "={{ $json.intent }}", "operator": { "type": "string", "operation": "notEquals" }, "rightValue": "other" }],
           "combinator": "and"
-        }
+        },
+        "options": {}
       },
       "id": "3ef16df9-b300-4abd-8314-82452e569d33",
       "name": "Is Reschedule or Cancel?",
@@ -41,8 +42,6 @@
     },
     {
       "parameters": {
-        "resource": "sheet",
-        "operation": "read",
         "documentId": { "__rl": true, "mode": "id", "value": "1MxmJouteZhi1K_-KOwgBlJtBFAXtm2G_0H555otTHBQ" },
         "sheetName": { "__rl": true, "mode": "name", "value": "Appointments" },
         "options": {}
@@ -71,10 +70,11 @@
     {
       "parameters": {
         "conditions": {
-          "options": { "caseSensitive": true, "leftValue": "", "typeValidation": "strict" },
+          "options": { "caseSensitive": true, "leftValue": "", "typeValidation": "strict", "version": 1 },
           "conditions": [{ "leftValue": "={{ $json.found }}", "operator": { "type": "boolean", "operation": "true", "singleValue": true } }],
           "combinator": "and"
-        }
+        },
+        "options": {}
       },
       "id": "3047b0f5-3735-451b-828d-3d150adf0811",
       "name": "Appointment Found?",
@@ -85,17 +85,16 @@
     {
       "parameters": {
         "mode": "runOnceForAllItems",
-        "jsCode": "const d = $json;\nconst firstName = String(d.customerName || '').trim().split(/\\s+/)[0] || '';\nconst greeting = firstName ? 'Hi ' + firstName + ',' : 'Hi,';\nconst svc = d.serviceType || 'roofing appointment';\n\nconst OWNER_PHONE = '+18575261499';\nconst FROM = '+18889839308';\nconst ts = new Date().toISOString();\n\nlet customerReply, ownerAlert, newStatus, notesAppend;\n\nif (d.intent === 'cancel') {\n  customerReply = greeting + ' your ' + svc + ' appointment with Valfin Tech (' + d.apptDate + ' at ' + d.apptTime + ') has been cancelled per your request. Want to rebook? Just call us anytime.';\n  ownerAlert = 'CANCELLATION via SMS: ' + (d.customerName || d.fromPhone) + ' (' + d.fromPhone + ') cancelled appt ' + d.apptId + ' \\u2014 ' + d.apptDate + ' at ' + d.apptTime + ' (' + svc + '). Consider following up to rebook.';\n  newStatus = 'Cancelled';\n  notesAppend = '[' + ts + '] Customer cancelled via SMS reply: \"' + d.messageBody + '\"';\n} else {\n  customerReply = greeting + ' thanks for letting us know \\u2014 we got your reschedule request for your ' + svc + ' appointment (' + d.apptDate + ' at ' + d.apptTime + '). Our team will call you shortly to find a new time. You can also call us anytime.';\n  ownerAlert = 'RESCHEDULE REQUEST via SMS: ' + (d.customerName || d.fromPhone) + ' (' + d.fromPhone + ') wants to reschedule appt ' + d.apptId + ' \\u2014 currently ' + d.apptDate + ' at ' + d.apptTime + ' (' + svc + '). Please call them to confirm a new time.';\n  newStatus = 'Scheduled';\n  notesAppend = '[' + ts + '] Customer requested reschedule via SMS reply: \"' + d.messageBody + '\"';\n}\n\nconst updatedNotes = (d.existingNotes ? d.existingNotes + ' | ' : '') + notesAppend;\n\nreturn [{ json: {\n  apptId: d.apptId,\n  customerReply,\n  ownerAlert,\n  newStatus,\n  updatedNotes,\n  e164Phone: d.e164Phone,\n  ownerPhone: OWNER_PHONE,\n  from: FROM\n} }];"
+        "jsCode": "const CONFIG = {\n  DEFAULT_TIMEZONE: 'America/New_York',\n  OWNER_PHONE: '+18575261499',\n  TWILIO_FROM_NUMBER: '+18889839308'\n};\n\nconst d = $json;\nconst firstName = String(d.customerName || '').trim().split(/\\s+/)[0] || '';\nconst greeting = firstName ? 'Hi ' + firstName + ',' : 'Hi,';\nconst svc = d.serviceType || 'roofing appointment';\n\nconst ts = DateTime.now().setZone(CONFIG.DEFAULT_TIMEZONE).toISO();\n\nlet customerReply, ownerAlert, newStatus, notesAppend;\n\nif (d.intent === 'cancel') {\n  customerReply = greeting + ' your ' + svc + ' appointment with Valfin Tech (' + d.apptDate + ' at ' + d.apptTime + ') has been cancelled per your request. Want to rebook? Just call us anytime.';\n  ownerAlert = 'CANCELLATION via SMS: ' + (d.customerName || d.fromPhone) + ' (' + d.fromPhone + ') cancelled appt ' + d.apptId + ' \\u2014 ' + d.apptDate + ' at ' + d.apptTime + ' (' + svc + '). Consider following up to rebook.';\n  newStatus = 'Cancelled';\n  notesAppend = '[' + ts + '] Customer cancelled via SMS reply: \"' + d.messageBody + '\"';\n} else {\n  customerReply = greeting + ' thanks for letting us know \\u2014 we got your reschedule request for your ' + svc + ' appointment (' + d.apptDate + ' at ' + d.apptTime + '). Our team will call you shortly to find a new time. You can also call us anytime.';\n  ownerAlert = 'RESCHEDULE REQUEST via SMS: ' + (d.customerName || d.fromPhone) + ' (' + d.fromPhone + ') wants to reschedule appt ' + d.apptId + ' \\u2014 currently ' + d.apptDate + ' at ' + d.apptTime + ' (' + svc + '). Please call them to confirm a new time.';\n  newStatus = 'Scheduled';\n  notesAppend = '[' + ts + '] Customer requested reschedule via SMS reply: \"' + d.messageBody + '\"';\n}\n\nconst updatedNotes = (d.existingNotes ? d.existingNotes + ' | ' : '') + notesAppend;\n\nreturn [{ json: {\n  apptId: d.apptId,\n  customerReply,\n  ownerAlert,\n  newStatus,\n  updatedNotes,\n  e164Phone: d.e164Phone,\n  ownerPhone: CONFIG.OWNER_PHONE,\n  from: CONFIG.TWILIO_FROM_NUMBER\n} }];"
       },
       "id": "4fb6cfcb-749c-46fa-a79e-9aee936bf7ca",
       "name": "Build Reply Plan",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
-      "position": [1344, -120]
+      "position": [1344, -128]
     },
     {
       "parameters": {
-        "resource": "sheet",
         "operation": "update",
         "documentId": { "__rl": true, "mode": "id", "value": "1MxmJouteZhi1K_-KOwgBlJtBFAXtm2G_0H555otTHBQ" },
         "sheetName": { "__rl": true, "mode": "name", "value": "Appointments" },
@@ -115,7 +114,7 @@
       "name": "Update Appointment Row",
       "type": "n8n-nodes-base.googleSheets",
       "typeVersion": 4.7,
-      "position": [1568, -120],
+      "position": [1568, -128],
       "retryOnFail": true,
       "maxTries": 3,
       "waitBetweenTries": 2000,
@@ -123,8 +122,6 @@
     },
     {
       "parameters": {
-        "resource": "sms",
-        "operation": "send",
         "from": "={{ $(\"Build Reply Plan\").item.json.from }}",
         "to": "={{ $(\"Build Reply Plan\").item.json.e164Phone }}",
         "message": "={{ $(\"Build Reply Plan\").item.json.customerReply }}",
@@ -134,7 +131,7 @@
       "name": "Send Customer Reply SMS",
       "type": "n8n-nodes-base.twilio",
       "typeVersion": 1,
-      "position": [1792, -120],
+      "position": [1792, -128],
       "retryOnFail": true,
       "maxTries": 3,
       "waitBetweenTries": 3000,
@@ -142,8 +139,6 @@
     },
     {
       "parameters": {
-        "resource": "sms",
-        "operation": "send",
         "from": "={{ $(\"Build Reply Plan\").item.json.from }}",
         "to": "={{ $(\"Build Reply Plan\").item.json.ownerPhone }}",
         "message": "={{ $(\"Build Reply Plan\").item.json.ownerAlert }}",
@@ -153,7 +148,7 @@
       "name": "Notify Owner of Inbound Request",
       "type": "n8n-nodes-base.twilio",
       "typeVersion": 1,
-      "position": [2016, -120],
+      "position": [2016, -128],
       "retryOnFail": true,
       "maxTries": 3,
       "waitBetweenTries": 3000,
@@ -161,8 +156,6 @@
     },
     {
       "parameters": {
-        "resource": "sms",
-        "operation": "send",
         "from": "+18889839308",
         "to": "={{ $json.e164Phone }}",
         "message": "Hi, we couldn't find an upcoming appointment under this number. Please call us anytime and we'll be glad to help — Valfin Tech.",
@@ -172,11 +165,23 @@
       "name": "Send Not Found Reply",
       "type": "n8n-nodes-base.twilio",
       "typeVersion": 1,
-      "position": [1344, 200],
+      "position": [1344, 208],
       "retryOnFail": true,
       "maxTries": 3,
       "waitBetweenTries": 3000,
       "credentials": { "twilioApi": { "id": "", "name": "Twilio account" } }
+    },
+    {
+      "parameters": {
+        "content": "This workflow processes incoming SMS messages related to appointment changes, determines whether the customer wants to reschedule or cancel, updates the appointment records accordingly, sends a response back to the customer, and notifies the business owner of the request.",
+        "height": 192,
+        "width": 272
+      },
+      "id": "c2d7e9be-1eb7-4247-a54b-0e7752680c15",
+      "name": "Sticky Note",
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [32, -320]
     }
   ],
   "connections": {

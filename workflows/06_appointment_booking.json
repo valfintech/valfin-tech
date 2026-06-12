@@ -1,7 +1,7 @@
 {
-  "_comment": "Local reference copy — created 2026-06-06. Live ID: ax2sMbvv0lqyJHMg. Phase 3 workflow. Form URL: https://valfin.app.n8n.cloud/form/eca6bfbb-ef53-4f82-b909-cbd2b818991a",
+  "_comment": "Local reference copy — synced from live n8n on 2026-06-11 (V1.1 pass). Live ID: ax2sMbvv0lqyJHMg. Phase 3 workflow. Form URL: https://valfin.app.n8n.cloud/form/eca6bfbb-ef53-4f82-b909-cbd2b818991a. V1.1: structured date picker + 30-min time-slot dropdown (8AM-5PM America/New_York), CONFIG block in 'Build Booking Payload', Luxon-based timestamps, AI lead-scoring fields removed.",
   "name": "Appointment Booking",
-  "active": true,
+  "active": false,
   "settings": { "executionOrder": "v1" },
   "nodes": [
     {
@@ -11,16 +11,40 @@
         "formFields": {
           "values": [
             { "fieldLabel": "Lead ID", "fieldType": "text", "requiredField": true, "placeholder": "e.g. LEAD-0001" },
-            { "fieldLabel": "Appointment Date", "fieldType": "text", "requiredField": true, "placeholder": "e.g. Tuesday, June 10" },
-            { "fieldLabel": "Appointment Time", "fieldType": "text", "requiredField": true, "placeholder": "e.g. 2:00 PM" },
+            { "fieldLabel": "Appointment Date", "fieldType": "date", "requiredField": true },
+            {
+              "fieldLabel": "Appointment Time",
+              "fieldType": "dropdown",
+              "requiredField": true,
+              "fieldOptions": {
+                "values": [
+                  { "option": "8:00 AM" },
+                  { "option": "8:30 AM" },
+                  { "option": "9:00 AM" },
+                  { "option": "9:30 AM" },
+                  { "option": "10:00 AM" },
+                  { "option": "10:30 AM" },
+                  { "option": "11:00 AM" },
+                  { "option": "11:30 AM" },
+                  { "option": "12:00 PM" },
+                  { "option": "12:30 PM" },
+                  { "option": "1:00 PM" },
+                  { "option": "1:30 PM" },
+                  { "option": "2:00 PM" },
+                  { "option": "2:30 PM" },
+                  { "option": "3:00 PM" },
+                  { "option": "3:30 PM" },
+                  { "option": "4:00 PM" },
+                  { "option": "4:30 PM" },
+                  { "option": "5:00 PM" }
+                ]
+              }
+            },
             { "fieldLabel": "Team Member", "fieldType": "text", "requiredField": false, "placeholder": "Technician or rep name" },
             { "fieldLabel": "Notes", "fieldType": "textarea", "requiredField": false }
           ]
         },
-        "responseMode": "onReceived",
-        "options": {
-          "formSubmittedText": "Appointment submitted. The customer will receive a confirmation SMS within seconds."
-        }
+        "options": {}
       },
       "id": "9032549b-1395-4abb-bb8b-b94bc1c852bf",
       "name": "Booking Form",
@@ -58,7 +82,6 @@
     },
     {
       "parameters": {
-        "mode": "runOnceForAllItems",
         "jsCode": "const booking = $('Normalize Booking').first().json;\nconst leads = $input.all().map(i => i.json);\nconst lead = leads.find(r => String(r['Lead ID'] || '').trim().toUpperCase() === booking.leadId);\nif (!lead) {\n  return [{ json: { found: false, leadId: booking.leadId, apptDate: booking.apptDate, apptTime: booking.apptTime, teamMember: booking.teamMember, notes: booking.notes } }];\n}\nreturn [{ json: {\n  found: true,\n  leadId: lead['Lead ID'],\n  firstName: lead['First Name'] || '',\n  lastName: lead['Last Name'] || '',\n  phone: lead['Phone'] || '',\n  address: lead['Address'] || '',\n  serviceNeeded: lead['Service Needed'] || '',\n  apptDate: booking.apptDate,\n  apptTime: booking.apptTime,\n  teamMember: booking.teamMember,\n  notes: booking.notes\n}}];"
       },
       "id": "8c1f3429-37ba-4107-8275-6e24bace0c1f",
@@ -70,7 +93,7 @@
     {
       "parameters": {
         "conditions": {
-          "options": { "caseSensitive": true, "leftValue": "", "typeValidation": "strict" },
+          "options": { "caseSensitive": true, "leftValue": "", "typeValidation": "strict", "version": 1 },
           "conditions": [{
             "id": "found-check",
             "leftValue": "={{ $json.found }}",
@@ -89,7 +112,7 @@
     },
     {
       "parameters": {
-        "jsCode": "const d = $json;\nconst ts = new Date().toISOString().replace(/[-:T.Z]/g, '').slice(0, 14);\nconst apptId = 'APT-' + ts;\nconst name = [d.firstName, d.lastName].filter(Boolean).join(' ');\nconst svcDisplay = d.serviceNeeded || 'roofing appointment';\n\n// Normalize phone to E.164 for Twilio\nconst raw = String(d.phone || '').replace(/\\D/g, '');\nconst e164 = raw.length === 11 && raw.startsWith('1') ? '+' + raw\n  : raw.length === 10 ? '+1' + raw : null;\n\n// Static personalized confirmation SMS\nconst greeting = d.firstName ? 'Hi ' + d.firstName + ',' : 'Hi,';\nconst smsText = greeting + ' your ' + svcDisplay + ' appointment with Valfin Tech is confirmed for ' + d.apptDate + ' at ' + d.apptTime + '. Questions? Call us anytime.';\n\nreturn [{ json: {\n  apptId,\n  leadId: d.leadId,\n  customerName: name,\n  phone: d.phone,\n  e164Phone: e164,\n  address: d.address,\n  serviceNeeded: d.serviceNeeded,\n  apptDate: d.apptDate,\n  apptTime: d.apptTime,\n  teamMember: d.teamMember,\n  notes: d.notes,\n  smsText\n}}];"
+        "jsCode": "const CONFIG = {\n  DEFAULT_TIMEZONE: 'America/New_York',\n  BUSINESS_START_HOUR: 8,\n  BUSINESS_END_HOUR: 17,\n  APPOINTMENT_INCREMENT_MINUTES: 30\n};\n\nconst d = $json;\nconst apptId = 'APT-' + DateTime.now().setZone(CONFIG.DEFAULT_TIMEZONE).toFormat('yyyyMMddHHmmss');\nconst name = [d.firstName, d.lastName].filter(Boolean).join(' ');\nconst svcDisplay = d.serviceNeeded || 'roofing appointment';\n\n// Normalize phone to E.164 for Twilio\nconst raw = String(d.phone || '').replace(/\\D/g, '');\nconst e164 = raw.length === 11 && raw.startsWith('1') ? '+' + raw\n  : raw.length === 10 ? '+1' + raw : null;\n\n// Friendly display date for customer-facing SMS (Appt Date is stored as YYYY-MM-DD for machine parsing by reminder workflow)\nfunction formatFriendlyDate(ymd) {\n  const m = String(ymd || '').match(/^(\\d{4})-(\\d{2})-(\\d{2})$/);\n  if (!m) return ymd;\n  const dt = DateTime.fromObject({ year: +m[1], month: +m[2], day: +m[3] }, { zone: CONFIG.DEFAULT_TIMEZONE });\n  return dt.toFormat('cccc, LLLL d');\n}\nconst apptDateDisplay = formatFriendlyDate(d.apptDate);\n\n// Static personalized confirmation SMS\nconst greeting = d.firstName ? 'Hi ' + d.firstName + ',' : 'Hi,';\nconst smsText = greeting + ' your ' + svcDisplay + ' appointment with Valfin Tech is confirmed for ' + apptDateDisplay + ' at ' + d.apptTime + '. Questions? Call us anytime.';\n\nreturn [{ json: {\n  apptId,\n  leadId: d.leadId,\n  customerName: name,\n  phone: d.phone,\n  e164Phone: e164,\n  address: d.address,\n  serviceNeeded: d.serviceNeeded,\n  apptDate: d.apptDate,\n  apptDateDisplay,\n  apptTime: d.apptTime,\n  teamMember: d.teamMember,\n  notes: d.notes,\n  smsText\n}}];"
       },
       "id": "4bd42ba1-f7e2-4955-89bc-62d1ebb5b8fc",
       "name": "Build Booking Payload",
@@ -181,6 +204,18 @@
       "type": "n8n-nodes-base.executeWorkflow",
       "typeVersion": 1.3,
       "position": [2016, 0]
+    },
+    {
+      "parameters": {
+        "content": "This workflow processes appointment requests submitted through a booking form (separate date picker + 30-minute time-slot dropdown, 8:00 AM-5:00 PM America/New_York), verifies the lead in the CRM, records the appointment details, sends a confirmation SMS to the contact, and updates the CRM with the booking activity. Scheduling assumptions (timezone, business hours, slot increment) are centralized as CONFIG constants at the top of 'Build Booking Payload' for easy per-client reconfiguration.",
+        "height": 192,
+        "width": 320
+      },
+      "id": "d4b3866e-a44c-4554-ba4a-a01dd891cfaa",
+      "name": "Sticky Note",
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [0, -288]
     }
   ],
   "connections": {
@@ -188,7 +223,7 @@
     "Normalize Booking": { "main": [[{ "node": "Get All Leads", "type": "main", "index": 0 }]] },
     "Get All Leads": { "main": [[{ "node": "Find Lead", "type": "main", "index": 0 }]] },
     "Find Lead": { "main": [[{ "node": "IF: Lead Found?", "type": "main", "index": 0 }]] },
-    "IF: Lead Found?": { "main": [[{ "node": "Build Booking Payload", "type": "main", "index": 0 }], []] },
+    "IF: Lead Found?": { "main": [[{ "node": "Build Booking Payload", "type": "main", "index": 0 }]] },
     "Build Booking Payload": { "main": [[{ "node": "Write Appointment", "type": "main", "index": 0 }]] },
     "Write Appointment": { "main": [[{ "node": "Send Confirmation SMS", "type": "main", "index": 0 }]] },
     "Send Confirmation SMS": { "main": [[{ "node": "Build CRM Update", "type": "main", "index": 0 }]] },

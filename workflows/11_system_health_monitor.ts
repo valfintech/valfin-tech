@@ -1,4 +1,22 @@
 // Workflow 11 — System Health Monitor
+//
+// *** PRE-V1.1 DESIGN REFERENCE — NOT CURRENT ***
+// As of the 2026-06-11 V1.1 simplification pass, the LIVE workflow (n8n ID U6t0b7M6lN8eA1JO) and its
+// up-to-date export at workflows/11_system_health_monitor.json differ from this file in several ways:
+//   - "Build Health Report" now starts with a CONFIG block (COMPANY_NAME, OWNER_EMAIL, OWNER_PHONE,
+//     TWILIO_FROM_NUMBER, EMAIL_ALERTS_ENABLED, SMS_ALERTS_ENABLED, DEFAULT_TIMEZONE) and builds both an
+//     HTML email and an SMS message, returning emailEnabled/smsEnabled/ownerEmail/ownerPhone/etc.
+//   - A new dual-gate node pattern was added after "Build Health Report": "Check Email Enabled" (IF v2.3)
+//     -> [true] "Send Owner Email" (Gmail) -> "Check SMS Enabled" (IF v2.3) -> [true] "Send Health Alert SMS"
+//     (Twilio). Email is ON by default; SMS is built but OFF by default, both toggled via the CONFIG block.
+//   - "Check Appointment Reminders" now computes `now` and appointment datetimes via Luxon
+//     `DateTime.now().setZone('America/New_York')` / `DateTime.fromObject(...)`, replacing the old
+//     `new Date()` + `Date.UTC(year, month - 1, day, hour + 5, minute)` flat +5h-offset hack (which did not
+//     account for daylight saving time).
+// The .json export is the current source of truth for this workflow. This .ts file is retained only for
+// its design-rationale comments below (the "why" of the monitoring approach is unchanged in V1.1); its
+// SDK code and embedded jsCode strings are STALE and should not be used to rebuild the workflow as-is.
+//
 // Created 2026-06-07. Closes the "Open Item" flagged in ONBOARDING_SOP.md / CLIENT_DEPLOYMENT_GUIDE.md §6:
 // "no automated system-health monitoring... manual weekly spot-checks are *your* job until this workflow exists."
 //

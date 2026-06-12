@@ -1,13 +1,13 @@
 {
-  "_comment": "Local reference copy — created 2026-06-07. Live ID: Y7ruzhYGMhE001fr. Phase 3 workflow. Weekly owner SMS report — trailing 7-day pipeline summary. Tested live (execution 54): 7 new leads, 1 booking, 14% bookings/new ratio, SMS queued (2 segments).",
+  "_comment": "Local reference copy — synced from live n8n on 2026-06-11 (V1.1 pass). Live ID: Y7ruzhYGMhE001fr. Weekly Monday 8AM ET pipeline report. Emails owner new leads, bookings, stale count, bookings/new ratio, and top sources for the trailing 7-day window. Email default ON, SMS built but OFF — configurable via CONFIG block at the top of 'Build Weekly Report'. AI lead-scoring metrics (Hot/Emergency) removed in V1.1; timestamps now computed via Luxon DateTime in America/New_York.",
   "name": "Weekly Pipeline Report",
-  "active": true,
+  "active": false,
   "settings": { "executionOrder": "v1" },
   "nodes": [
     {
       "parameters": {
         "rule": {
-          "interval": [{ "field": "weeks", "weeksInterval": 1, "triggerAtDay": [1], "triggerAtHour": 13, "triggerAtMinute": 0 }]
+          "interval": [{ "field": "weeks", "triggerAtDay": [1], "triggerAtHour": 13 }]
         }
       },
       "id": "3ad52c10-e38e-4ac9-a41a-185fc50a8558",
@@ -35,7 +35,7 @@
     {
       "parameters": {
         "mode": "runOnceForAllItems",
-        "jsCode": "const now = new Date();\nconst weekAgo = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);\nconst weekAgoStr = weekAgo.toISOString().slice(0, 10);\nconst todayStr = now.toISOString().slice(0, 10);\n\nconst leads = $input.all().map(i => i.json);\n\nlet newThisWeek = 0;\nlet hotThisWeek = 0;\nlet emergencyThisWeek = 0;\nlet bookedThisWeek = 0;\nlet staleThisWeek = 0;\nconst sourceCounts = {};\n\nfor (const lead of leads) {\n  const created = String(lead['Date Created'] || '').slice(0, 10);\n  if (created >= weekAgoStr && created <= todayStr) {\n    newThisWeek++;\n    const temp = (lead['Temperature'] || '').trim();\n    if (temp === 'Hot') hotThisWeek++;\n    const urgency = (lead['Urgency'] || '').trim();\n    if (urgency === 'Emergency') emergencyThisWeek++;\n    const source = (lead['Source'] || '').trim() || 'Unknown';\n    sourceCounts[source] = (sourceCounts[source] || 0) + 1;\n  }\n\n  const status = (lead['Status'] || '').trim();\n  const lastContact = String(lead['Last Contact'] || '').slice(0, 10);\n  const inWindow = lastContact >= weekAgoStr && lastContact <= todayStr;\n  if (status === 'Booked' && inWindow) bookedThisWeek++;\n  if (status === 'Stale' && inWindow) staleThisWeek++;\n}\n\nconst bookingRatio = newThisWeek > 0 ? Math.round((bookedThisWeek / newThisWeek) * 100) : 0;\nconst topSources = Object.entries(sourceCounts).sort((a, b) => b[1] - a[1]).slice(0, 2);\nconst sourceText = topSources.length ? topSources.map(([s, c]) => s + ' ' + c).join(', ') : 'n/a';\n\n// Owner phone — synced from workflow 04 (Build Alert Message) / workflow 07 (Build Pipeline Digest)\nconst OWNER_PHONE = '+18575261499';\n\nlet msg = 'Weekly Report - Valfin Tech (' + weekAgoStr + ' to ' + todayStr + ')\\n';\nmsg += 'New leads: ' + newThisWeek + ' (Hot ' + hotThisWeek + ', Emergency ' + emergencyThisWeek + ')\\n';\nmsg += 'Booked: ' + bookedThisWeek + ' | Stale: ' + staleThisWeek + ' | Bookings/New ratio: ' + bookingRatio + '%\\n';\nmsg += 'Top sources: ' + sourceText;\n\nreturn [{ json: {\n  reportMessage: msg.trim(),\n  ownerPhone: OWNER_PHONE,\n  windowStart: weekAgoStr,\n  windowEnd: todayStr,\n  newThisWeek,\n  hotThisWeek,\n  emergencyThisWeek,\n  bookedThisWeek,\n  staleThisWeek,\n  bookingRatio,\n  sourceCounts\n} }];"
+        "jsCode": "const CONFIG = {\n  COMPANY_NAME: 'Valfin Tech',\n  OWNER_EMAIL: 'valfintechnologies@gmail.com',\n  OWNER_PHONE: '+18575261499',\n  TWILIO_FROM_NUMBER: '+18889839308',\n  EMAIL_ALERTS_ENABLED: true,\n  SMS_ALERTS_ENABLED: false,\n  DEFAULT_TIMEZONE: 'America/New_York'\n};\n\nconst now = DateTime.now().setZone(CONFIG.DEFAULT_TIMEZONE);\nconst weekAgo = now.minus({ days: 7 });\nconst weekAgoStr = weekAgo.toFormat('yyyy-MM-dd');\nconst todayStr = now.toFormat('yyyy-MM-dd');\n\nconst leads = $input.all().map(i => i.json);\n\nlet newThisWeek = 0;\nlet bookedThisWeek = 0;\nlet staleThisWeek = 0;\nconst sourceCounts = {};\n\nfor (const lead of leads) {\n  const created = String(lead['Date Created'] || '').slice(0, 10);\n  if (created >= weekAgoStr && created <= todayStr) {\n    newThisWeek++;\n    const source = (lead['Source'] || '').trim() || 'Unknown';\n    sourceCounts[source] = (sourceCounts[source] || 0) + 1;\n  }\n\n  const status = (lead['Status'] || '').trim();\n  const lastContact = String(lead['Last Contact'] || '').slice(0, 10);\n  const inWindow = lastContact >= weekAgoStr && lastContact <= todayStr;\n  if (status === 'Booked' && inWindow) bookedThisWeek++;\n  if (status === 'Stale' && inWindow) staleThisWeek++;\n}\n\nconst bookingRatio = newThisWeek > 0 ? Math.round((bookedThisWeek / newThisWeek) * 100) : 0;\nconst topSources = Object.entries(sourceCounts).sort((a, b) => b[1] - a[1]).slice(0, 3);\nconst sourceText = topSources.length ? topSources.map(([s, c]) => s + ' (' + c + ')').join(', ') : 'n/a';\n\nconst windowLabel = weekAgo.toFormat('MMM d') + ' - ' + now.toFormat('MMM d, yyyy');\n\nlet smsMessage = 'Weekly Report - ' + CONFIG.COMPANY_NAME + ' (' + windowLabel + ')\\n';\nsmsMessage += 'New leads: ' + newThisWeek + '\\n';\nsmsMessage += 'Booked: ' + bookedThisWeek + ' | Stale: ' + staleThisWeek + ' | Bookings/New ratio: ' + bookingRatio + '%\\n';\nsmsMessage += 'Top sources: ' + sourceText;\n\nconst emailSubject = CONFIG.COMPANY_NAME + ' - Weekly Pipeline Report (' + windowLabel + ')';\n\nconst metricRows = [\n  ['New Leads', newThisWeek],\n  ['Booked', bookedThisWeek],\n  ['Stale', staleThisWeek],\n  ['Bookings / New Ratio', bookingRatio + '%'],\n  ['Top Sources', sourceText]\n].map(([label, value]) =>\n  '<tr><td style=\"padding:6px 12px 6px 0;font-weight:bold;color:#374151;white-space:nowrap;\">' + label + '</td><td style=\"padding:6px 0;color:#111827;\">' + value + '</td></tr>'\n).join('');\n\nconst emailHtml =\n  '<div style=\"font-family:Arial,Helvetica,sans-serif;max-width:560px;margin:0 auto;color:#111827;\">' +\n  '<h2 style=\"color:#111827;border-bottom:2px solid #e5e7eb;padding-bottom:8px;\">Weekly Pipeline Report</h2>' +\n  '<p style=\"color:#6b7280;margin-top:0;\">' + windowLabel + '</p>' +\n  '<table style=\"width:100%;border-collapse:collapse;margin-top:12px;\">' + metricRows + '</table>' +\n  '<p style=\"color:#6b7280;font-size:12px;margin-top:24px;\">Sent automatically by ' + CONFIG.COMPANY_NAME + '.</p>' +\n  '</div>';\n\nreturn [{ json: {\n  emailEnabled: CONFIG.EMAIL_ALERTS_ENABLED,\n  smsEnabled: CONFIG.SMS_ALERTS_ENABLED,\n  ownerEmail: CONFIG.OWNER_EMAIL,\n  ownerPhone: CONFIG.OWNER_PHONE,\n  twilioFrom: CONFIG.TWILIO_FROM_NUMBER,\n  emailSubject,\n  emailHtml,\n  smsMessage,\n  windowStart: weekAgoStr,\n  windowEnd: todayStr,\n  newThisWeek,\n  bookedThisWeek,\n  staleThisWeek,\n  bookingRatio,\n  sourceCounts\n} }];"
       },
       "id": "1d8f45d4-34ed-4a23-a291-994d28de9dbe",
       "name": "Build Weekly Report",
@@ -45,25 +45,107 @@
     },
     {
       "parameters": {
-        "from": "+18889839308",
+        "conditions": {
+          "options": { "caseSensitive": true, "leftValue": "", "typeValidation": "strict" },
+          "conditions": [
+            {
+              "id": "email-enabled",
+              "leftValue": "={{ $json.emailEnabled }}",
+              "rightValue": true,
+              "operator": { "type": "boolean", "operation": "true" }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "id": "node-check-email-enabled",
+      "name": "Check Email Enabled",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.3,
+      "position": [672, 0]
+    },
+    {
+      "parameters": {
+        "resource": "message",
+        "operation": "send",
+        "sendTo": "={{ $json.ownerEmail }}",
+        "subject": "={{ $json.emailSubject }}",
+        "emailType": "html",
+        "message": "={{ $json.emailHtml }}",
+        "options": { "appendAttribution": false }
+      },
+      "id": "node-send-owner-email",
+      "name": "Send Owner Email",
+      "type": "n8n-nodes-base.gmail",
+      "typeVersion": 2.2,
+      "position": [896, -120],
+      "webhookId": "c243d5a6-3597-4428-a9ff-799b33c72f29",
+      "credentials": { "gmailOAuth2": { "id": "", "name": "Gmail account" } }
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": { "caseSensitive": true, "leftValue": "", "typeValidation": "strict" },
+          "conditions": [
+            {
+              "id": "sms-enabled",
+              "leftValue": "={{ $json.smsEnabled }}",
+              "rightValue": true,
+              "operator": { "type": "boolean", "operation": "true" }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "id": "node-check-sms-enabled",
+      "name": "Check SMS Enabled",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.3,
+      "position": [1120, 0]
+    },
+    {
+      "parameters": {
+        "from": "={{ $json.twilioFrom }}",
         "to": "={{ $json.ownerPhone }}",
-        "message": "={{ $json.reportMessage }}",
+        "message": "={{ $json.smsMessage }}",
         "options": {}
       },
       "id": "2212d2a0-c4f3-4121-abef-693feb42f14a",
       "name": "Send Owner Weekly Report SMS",
       "type": "n8n-nodes-base.twilio",
       "typeVersion": 1,
-      "position": [672, 0],
+      "position": [1344, -120],
       "retryOnFail": true,
       "maxTries": 3,
       "waitBetweenTries": 3000,
       "credentials": { "twilioApi": { "id": "", "name": "Twilio account" } }
+    },
+    {
+      "parameters": {
+        "content": "This workflow runs every Monday at 8:00 AM ET, retrieves all lead data from the CRM, and emails the owner a Weekly Pipeline Report: new leads, bookings, stale leads, bookings/new ratio, and top lead sources for the trailing 7-day window. Email is sent by default; SMS is built but off by default - both toggled via the CONFIG block at the top of 'Build Weekly Report'.",
+        "height": 220,
+        "width": 320
+      },
+      "id": "bd44e7ad-f91d-4d2d-8963-8c82fbe07717",
+      "name": "Sticky Note",
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [-304, -240]
     }
   ],
   "connections": {
     "Weekly Monday 8 AM ET": { "main": [[{ "node": "Get All Leads", "type": "main", "index": 0 }]] },
     "Get All Leads": { "main": [[{ "node": "Build Weekly Report", "type": "main", "index": 0 }]] },
-    "Build Weekly Report": { "main": [[{ "node": "Send Owner Weekly Report SMS", "type": "main", "index": 0 }]] }
+    "Build Weekly Report": { "main": [[{ "node": "Check Email Enabled", "type": "main", "index": 0 }]] },
+    "Check Email Enabled": {
+      "main": [
+        [{ "node": "Send Owner Email", "type": "main", "index": 0 }],
+        [{ "node": "Check SMS Enabled", "type": "main", "index": 0 }]
+      ]
+    },
+    "Send Owner Email": { "main": [[{ "node": "Check SMS Enabled", "type": "main", "index": 0 }]] },
+    "Check SMS Enabled": { "main": [[{ "node": "Send Owner Weekly Report SMS", "type": "main", "index": 0 }]] }
   }
 }

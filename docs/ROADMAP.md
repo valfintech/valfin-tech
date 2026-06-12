@@ -1,6 +1,8 @@
 # Roadmap
 _Last updated: 2026-06-10 — **V1 confirmed complete: the founder-led journey is now fully documented end-to-end, and the project is paused.** See the conclusion entry immediately below for the full reasoning._
 
+> **2026-06-11 — V1.1 simplification and usability pass (resumed on real operational feedback):** After reviewing the live demo, workflows, Google Sheets, and founder experience end-to-end, AI lead scoring (`Lead Score`/`Temperature`/`Urgency`, Sonnet 4.6) was removed system-wide; "Hot Lead Alert" (04) was renamed **"Every Lead Alert"** and now fires for every submission (email by default, SMS built but disabled by default); workflows 07/08/11/12 converted from SMS-only to email-by-default reporting; appointment scheduling (06) now uses structured date/time-slot fields; all timestamps standardized on `America/New_York` via Luxon; and a centralized `CONFIG` block (email/SMS toggles, timezone, business hours, scheduling increments) was introduced across all notification/reporting workflows for easier per-client cloning. Treated as intentional product decisions, not bug fixes — see `docs/V1_1_RECONCILIATION.md` for the full changelog. Many entries below (Phase 2/3 "Delivered" tables, "Architectural Decisions") describe the pre-V1.1 system and are now historical except where annotated.
+
 > **2026-06-10 — Final pre-pause pass: closing the gap between "interested prospect" and "paying client" — and pausing development:** Founder training (Module 2) was underway when the founder asked, one more time before pausing, to close the remaining practical gaps in the founder-led sales→delivery journey: **Interested Prospect → Discovery Conversation → Proposal → Agreement → Payment → Kickoff → Deployment.** This was the one part of that journey that had been *partially* covered (the discovery-call structure lived only inside `CLIENT_ACQUISITION_PLAYBOOK.md`'s sales-process section, and there was no proposal artifact, no payment process, and no document tying agreement → payment → kickoff together).
 >
 > **What was added, all on 2026-06-10:**
@@ -107,7 +109,7 @@ Verified against live n8n on 2026-06-06.
 | Workflow | n8n ID | What It Does |
 |---|---|---|
 | CRM Adapter | `wVRHChyFrUNRaH4M` | Google Sheets sub-workflow. Upserts leads, mints LEAD-####, logs comm entries. `skipLeadCreation` routing ensures missed calls never create Lead records. |
-| Form Capture + AI Scoring | `HdJc5cy8cmqMBfGR` | Dual entry (n8n form + webhook) → Sonnet 4.6 scores → CRM upsert → Haiku 4.5 confirmation SMS → outbound log. |
+| Form Capture + Confirmation (formerly "Form Capture + AI Scoring") | `HdJc5cy8cmqMBfGR` | Dual entry (n8n form + webhook) → CRM upsert → Haiku 4.5 confirmation SMS → outbound log → Every Lead Alert. **V1.1:** AI scoring removed; every lead follows this same path. |
 | Missed-Call Auto-SMS | `u9I1bqrLW6V5LtLp` | Twilio call-status → no-answer/busy filter → static SMS → Comm Log only (no Lead). |
 
 ### Completion Criteria (All Met)
@@ -133,14 +135,14 @@ Verified against live n8n on 2026-06-07. All five components published, active, 
 
 | Workflow | n8n ID | What It Does |
 |---|---|---|
-| Hot Lead Alert | `KIpMMKM8H5IZB9wb` | Sub-workflow called by 02 when score is Hot or urgency is Emergency. Sends instant SMS to owner with lead name, service, address, and phone. Owner phone `+18575261499` set and live. |
+| Every Lead Alert (formerly "Hot Lead Alert") | `KIpMMKM8H5IZB9wb` | Sub-workflow called by 02 for every submission. **V1.1:** Hot/Emergency branching removed — emails the owner a branded summary by default (SMS built but disabled by default). Owner contact `+18575261499` set via `CONFIG`. |
 | Follow-Up Sequence | `chYfABnQdnPfiHQx` | Daily 9 AM ET. Reads all New/Contacted leads, filters by time thresholds (Day 1/3/7), sends personalized static SMS templates, updates lead status + Follow-up Count via CRM Adapter. Stops at 3 attempts or status change. Booked leads auto-excluded. |
-| Appointment Booking | `ax2sMbvv0lqyJHMg` | Owner-facing n8n form. Looks up lead by ID, writes row to Appointments tab, sends customer confirmation SMS, updates lead status to Booked via CRM Adapter. **Tested end-to-end in production — confirmed working** (Lead → Booked, Appointment row, Comm Log entry, Follow-Up + Hot Alert unaffected). |
-| Pipeline Status Digest | `ehqNYjZRirX5L3sX` | Daily 6 PM ET. Reads all leads, tallies counts by status (New/Contacted/Booked/Stale), escalates Stale leads still Hot/Warm by name + phone, reports today's new leads and bookings — single SMS digest to owner. Read-only; no Sheets writes. Owner phone `+18575261499` set and live. |
-| Weekly Pipeline Report | `Y7ruzhYGMhE001fr` | Weekly Monday 8 AM ET. Reads all leads, computes trailing-7-day metrics (new leads, Hot/Emergency split, bookings, stale count, bookings/new ratio, top lead sources) — single SMS report to owner. Owner phone synced programmatically (zero manual setup). **Test-executed live (execution 54): correct report computed and SMS queued successfully.** |
+| Appointment Booking | `ax2sMbvv0lqyJHMg` | Owner-facing n8n form. Looks up lead by ID, writes row to Appointments tab, sends customer confirmation SMS, updates lead status to Booked via CRM Adapter. **V1.1:** structured calendar-picker date + 30-min `dropdown` time slots (8 AM–5 PM, `America/New_York`), configurable via `CONFIG`. **Tested end-to-end in production — confirmed working** (Lead → Booked, Appointment row, Comm Log entry, Follow-Up + Every Lead Alert unaffected). |
+| Pipeline Status Digest | `ehqNYjZRirX5L3sX` | Daily 6 PM ET. Reads all leads, tallies counts by status (New/Contacted/Booked/Stale), lists Stale leads by name + phone, reports today's new leads and bookings. **V1.1:** emails the owner a branded digest by default (SMS built but disabled by default). Read-only; no Sheets writes. Owner contact `+18575261499` set via `CONFIG`. |
+| Weekly Pipeline Report | `Y7ruzhYGMhE001fr` | Weekly Monday 8 AM ET. Reads all leads, computes trailing-7-day metrics (new leads, bookings, stale count, bookings/new ratio, top lead sources). **V1.1:** emails the owner a branded weekly report by default (SMS built but disabled by default; Hot/Emergency split metric removed). Owner contact synced programmatically via `CONFIG` (zero manual setup). **Test-executed live (execution 54): correct report computed and sent successfully.** |
 
 ### Phase 3 Completion Criteria — All Met ✅
-- [x] Hot leads trigger immediate owner SMS notification
+- [x] Every lead triggers an immediate owner notification (**V1.1:** email by default, SMS built but disabled by default — was SMS-only for Hot leads)
 - [x] Automated Day 1 / Day 3 / Day 7 follow-up sequence running
 - [x] Appointment Booking Workflow live — form, Appointments tab write, customer SMS, lead status update
 - [x] Appointment Booking verified end-to-end in production (Lead → Booked, Appointment row, Comm Log, Follow-Up + Hot Alert unaffected)
@@ -261,3 +263,13 @@ The CRM Adapter (`wVRHChyFrUNRaH4M`) is the foundation — all workflows call it
 | Reschedule/Cancel intent classification | Keyword regex matching (no AI) | Matches the static-template-no-AI precedent (03/05/06/07/08/09); "cancel"/"reschedule" intents are linguistically distinct enough that keyword matching is reliable, instant, and free — reserving AI spend for judgment calls (lead scoring) where it earns its cost |
 | Reschedule/Cancel appointment matching | Phone-number lookup against `Status = 'Scheduled'` rows, nearest-upcoming-first | Customers text from the same number they booked with; matching + sorting by date/time picks the most relevant appointment when a customer has multiple, and ignores already-cancelled/completed rows |
 | Reschedule/Cancel sheet update | Single `googleSheets update` writing `Status` + `Notes` (timestamped, appended) per request | Cancel flips `Status` to `Cancelled` (removes the slot from reminders/digests automatically); reschedule preserves `Status = 'Scheduled'` (staff coordinates the new time) while both leave a permanent audit trail in `Notes` |
+
+### V1.1 (2026-06-11) — Decisions Superseded Above
+
+| Superseded decision (row above) | New decision | Rationale |
+|---|---|---|
+| "AI scoring — Claude Sonnet 4.6" | **Removed entirely.** No AI lead scoring anywhere. | Simplification — founder feedback was that scoring added complexity and judgment-call maintenance without proportional value; every lead gets the same fast notification instead |
+| "Hot lead threshold — `temperature === 'Hot'` OR `urgency === 'Emergency'`" | **Removed.** "Every Lead Alert" (04) fires unconditionally for every submission. | No scores/temperatures exist to threshold against |
+| "Owner notification channel — SMS via Twilio (Phase 3)" / "Pipeline digest delivery — SMS, plain text" / "Weekly report delivery channel — SMS" | **Email is the default channel for all owner/client notifications and reports** (04, 07, 08, 11, 12); SMS is built but disabled by default, toggleable per client via a centralized `CONFIG` block | Email is free, supports richer branded formatting (subject lines, tables, future charts), and doesn't depend on Twilio toll-free verification; SMS remains available for clients who want it |
+| "Stale escalation scope — Stale AND Temperature in {Hot, Warm} only" | Pipeline Status Digest (07) lists **all** Stale leads by name + phone, no temperature filter | `Temperature` no longer exists |
+| "Reschedule/Cancel intent classification ... reserving AI spend for judgment calls (lead scoring)" | Rationale text is historical — no AI spend exists anywhere in the system post-V1.1 (only Haiku 4.5 for the form-confirmation SMS) | AI scoring removed |

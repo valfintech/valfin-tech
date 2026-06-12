@@ -1,6 +1,8 @@
 # Project Audit
 _Last updated: 2026-06-07 — Phase 4 complete_
 
+> **V1.1 (2026-06-11):** This audit is a historical snapshot from Phase 4 and predates the V1.1 simplification pass. AI lead scoring (`Lead Score`/`Temperature`/`Urgency`, Sonnet 4.6) was removed system-wide; the `Leads` tab is now 17 columns (down from 20); "Hot Lead Alert" (04) was renamed "Every Lead Alert" and fires for every submission; workflows 07/08/11/12 now email by default (SMS built but disabled by default); all timestamps are `America/New_York` via Luxon. Architecture descriptions below referencing scoring, Hot/Warm/Cold, SMS-only reporting, or the 20-column schema are historical. See `README.md` and `docs/V1_1_RECONCILIATION.md` for the current system.
+
 ---
 
 ## Verification Summary (2026-06-07)
@@ -20,11 +22,11 @@ Workflow 10 (Reschedule/Cancel) was then built, validated, published, and **test
 | Item | Details |
 |---|---|
 | CRM Adapter active | `wVRHChyFrUNRaH4M` — active, sub-workflow callable from 02, 03, 05 |
-| Form Capture active | `HdJc5cy8cmqMBfGR` — form + webhook triggers both live, 16 nodes with hot lead branch |
+| Form Capture active | `HdJc5cy8cmqMBfGR` — form + webhook triggers both live, 16 nodes (V1.1: AI scoring removed, every lead alerted) |
 | Missed-Call Auto-SMS active | `u9I1bqrLW6V5LtLp` — Twilio webhook live |
-| Hot Lead Alert active | `KIpMMKM8H5IZB9wb` — published; called by workflow 02 when Hot or Emergency |
+| Every Lead Alert active (formerly "Hot Lead Alert") | `KIpMMKM8H5IZB9wb` — published; called by workflow 02 for every submission (V1.1: no scoring/branching) |
 | Follow-Up Sequence active | `chYfABnQdnPfiHQx` — published; daily 9 AM ET schedule |
-| Appointment Booking active | `ax2sMbvv0lqyJHMg` — published; form live at `https://valfin.app.n8n.cloud/form/eca6bfbb-ef53-4f82-b909-cbd2b818991a`; **confirmed working end-to-end in production by user (2026-06-07): Lead → Booked, Appointment row written, Comm Log entry created, Follow-Up + Hot Lead Alert unaffected** |
+| Appointment Booking active | `ax2sMbvv0lqyJHMg` — published; form live at `https://valfin.app.n8n.cloud/form/eca6bfbb-ef53-4f82-b909-cbd2b818991a`; **confirmed working end-to-end in production by user (2026-06-07): Lead → Booked, Appointment row written, Comm Log entry created, Follow-Up + Every Lead Alert unaffected** |
 | Pipeline Status Digest active | `ehqNYjZRirX5L3sX` — published; daily 22:00 UTC (6 PM ET) schedule; read-only, no Sheets writes; owner phone `+18575261499` confirmed set |
 | Weekly Pipeline Report active | `Y7ruzhYGMhE001fr` — published; weekly Monday 13:00 UTC (8 AM ET) schedule; read-only; owner phone `+18575261499` synced via `update_workflow`; **live test execution 54 succeeded** — correct report computed (7 new, 1 booked, 14% ratio) and SMS queued |
 | Owner phone confirmed working end-to-end | `+18575261499` — set by user in workflows 04 and 07; programmatically synced into 08; verified via live SMS send in test execution 54 (Twilio `status: queued`, `to: +18575261499`, 2 segments) |
@@ -118,9 +120,11 @@ Workflow 10 (Reschedule/Cancel) was then built, validated, published, and **test
 **Leads tab** (all columns must exist on Row 1):
 ```
 Lead ID | Date Created | Source | First Name | Last Name | Phone | Email | Address |
-Service Needed | Description | Photos Link | Preferred Time | Lead Score | Temperature |
-Urgency | Status | Last Contact | Follow-up Count | Assigned To | Notes
+Service Needed | Description | Photos Link | Preferred Time | Status | Last Contact |
+Follow-up Count | Assigned To | Notes
 ```
+
+> **V1.1 (2026-06-11):** `Lead Score`, `Temperature`, and `Urgency` were removed (20 columns → 17). The block above shows the current 17-column schema; see `docs/CRM_SHEET_SCHEMA.md` for the full reference.
 
 **Communication Log tab** (all columns must exist on Row 1):
 ```

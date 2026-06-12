@@ -1,7 +1,7 @@
 {
-  "_comment": "Local reference copy — created 2026-06-06. Live ID: chYfABnQdnPfiHQx. Phase 3 workflow. Runs daily at 9 AM ET (14:00 UTC). Sends Day 1/3/7 follow-up SMS to New/Contacted leads, then updates each lead via CRM Adapter.",
+  "_comment": "Local reference copy — synced from live n8n on 2026-06-11 (V1.1 pass). Live ID: chYfABnQdnPfiHQx. Phase 3 workflow. Runs daily at 9 AM ET (14:00 UTC). Sends Day 1/3/7 follow-up SMS to New/Contacted leads, then updates each lead via CRM Adapter. AI lead-scoring fields (Lead Score/Temperature/Urgency) removed in V1.1.",
   "name": "Follow-Up Sequence",
-  "active": true,
+  "active": false,
   "settings": {
     "executionOrder": "v1"
   },
@@ -9,14 +9,14 @@
     {
       "parameters": {
         "rule": {
-          "interval": [{ "field": "days", "daysInterval": 1, "triggerAtHour": 14, "triggerAtMinute": 0 }]
+          "interval": [{ "field": "days", "triggerAtHour": 14 }]
         }
       },
       "id": "node-schedule",
       "name": "Daily 9 AM ET",
       "type": "n8n-nodes-base.scheduleTrigger",
       "typeVersion": 1.3,
-      "position": [0, 0]
+      "position": [0, 80]
     },
     {
       "parameters": {
@@ -28,7 +28,7 @@
       "name": "Get All Leads",
       "type": "n8n-nodes-base.googleSheets",
       "typeVersion": 4.7,
-      "position": [224, 0],
+      "position": [224, 80],
       "retryOnFail": true,
       "maxTries": 3,
       "waitBetweenTries": 2000,
@@ -39,24 +39,23 @@
     {
       "parameters": {
         "mode": "runOnceForAllItems",
-        "jsCode": "const now = new Date();\nconst allLeads = $input.all().map(i => i.json);\n\nconst parseDate = (s) => {\n  if (!s) return null;\n  const d = new Date(s);\n  return isNaN(d.getTime()) ? null : d;\n};\nconst hoursSince = (dateStr) => {\n  const d = parseDate(dateStr);\n  if (!d) return 9999;\n  return (now - d) / (1000 * 60 * 60);\n};\n\n// Day-matched templates — personalized by name + service, no AI cost\nconst templates = {\n  0: (fn, svc) => (fn ? 'Hi ' + fn + ',' : 'Hi,') + ' just following up on your ' + svc + ' request with Valfin Tech. Ready to lock in your free inspection? Reply YES or call us anytime.',\n  1: (fn, svc) => (fn ? 'Hey ' + fn + ',' : 'Hey,') + ' we still have openings this week for your ' + svc + ' inspection. Just say the word and we will get you on the calendar. — Valfin Tech',\n  2: (fn, svc) => (fn ? fn + ', one' : 'One') + ' last check-in on your roofing request. Reply YES to book your free inspection before slots fill up. — Valfin Tech'\n};\nconst dayLabels = ['Day 1', 'Day 3', 'Day 7'];\n\nconst qualifying = [];\nfor (const lead of allLeads) {\n  const status = (lead['Status'] || '').trim();\n  const count = parseInt(String(lead['Follow-up Count'] || '0'), 10) || 0;\n  if (!['New', 'Contacted'].includes(status)) continue;\n  if (count >= 3) continue;\n\n  const raw = String(lead['Phone'] || '').replace(/\\D/g, '');\n  const e164 = raw.length === 11 && raw.startsWith('1') ? '+' + raw\n    : raw.length === 10 ? '+1' + raw : null;\n  if (!e164) continue;\n\n  const hours = hoursSince(lead['Last Contact'] || lead['Date Created'] || '');\n  const thresholds = { 0: 24, 1: 72, 2: 96 };\n  if (hours < thresholds[count]) continue;\n\n  const fn = lead['First Name'] || '';\n  const svc = lead['Service Needed'] || 'roofing inspection';\n  const msg = templates[count](fn, svc);\n\n  qualifying.push({\n    leadId: lead['Lead ID'] || '',\n    phone: e164,\n    firstName: fn,\n    lastName: lead['Last Name'] || '',\n    source: lead['Source'] || '',\n    email: lead['Email'] || '',\n    address: lead['Address'] || '',\n    serviceNeeded: svc,\n    leadScore: lead['Lead Score'] || '',\n    temperature: lead['Temperature'] || '',\n    urgency: lead['Urgency'] || '',\n    followUpMessage: msg,\n    followUpCount: count + 1,\n    newStatus: count >= 2 ? 'Stale' : 'Contacted',\n    logChannel: 'SMS',\n    logDirection: 'Outbound',\n    logHandler: 'System',\n    logSummary: 'Follow-up ' + (count + 1) + ' SMS — ' + dayLabels[count],\n    logNotes: msg\n  });\n}\nreturn qualifying.map(q => ({ json: q }));"
+        "jsCode": "const now = new Date();\nconst allLeads = $input.all().map(i => i.json);\n\nconst parseDate = (s) => {\n  if (!s) return null;\n  const d = new Date(s);\n  return isNaN(d.getTime()) ? null : d;\n};\nconst hoursSince = (dateStr) => {\n  const d = parseDate(dateStr);\n  if (!d) return 9999;\n  return (now - d) / (1000 * 60 * 60);\n};\n\n// Day-matched templates — personalized by name + service, no AI cost\nconst templates = {\n  0: (fn, svc) => (fn ? 'Hi ' + fn + ',' : 'Hi,') + ' just following up on your ' + svc + ' request with Valfin Tech. Ready to lock in your free inspection? Reply YES or call us anytime.',\n  1: (fn, svc) => (fn ? 'Hey ' + fn + ',' : 'Hey,') + ' we still have openings this week for your ' + svc + ' inspection. Just say the word and we will get you on the calendar. — Valfin Tech',\n  2: (fn, svc) => (fn ? fn + ', one' : 'One') + ' last check-in on your roofing request. Reply YES to book your free inspection before slots fill up. — Valfin Tech'\n};\nconst dayLabels = ['Day 1', 'Day 3', 'Day 7'];\n\nconst qualifying = [];\nfor (const lead of allLeads) {\n  const status = (lead['Status'] || '').trim();\n  const count = parseInt(String(lead['Follow-up Count'] || '0'), 10) || 0;\n  if (!['New', 'Contacted'].includes(status)) continue;\n  if (count >= 3) continue;\n\n  const raw = String(lead['Phone'] || '').replace(/\\D/g, '');\n  const e164 = raw.length === 11 && raw.startsWith('1') ? '+' + raw\n    : raw.length === 10 ? '+1' + raw : null;\n  if (!e164) continue;\n\n  const hours = hoursSince(lead['Last Contact'] || lead['Date Created'] || '');\n  const thresholds = { 0: 24, 1: 72, 2: 96 };\n  if (hours < thresholds[count]) continue;\n\n  const fn = lead['First Name'] || '';\n  const svc = lead['Service Needed'] || 'roofing inspection';\n  const msg = templates[count](fn, svc);\n\n  qualifying.push({\n    leadId: lead['Lead ID'] || '',\n    phone: e164,\n    firstName: fn,\n    lastName: lead['Last Name'] || '',\n    source: lead['Source'] || '',\n    email: lead['Email'] || '',\n    address: lead['Address'] || '',\n    serviceNeeded: svc,\n    followUpMessage: msg,\n    followUpCount: count + 1,\n    newStatus: count >= 2 ? 'Stale' : 'Contacted',\n    logChannel: 'SMS',\n    logDirection: 'Outbound',\n    logHandler: 'System',\n    logSummary: 'Follow-up ' + (count + 1) + ' SMS — ' + dayLabels[count],\n    logNotes: msg\n  });\n}\nreturn qualifying.map(q => ({ json: q }));"
       },
       "id": "node-filter",
       "name": "Filter & Build Messages",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
-      "position": [448, 0]
+      "position": [448, 80]
     },
     {
       "parameters": {
-        "batchSize": 1,
         "options": {}
       },
       "id": "node-loop",
       "name": "Loop Over Leads",
       "type": "n8n-nodes-base.splitInBatches",
       "typeVersion": 3,
-      "position": [672, 0]
+      "position": [672, 80]
     },
     {
       "parameters": {
@@ -69,7 +68,7 @@
       "name": "Send Follow-Up SMS",
       "type": "n8n-nodes-base.twilio",
       "typeVersion": 1,
-      "position": [896, -80],
+      "position": [896, 0],
       "retryOnFail": true,
       "maxTries": 3,
       "waitBetweenTries": 3000,
@@ -80,13 +79,13 @@
     {
       "parameters": {
         "mode": "runOnceForAllItems",
-        "jsCode": "// After Twilio fires, $json is the SMS response — trace back to the lead\nconst lead = $('Filter & Build Messages').item.json;\nreturn [{ json: {\n  leadId: lead.leadId,\n  phone: lead.phone,\n  source: lead.source,\n  firstName: lead.firstName,\n  lastName: lead.lastName,\n  email: lead.email,\n  address: lead.address,\n  serviceNeeded: lead.serviceNeeded,\n  leadScore: lead.leadScore,\n  temperature: lead.temperature,\n  urgency: lead.urgency,\n  status: lead.newStatus,\n  followUpCount: lead.followUpCount,\n  logChannel: lead.logChannel,\n  logDirection: lead.logDirection,\n  logHandler: lead.logHandler,\n  logSummary: lead.logSummary,\n  logNotes: lead.logNotes\n}}];"
+        "jsCode": "// After Twilio fires, $json is the SMS response — trace back to the lead\nconst lead = $('Filter & Build Messages').item.json;\nreturn [{ json: {\n  leadId: lead.leadId,\n  phone: lead.phone,\n  source: lead.source,\n  firstName: lead.firstName,\n  lastName: lead.lastName,\n  email: lead.email,\n  address: lead.address,\n  serviceNeeded: lead.serviceNeeded,\n  status: lead.newStatus,\n  followUpCount: lead.followUpCount,\n  logChannel: lead.logChannel,\n  logDirection: lead.logDirection,\n  logHandler: lead.logHandler,\n  logSummary: lead.logSummary,\n  logNotes: lead.logNotes\n}}];"
       },
       "id": "node-buildupdate",
       "name": "Build CRM Update",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
-      "position": [1120, -80]
+      "position": [1120, 0]
     },
     {
       "parameters": {
@@ -105,7 +104,19 @@
       "name": "CRM: Update Lead + Log",
       "type": "n8n-nodes-base.executeWorkflow",
       "typeVersion": 1.3,
-      "position": [1344, -80]
+      "position": [1344, 80]
+    },
+    {
+      "parameters": {
+        "content": "This workflow runs every day at 9:00 AM ET, retrieves leads from Google Sheets, identifies which leads require follow-up, sends SMS follow-up messages to each eligible lead, updates the CRM with the communication details, and logs the activity.",
+        "height": 192,
+        "width": 256
+      },
+      "id": "node-sticky",
+      "name": "Sticky Note",
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [-48, -208]
     }
   ],
   "connections": {
@@ -120,8 +131,8 @@
     },
     "Loop Over Leads": {
       "main": [
-        [{ "node": "Send Follow-Up SMS", "type": "main", "index": 0 }],
-        []
+        [],
+        [{ "node": "Send Follow-Up SMS", "type": "main", "index": 0 }]
       ]
     },
     "Send Follow-Up SMS": {

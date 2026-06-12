@@ -32,30 +32,32 @@ If you need to re-verify any of these in the future (e.g. before a client clone)
 
 ---
 
-## ✅ VERIFIED LIVE — Tab 1: `Leads` (20 columns)
+## ✅ VERIFIED LIVE — Tab 1: `Leads` (17 columns)
 
-Read and written by **Workflow 01 (CRM Adapter)** — the only workflow permitted to touch Google Sheets directly (see its modular "GoHighLevel swap" contract in `docs/phase2_setup.md` §3). Read by workflows 02, 05, 07, 08, 11.
+Read and written by **Workflow 01 (CRM Adapter)** — the only workflow permitted to touch Google Sheets directly (see its modular "GoHighLevel swap" contract in `docs/phase2_setup.md` §3). Read by workflows 02, 05, 07, 08, 11, 12.
 
 ```
 Lead ID | Date Created | Source | First Name | Last Name | Phone | Email | Address |
-Service Needed | Description | Photos Link | Preferred Time | Lead Score | Temperature |
-Urgency | Status | Last Contact | Follow-up Count | Assigned To | Notes
+Service Needed | Description | Photos Link | Preferred Time | Status | Last Contact |
+Follow-up Count | Assigned To | Notes
 ```
+
+> **V1.1 (2026-06-11) change:** `Lead Score`, `Temperature`, and `Urgency` were **removed** from this tab. AI lead scoring was removed system-wide (see `docs/V1_1_RECONCILIATION.md`) — every lead now follows the same "Every Lead Alert" notification path regardless of any score/temperature/urgency. If your live spreadsheet still has these three columns from before V1.1, they are now dead/unused — safe to delete (after backing up/archiving any historical data you want to keep), since `workflows/01_crm_adapter_google_sheets.json`'s `Resolve & Build Lead Row` node no longer reads or writes them.
 
 | Column | Notes |
 |---|---|
 | `Lead ID` | **Match key.** Format `LEAD-####`, minted by the adapter (reads the whole tab, increments the max — see the adapter's documented tiny-duplicate-ID-risk-under-concurrency caveat) |
-| `Date Created` | ISO 8601 timestamp, set once at creation, never overwritten |
+| `Date Created` | ISO 8601 timestamp in `America/New_York`, set once at creation, never overwritten |
 | `Source` | Free text — e.g. `Website Form`, `Phone (Missed Call)`, `Referral` |
 | `Phone` | **Secondary match key** — matched digits-only (normalizes `+1`/formatting away) when no `Lead ID` is supplied |
-| `Lead Score` | Integer 1–100, set by AI scoring (workflow 02, Sonnet 4.6). Brief-spec bands: Hot 80–100 / Warm 50–79 / Cold 1–49 |
-| `Temperature` | One of `Hot` / `Warm` / `Cold` — drives the hot-lead-alert branch (`temperature === 'Hot' OR urgency === 'Emergency'`) |
 | `Status` | One of `New` / `Contacted` / `Booked` / `Stale` / (others as the business defines) — drives follow-up eligibility (workflow 05 qualifies `New`/`Contacted` only) and pipeline reporting (07/08) |
-| `Last Contact` | ISO 8601 timestamp or blank — workflow 05's overdue-follow-up math falls back to `Date Created` when blank; **workflow 11 mirrors this exact fallback** |
+| `Last Contact` | ISO 8601 timestamp in `America/New_York`, or blank — workflow 05's overdue-follow-up math falls back to `Date Created` when blank; **workflow 11 mirrors this exact fallback** |
 | `Follow-up Count` | Integer 0–3 — workflow 05 stops sequencing at 3; workflow 11 mirrors this cap |
 | `Assigned To` | Free text — staff/crew name, set by booking (workflow 06) or manually |
 
-**Never rename or remove a column here** — virtually every workflow in the system (01, 02, 05, 06, 07, 08, 09, 11) depends on these exact header strings via `mappingMode: 'defineBelow'` / `'autoMapInputData'` Google Sheets configurations.
+**Never rename or remove a column here** — virtually every workflow in the system (01, 02, 05, 06, 07, 08, 09, 11, 12) depends on these exact header strings via `mappingMode: 'defineBelow'` / `'autoMapInputData'` Google Sheets configurations.
+
+**All timestamps system-wide (this tab, `Appointments`, `Communication Log`) are in `America/New_York` (Boston time)** — the V1.1 default operational standard, computed via Luxon `DateTime` with DST handled automatically. See `docs/V1_1_RECONCILIATION.md` for the full timezone audit.
 
 ---
 
@@ -101,7 +103,7 @@ Log ID | Date / Time | Lead ID | Customer Name | Channel | Direction | Handler |
 | `Lead ID` | Blank for missed-call entries that never created a Lead record (`source: 'Phone'` + `skipLeadCreation: true` routing) |
 | `Channel` | e.g. `SMS`, `Phone`, `Form`, `Email` |
 | `Direction` | `Inbound` / `Outbound` |
-| `Handler` | e.g. `AI (Haiku 4.5)`, `AI (Sonnet 4.6)`, `System`, or a staff name |
+| `Handler` | e.g. `AI (Haiku 4.5)`, `System`, or a staff name |
 
 ---
 

@@ -1,6 +1,8 @@
 # Project Status
 _Last updated: 2026-06-07 — Phase 4 complete (Workflows 09 & 10 live)_
 
+> **V1.1 (2026-06-11):** This document is a historical snapshot from Phase 4 and predates the V1.1 simplification pass. AI lead scoring (`Lead Score`/`Temperature`/`Urgency`, Sonnet 4.6) was removed system-wide; "Hot Lead Alert" (04) was renamed to "Every Lead Alert" and now fires for every submission; workflows 07/08/11/12 now email by default (SMS built but disabled by default); all timestamps are `America/New_York`. Descriptions below referencing scoring, Hot/Warm/Cold, or SMS-only reporting are historical. See `README.md` and `docs/V1_1_RECONCILIATION.md` for the current system.
+
 ## Current Phase
 **Phase 4 — Reminders / Reschedule / Cancel** ✅ **Complete — both workflows (09, 10) live and tested**
 
@@ -13,9 +15,9 @@ Phase 3 is complete (all 5 components live and tested). Phase 4 is now complete:
 | Workflow | n8n ID | n8n URL | Status |
 |---|---|---|---|
 | CRM Adapter (Google Sheets) | `wVRHChyFrUNRaH4M` | https://valfin.app.n8n.cloud/workflow/wVRHChyFrUNRaH4M | ✅ Active — sub-workflow only |
-| Form Capture + AI Scoring | `HdJc5cy8cmqMBfGR` | https://valfin.app.n8n.cloud/workflow/HdJc5cy8cmqMBfGR | ✅ Active — 16 nodes, hot lead branch live |
+| Form Capture + Confirmation (formerly "Form Capture + AI Scoring") | `HdJc5cy8cmqMBfGR` | https://valfin.app.n8n.cloud/workflow/HdJc5cy8cmqMBfGR | ✅ Active — V1.1: AI scoring removed, every submission triggers Every Lead Alert |
 | Missed-Call Auto-SMS | `u9I1bqrLW6V5LtLp` | https://valfin.app.n8n.cloud/workflow/u9I1bqrLW6V5LtLp | ✅ Active — Twilio webhook live |
-| Hot Lead Alert | `KIpMMKM8H5IZB9wb` | https://valfin.app.n8n.cloud/workflow/KIpMMKM8H5IZB9wb | ✅ Active — owner phone set (`+18575261499`) |
+| Every Lead Alert (formerly "Hot Lead Alert") | `KIpMMKM8H5IZB9wb` | https://valfin.app.n8n.cloud/workflow/KIpMMKM8H5IZB9wb | ✅ Active — V1.1: fires for every lead, emails owner by default (SMS off by default), owner contact set (`+18575261499`) |
 | Follow-Up Sequence | `chYfABnQdnPfiHQx` | https://valfin.app.n8n.cloud/workflow/chYfABnQdnPfiHQx | ✅ Active — daily 9 AM ET |
 | Appointment Booking | `ax2sMbvv0lqyJHMg` | https://valfin.app.n8n.cloud/workflow/ax2sMbvv0lqyJHMg | ✅ Active — form live, tested end-to-end; **form fields upgraded to structured date/dropdown (2026-06-07)** |
 | Pipeline Status Digest | `ehqNYjZRirX5L3sX` | https://valfin.app.n8n.cloud/workflow/ehqNYjZRirX5L3sX | ✅ Active — daily 6 PM ET, owner phone set |

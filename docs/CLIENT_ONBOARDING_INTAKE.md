@@ -16,8 +16,8 @@ Without this document, collecting ~30 configuration values would happen ad hoc o
 | # | Question | Why we need it | Maps to deployment guide |
 |---|---|---|---|
 | A1 | What is your exact legal/brand name as you want it to appear in customer text messages? (e.g., "Valfin Tech" — keep it short, this appears in every SMS) | Appears in every customer-facing message across the system | §3a "Company name" |
-| A2 | What's your primary service area (city/region)? | Used in lead-scoring context and customer-facing copy | §3e business-rule context |
-| A3 | What services do you offer that this system should know about? (e.g., roof replacement, repair, inspection, gutter work, emergency tarping) | Drives the AI lead-scoring prompt's understanding of "what counts as a hot lead" | Workflow 02 system prompt tuning |
+| A2 | What's your primary service area (city/region)? | Used in customer-facing copy and the confirmation-SMS prompt | §3e business-rule context |
+| A3 | What services do you offer that this system should know about? (e.g., roof replacement, repair, inspection, gutter work, emergency tarping) | Drives the AI confirmation-SMS prompt's understanding of your services | Workflow 02 system prompt tuning |
 
 ## Section B — Contact & Phone Setup
 
@@ -31,7 +31,7 @@ Without this document, collecting ~30 configuration values would happen ad hoc o
 
 | # | Question | Why we need it | Maps to deployment guide |
 |---|---|---|---|
-| C1 | What are your normal business hours (days + times)? | Drives the booking-form time slots and the "is this urgent / after-hours" judgment in lead scoring | §3e "Booking time slots" |
+| C1 | What are your normal business hours (days + times)? | Drives the booking-form time slots and the `CONFIG` business-hours constants (Workflow 06) | §3e "Booking time slots" |
 | C2 | When you book a job/estimate visit, what appointment lengths or time slots do you typically offer? (e.g., hourly slots 8 AM–5 PM, or fixed morning/afternoon blocks) | Configures the appointment-booking form's dropdown options | §3e "Booking time slots" |
 | C3 | What timezone are you in? | All scheduled messages (digests, reports, reminders, follow-ups) are timed around this — **getting it wrong means texts arrive at inconvenient hours, which is both bad UX and a compliance concern** | §3d schedule & cadence values |
 | C4 | How far in advance do you want customers reminded of an appointment? (Our default: 24 hours and 2 hours before — let us know if you'd prefer different windows) | Configures the reminder workflow's timing windows | §3e "Reminder windows" |
@@ -40,7 +40,7 @@ Without this document, collecting ~30 configuration values would happen ad hoc o
 
 | # | Question | Why we need it | Maps to deployment guide |
 |---|---|---|---|
-| D1 | What makes a lead "urgent" to you? (e.g., active leak, storm damage, insurance claim deadline) | Tunes the AI scoring system's definition of "Hot"/"Emergency" | Workflow 02 system prompt; §3e score thresholds |
+| D1 | What makes a lead "urgent" to you? (e.g., active leak, storm damage, insurance claim deadline) | Helps us tailor brand-voice copy and prioritize support — every lead triggers the same owner alert (V1.1 removed AI lead scoring/Hot-Emergency classification) | Workflow 02 system prompt (brand voice) |
 | D2 | If we follow up automatically with leads who haven't responded, how many touches feels right before we stop? (Our default: 3 attempts over 7 days) | Configures the follow-up sequence cadence | §3e "Follow-up cadence" |
 | D3 | Where do your leads currently come from? (Website form, Google/Facebook ads, referrals, signs/trucks, etc.) | Helps us tune source-tracking and gives the weekly report meaningful categories | Workflow 08 "top sources" |
 | D4 | What's your average revenue on a completed job — a typical roof replacement, major repair, whatever your usual "win" looks like? | Sharpens the ROI conversation beyond industry-average figures, and is the multiplier behind every "$ recovered" estimate we'll ever show you | `PRICING_PACKAGING.md` ROI anchor; `CASE_STUDY_DATA_PLAN.md` Metric 4 ($-recovered calculation) |

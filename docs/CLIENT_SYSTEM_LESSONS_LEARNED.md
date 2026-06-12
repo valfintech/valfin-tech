@@ -1,5 +1,7 @@
 # Client/Demo System Review — Lessons from the Valfin Internal Lead System
 
+> **V1.1 (2026-06-11):** Finding #1 below (email alerting as a fallback channel) was implemented system-wide as part of the V1.1 simplification pass — workflows 04/07/08/11/12 now email by default (SMS built but disabled by default, toggled via `CONFIG`). "Hot Lead Alert" (04) was renamed "Every Lead Alert" and fires for every submission; AI lead scoring (`Lead Score`/`Temperature`/`Urgency`, Sonnet 4.6) was removed system-wide, so the "Lead scoring" comparison row below is historical. See `docs/V1_1_RECONCILIATION.md`.
+
 **Date: 2026-06-10. Read-only review.** The 12 roofing/demo workflows (and the internal Valfin lead capture workflow built alongside them) were **not modified** as part of this review — per standing instructions, the client-facing roofing/demo workflow architecture is off-limits. This document captures what building and operating Valfin's *own* lead pipeline (`Valfin — Website Lead Capture`, n8n ID `OIakSYLK2iMWsB32`) revealed that's worth applying — or deliberately *not* applying — before scaling the client system to a second or third client.
 
 ---
@@ -25,7 +27,7 @@ The complexity gap is **appropriate**, not accidental — a single founder readi
 
 The internal system added a Gmail-OAuth2-native email alert *alongside* SMS. This turned out to matter immediately: Twilio toll-free verification is pending, so **SMS alerts are currently blocked for both systems**, but Valfin's own email alerts have been working since day one with zero extra setup (reused the same Google account already connected for Sheets).
 
-**Implication for client onboarding:** every new client will go through the same toll-free verification wait (can take days). During that window, `04_hot_lead_alert` (and the digest workflows 07/08) are silent — the client gets no alerts at all until Twilio clears.
+**Implication for client onboarding (historical — resolved by V1.1):** every new client will go through the same toll-free verification wait (can take days). During that window, `04_every_lead_alert` (and the digest workflows 07/08) used to be silent — the client got no alerts at all until Twilio cleared. As of V1.1, all of these email by default, so this is no longer blocking.
 
 **Recommendation:** Add an email-alert branch to `Hot Lead Alert` (and optionally the digests) using the same pattern proven in the internal system (Gmail node v2.2, OAuth2, `emailType: "html"`, `resource: "message"`/`operation: "send"`) — sent to the client's business email in addition to the SMS. Low effort, removes a real "the system looks dead on day one" risk during onboarding. **Not done here** since it touches the off-limits workflows — flagged as a recommendation for the next session that's authorized to edit them.
 
