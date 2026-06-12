@@ -31,7 +31,7 @@ Rules:
 ```
 
 ## User message
-JSON object: `{ firstName, serviceNeeded, temperature, company }`.
-Replace `YOUR_COMPANY_NAME` in the `Build Confirmation Request` node with the real business name.
+JSON object: `{ firstName, serviceNeeded, company }`.
+`company` is currently hardcoded to `'Valfin Tech'` in the `Build Confirmation Request` node — update it to the real business name when cloning to a new client.
 
 > The same model + structured-output pattern is reused for the missed-call auto-SMS in the next workflow, with a prompt tuned to "we missed your call."

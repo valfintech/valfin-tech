@@ -145,6 +145,23 @@ All removed concepts (`Lead Score`, `Temperature`, `Urgency`, "Hot Lead Alert", 
 
 ---
 
+## 11. Closure verification (2026-06-11)
+
+Five founder-requested checks were run against the live system before declaring V1.1 closed:
+
+1. **Workflow 06 scheduling UX** — confirmed live: Appointment Date is a true calendar picker (`fieldType: "date"`), Appointment Time is a fixed 19-option dropdown from 8:00 AM–5:00 PM in 30-minute increments (`CONFIG.BUSINESS_START_HOUR/END_HOUR/APPOINTMENT_INCREMENT_MINUTES`). No free-text scheduling remains. ✅
+2. **Remaining Haiku 4.5 call** — confirmed to be Workflow 02's "Claude - Confirmation SMS" (customer confirmation text only). Required and intentional per §1 above — no removal needed. ✅
+3. **Regenerated/pushed exports** — all 12 workflow JSON exports (01–12) plus `workflows/11_system_health_monitor.ts`, including the 04 rename, were regenerated and pushed in commit `8d537eb`. ✅
+4. **Gmail credentials** — 5 nodes use Gmail (`gmailOAuth2`): WF04/07/08/11 "Send Owner Email" and WF12 "Send Client Email", all pointing at the single Gmail credential on the instance (`Gmail OAuth2 API`, `valfintechnologies@gmail.com`). **Live-tested**: a temporary Manual Trigger was added to Workflow 04 ("Every Lead Alert", `KIpMMKM8H5IZB9wb`), wired directly to "Build Alert Content", and executed once. "Send Owner Email" returned a real Gmail API response (`messageId: 19eb9c35e02e9911`, `labelIds: ["SENT","INBOX"]`) — confirming the credential is correctly attached and functional in production. The temporary trigger was removed immediately after and the workflow republished to its original 8-node structure (`activeVersionId: 6fc22906-4086-415a-8d65-23afedd1ed8b`). One placeholder-data email ("Valfin Tech - New Lead: Unknown (Not specified)") landed in `valfintechnologies@gmail.com` as a result — expected and harmless. ✅
+5. **AI-scoring remnants** — repo-wide sweep found two un-reconciled remnants, both fixed in this pass:
+   - `prompts/lead_scoring.system.md` — added a V1.1 historical banner (the Sonnet 4.6 scoring system it documents was removed system-wide); also updated `docs/VALFIN_FOUNDER_OPERATING_MANUAL.md`'s repo-structure tree to flag it as historical.
+   - `prompts/form_confirmation.system.md` — the documented user-message schema referenced a stale `temperature` field; corrected to match the live `Build Confirmation Request` code (`{ firstName, serviceNeeded, company }`).
+   All other matches (README, ROADMAP, PROJECT_STATUS, PROJECT_AUDIT, etc.) were already correctly annotated as historical/superseded. ✅
+
+**All 5 checks pass. Version 1.1 is fully closed.**
+
+---
+
 ## Quick reference — what to tell a client or new founder
 
 - **No more "Hot/Warm/Cold" or lead scores.** Every lead gets the same fast notification.

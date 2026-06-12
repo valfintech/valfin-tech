@@ -503,7 +503,7 @@ valfin-tech/
 │   ├── 11_system_health_monitor.ts   ← SDK source (design rationale preserved)
 │   └── 12_client_roi_report.json
 ├── prompts/                     — Reference copies of Claude system prompts
-│   ├── lead_scoring.system.md
+│   ├── lead_scoring.system.md       ← historical (V1.1: scoring removed, see below)
 │   ├── form_confirmation.system.md
 │   └── missed_call_sms.system.md
 ├── templates/                   — Clone-ready templates

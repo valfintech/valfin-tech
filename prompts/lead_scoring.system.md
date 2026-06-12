@@ -1,8 +1,9 @@
 # Lead Scoring — System Prompt (Claude Sonnet 4.6)
 
-**Used by:** `Build Scoring Request` Code node in `02_form_capture_scoring.json`.
+> **HISTORICAL — retired in V1.1 (2026-06-11).** The AI lead-scoring system described below (`Lead Score`/`Temperature`/`Urgency`, Claude Sonnet 4.6) was removed system-wide as part of the V1.1 simplification pass. The `Build Scoring Request` Code node no longer exists in `02_form_capture_scoring.json` — every lead now follows the same path via "Every Lead Alert" (workflow 04). This file is retained for historical/reference purposes only. See `docs/V1_1_RECONCILIATION.md` §1.
+
+**Used by (historical):** `Build Scoring Request` Code node in `02_form_capture_scoring.json` — removed in V1.1.
 **Model:** `claude-sonnet-4-6` · thinking off · `output_config.format` = JSON schema (below).
-**Where the live copy lives:** inside the `Build Scoring Request` Code node. This file is the editable reference — keep them in sync.
 
 ---
 
