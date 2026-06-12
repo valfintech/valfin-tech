@@ -21,7 +21,7 @@ export const resultsPage = {
   eyebrow: "Results",
   headline: "We'd rather show you one real, verified result than a hundred impressive-looking guesses.",
   subheadline:
-    "Every number that appears on this page will be traceable back to a real business, a real measurement period, and a real before-and-after — checked against that business's own records, not our internal estimates. Here's exactly where that stands today.",
+    "Every number that appears on this page will be traceable back to a real business, a real measurement period, and a real before-and-after, checked against that business's own records, not our internal estimates. Here's exactly where that stands today.",
 };
 
 export const caseStudies: CaseStudyResult[] = [];
@@ -36,11 +36,11 @@ export const flagshipInProgress: CaseStudyInProgress = {
   status: "Measurement in progress",
   headline: "Our first flagship result is being measured right now, inside a real, operating roofing company.",
   body:
-    "This isn't a demo or a pilot running in a lab — it's live, inside a business that depends on it every day. We're partway through the measurement period that will produce the first fully-verified numbers we publish on this site. Rather than estimate ahead of that and round things in our favor, we're choosing to wait and show you exactly what the records say when the period closes.",
+    "This isn't a demo or a pilot running in a lab: it's live, inside a business that depends on it every day. We're partway through the measurement period that will produce the first fully-verified numbers we publish on this site. Rather than estimate ahead of that and round things in our favor, we're choosing to wait and show you exactly what the records say when the period closes.",
   metrics: [
     {
       label: "Response time",
-      note: "How quickly inbound calls, texts, and form submissions get a reply — measured before-and-after against the business's own call logs.",
+      note: "How quickly inbound calls, texts, and form submissions get a reply, measured before-and-after against the business's own call logs.",
     },
     {
       label: "Jobs booked",
@@ -48,11 +48,11 @@ export const flagshipInProgress: CaseStudyInProgress = {
     },
     {
       label: "Revenue recovered",
-      note: "What those additional booked jobs are worth — calculated from the business's own average job value, not an industry estimate.",
+      note: "What those additional booked jobs are worth, calculated from the business's own average job value, not an industry estimate.",
     },
   ],
   commitment:
-    "When the measurement period closes, the verified numbers replace this section — including the business's name and the owner's own words, with their permission. Not adjusted upward. Not rounded in our favor. If the result is more modest than we hoped, that's what gets published too. That's the standard this page will be held to, for this story and every one that follows it.",
+    "When the measurement period closes, the verified numbers replace this section, including the business's name and the owner's own words, with their permission. Not adjusted upward. Not rounded in our favor. If the result is more modest than we hoped, that's what gets published too. That's the standard this page will be held to, for this story and every one that follows it.",
   href: "/results/roofing-flagship",
 };
 
@@ -69,26 +69,26 @@ export const featuredCaseStudy = caseStudies[0];
 export const flagshipMethodology: MeasurementMethodology = {
   slug: "roofing-flagship",
   industryTag: "Roofing",
-  title: "How we're measuring our first flagship result — and why there's no number here yet",
+  title: "How we're measuring our first flagship result, and why there's no number here yet",
   dek:
-    "It would be easy to publish an estimate today and call it a case study. We're choosing not to — and we'd rather show you exactly how we're measuring this, so that when the verified numbers do land, you'll know precisely how much rigor stands behind them.",
+    "It would be easy to publish an estimate today and call it a case study. We're choosing not to. Instead, we'd rather show you exactly how we're measuring this, so that when the verified numbers do land, you'll know precisely how much rigor stands behind them.",
   sections: [
     {
-      heading: "Why there's nothing to show yet — on purpose",
+      heading: "Why there's nothing to show yet, on purpose",
       body:
-        "The business this is happening inside is real and operating, not a controlled environment — which means the only honest way to show what changed is to let a full measurement period run its course on real data, then publish exactly what the records say. Anything published before that point would be a guess wearing the costume of a result. We'd rather wait.",
+        "The business this is happening inside is real and operating, not a controlled environment, which means the only honest way to show what changed is to let a full measurement period run its course on real data, then publish exactly what the records say. Anything published before that point would be a guess wearing the costume of a result. We'd rather wait.",
     },
     {
       heading: "What we're tracking, and against what",
       body:
-        "Three things, each measured against the business's own records from before the system went live: how quickly inbound contact gets answered, how many additional jobs make it onto the calendar, and what that's worth in recovered revenue using the business's own average job value. Every one of those figures will be traceable back to that business's own call logs, booking calendar, and job records — not to an industry-average estimate or a number we'd prefer were true.",
+        "Three things, each measured against the business's own records from before the system went live: how quickly inbound contact gets answered, how many additional jobs make it onto the calendar, and what that's worth in recovered revenue using the business's own average job value. Every one of those figures will be traceable back to that business's own call logs, booking calendar, and job records, not to an industry-average estimate or a number we'd prefer were true.",
     },
     {
       heading: "What happens the moment the period closes",
       body:
-        "The verified figures replace this page's framing entirely — not cherry-picked from the strongest month, not adjusted in our favor. If the honest number is more modest than we'd hoped, that's the number that gets published, with the same prominence as a more flattering one would have gotten. That's the standard we're setting for ourselves here — and the same standard every case study that follows this one, in any industry, will be held to.",
+        "The verified figures replace this page's framing entirely: not cherry-picked from the strongest month, not adjusted in our favor. If the honest number is more modest than we'd hoped, that's the number that gets published, with the same prominence as a more flattering one would have gotten. That's the standard we're setting for ourselves here, and the same standard every case study that follows this one, in any industry, will be held to.",
     },
   ],
   closingNote:
-    "In the meantime, you don't have to take our word for what slow follow-up might be costing your business — the Lead Leak Calculator runs the same kind of math using your numbers, not ours, and shows its work plainly.",
+    "In the meantime, you don't have to take our word for what slow follow-up might be costing your business: the Lead Leak Calculator runs the same kind of math using your numbers, not ours, and shows its work plainly.",
 };

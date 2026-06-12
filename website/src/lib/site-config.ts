@@ -12,9 +12,9 @@
  */
 export const siteConfig = {
   name: "Valfin",
-  title: "Valfin — Never lose another customer to slow follow-up",
+  title: "Valfin: Never lose another customer to slow follow-up",
   description:
-    "Valfin makes sure your business never loses another customer to slow follow-up. Always-on systems that answer, qualify, follow up, and book — automatically, day and night.",
+    "Valfin makes sure your business never loses another customer to slow follow-up. Always-on systems that answer, qualify, follow up, and book, automatically, day and night.",
   url: "https://valfintech.com",
   keywords: [
     "lead response system",

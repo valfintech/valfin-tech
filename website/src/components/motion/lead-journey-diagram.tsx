@@ -10,7 +10,7 @@ import { motion, useReducedMotion } from "framer-motion";
  * A pulse travels left to right through five stages — Lead comes in →
  * Valfin intercepts → Owner notified → Appointment booked → Revenue
  * recovered — lighting up each node as it arrives. A second, dimmer pulse
- * branches off the first node toward a "Normally: goes quiet" dead end,
+ * branches off the first node toward a "The normal outcome" dead end,
  * fading to nothing — the contrast is the entire pitch in one glance.
  *
  * Renders a horizontal SVG timeline on larger screens and a simpler
@@ -19,14 +19,14 @@ import { motion, useReducedMotion } from "framer-motion";
  */
 
 const STAGES = [
-  { label: "A lead comes in", detail: "Call, text, or form — any hour" },
+  { label: "A lead comes in", detail: "Call, text, or form, any hour" },
   { label: "Valfin intercepts", detail: "Answered in seconds, not hours" },
   { label: "Owner notified", detail: "You see it happen, live" },
   { label: "Appointment booked", detail: "Placed straight on the calendar" },
   { label: "Revenue recovered", detail: "A job that would've been lost" },
 ];
 
-const GHOST = { label: "Normally: goes quiet", detail: "No one calls back in time" };
+const GHOST = { label: "The normal outcome", detail: "No follow-up. The opportunity just goes away." };
 
 // Desktop SVG layout
 const VIEW_W = 1200;
@@ -46,7 +46,7 @@ export function LeadJourneyDiagram({ className }: { className?: string }) {
     <div
       className={className}
       role="img"
-      aria-label="Diagram: a lead comes in, Valfin intercepts it, the owner is notified, an appointment gets booked, and revenue is recovered — versus normally going quiet with no follow-up."
+      aria-label="Diagram: a lead comes in, Valfin intercepts it, the owner is notified, an appointment gets booked, and revenue is recovered. Versus normally going quiet with no follow-up."
     >
       {/* Desktop / tablet: animated horizontal timeline */}
       <svg
@@ -261,9 +261,7 @@ export function LeadJourneyDiagram({ className }: { className?: string }) {
           <span aria-hidden="true" className="mt-1 size-2 flex-shrink-0 rounded-full border border-ink-600 bg-ink-800" />
           <div>
             <p className="text-xs font-semibold text-ink-400">{GHOST.label}</p>
-            <p className="mt-0.5 text-xs leading-relaxed text-ink-600">
-              {GHOST.detail} — what usually happens without Valfin
-            </p>
+            <p className="mt-0.5 text-xs leading-relaxed text-ink-600">{GHOST.detail}</p>
           </div>
         </div>
       </div>

@@ -37,7 +37,7 @@ export function SiteFooter() {
             </Link>
             <p className="mt-4 max-w-xs text-sm leading-relaxed text-ink-400">
               Valfin makes sure your business never loses another customer to
-              slow follow-up — answered, followed up, and booked, automatically.
+              slow follow-up: answered, followed up, and booked, automatically.
             </p>
           </div>
 

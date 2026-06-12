@@ -124,7 +124,7 @@ export function LeadLeakCalculator() {
               <StepQuestion
                 eyebrow="Step 1 of 2"
                 question="About how many new leads does your business get in a typical month?"
-                helpText="A rough number is fine — calls, form submissions, messages, walk-ins, anything that could become a customer."
+                helpText="A rough number is fine: calls, form submissions, messages, walk-ins, anything that could become a customer."
               />
               <NumberStepForm
                 inputId={leadsInputId}
@@ -191,10 +191,10 @@ export function LeadLeakCalculator() {
             <div>
               <p className="text-eyebrow">One moment</p>
               <h2 className="mt-3 text-xl font-semibold leading-snug text-ink-50 sm:text-2xl">
-                We didn&apos;t catch your numbers — let&apos;s try that again.
+                We didn&apos;t catch your numbers. Let&apos;s try that again.
               </h2>
               <p className="mt-2 text-sm leading-relaxed text-ink-400">
-                Nothing&apos;s wrong on your end — this is just a quick reset so we can calculate your estimate
+                Nothing&apos;s wrong on your end, this is just a quick reset so we can calculate your estimate
                 correctly.
               </p>
               <Button
@@ -359,8 +359,8 @@ function ResultPanel({
         </p>
       </div>
       <p className="mt-2 text-sm text-ink-400">
-        That&apos;s roughly <span className="text-ink-200">{formatCurrency(result.recoverableAnnualRevenue)}</span> a year — money
-        already spent to generate these leads, sitting unconverted.
+        That&apos;s roughly <span className="text-ink-200">{formatCurrency(result.recoverableAnnualRevenue)}</span> a year:
+        money already spent to generate these leads, sitting unconverted.
       </p>
 
       <div className="mt-8 rounded-xl border border-ink-700 bg-ink-950/60 p-6">
@@ -373,16 +373,16 @@ function ResultPanel({
           <li>
             • On average, businesses like yours lose around{" "}
             <span className="text-ink-50">{Math.round(ASSUMED_LOST_LEAD_RATE * 100)}%</span> of leads to slow or
-            missed follow-up — about <span className="text-ink-50">{result.lostLeadsPerMonth}</span> people a month who
+            missed follow-up, about <span className="text-ink-50">{result.lostLeadsPerMonth}</span> people a month who
             wanted to do business with you and never heard back in time.
           </li>
           <li>
             • Conservatively, roughly <span className="text-ink-50">{Math.round(ASSUMED_RECOVERABLE_CONVERSION_RATE * 100)}%</span> of
-            those would have converted with fast, consistent follow-up — which is where the number above comes from.
+            those would have converted with fast, consistent follow-up, which is where the number above comes from.
           </li>
         </ul>
         <p className="mt-3 text-xs text-ink-600">
-          These are conservative, industry-informed estimates, shown plainly rather than dressed up — your real number
+          These are conservative, industry-informed estimates, shown plainly rather than dressed up. Your real number
           may be higher or lower. We&apos;ll happily walk through your actual numbers on a call.
         </p>
       </div>

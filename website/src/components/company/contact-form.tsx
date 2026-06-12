@@ -62,9 +62,9 @@ export function ContactForm() {
     return (
       <div className="rounded-2xl border border-success/30 bg-success/[0.06] p-8 text-center sm:p-10">
         <CheckCircle2 className="mx-auto size-8 text-success" aria-hidden="true" />
-        <h3 className="mt-4 text-xl font-semibold text-ink-50">Got it — thank you.</h3>
+        <h3 className="mt-4 text-xl font-semibold text-ink-50">Got it, thank you.</h3>
         <p className="mt-2 text-sm leading-relaxed text-ink-300">
-          We read every message ourselves. Expect to hear back from a real person — usually within one business
+          We read every message ourselves. Expect to hear back from a real person, usually within one business
           day, often sooner.
         </p>
       </div>
@@ -135,7 +135,7 @@ export function ContactForm() {
         <ArrowRight className="ml-1 size-4" />
       </Button>
       <p className="mt-4 text-xs text-ink-600">
-        No spam, no automated drip campaign — just a real reply from a real person at Valfin.
+        No spam, no automated drip campaign, just a real reply from a real person at Valfin.
       </p>
       <p className="mt-3 text-xs leading-relaxed text-ink-600">
         By submitting this form, you consent to receive communications from Valfin Tech regarding your inquiry,

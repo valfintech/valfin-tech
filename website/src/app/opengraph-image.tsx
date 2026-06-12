@@ -59,7 +59,7 @@ export default async function OpengraphImage() {
             Never lose another customer to slow follow-up.
           </span>
           <span style={{ marginTop: 28, fontSize: 26, lineHeight: 1.5, color: "#a0a6b0", maxWidth: 760 }}>
-            Always-on systems that answer, qualify, follow up, and book — automatically, day and night.
+            Always-on systems that answer, qualify, follow up, and book, automatically, day and night.
           </span>
         </div>
 

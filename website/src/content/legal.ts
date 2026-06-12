@@ -33,7 +33,7 @@ export const privacyPolicy: LegalDocument = {
   effectiveDate: EFFECTIVE_DATE,
   intro: [
     "This Privacy Policy explains what information Valfin Tech (\"Valfin,\" \"we,\" \"us,\" or \"our\") collects through valfintech.com (the \"Site\"), how we use it, and the choices you have.",
-    "Valfin is an operational system for service businesses — this Site is informational, and the only personal information we collect is what you choose to give us when you reach out or use the Lead Leak Calculator.",
+    "Valfin is an operational system for service businesses: this Site is informational, and the only personal information we collect is what you choose to give us when you reach out or use the Lead Leak Calculator.",
   ],
   sections: [
     {
@@ -62,11 +62,11 @@ export const privacyPolicy: LegalDocument = {
         "We do not sell your information. To operate the Site and respond to inquiries, submissions are processed by a small set of service providers acting on our behalf:",
       ],
       list: [
-        "Vercel — hosts the Site and provides cookie-less, privacy-preserving analytics",
-        "n8n (workflow automation) — receives form submissions and routes them to our internal tools",
-        "Google (Google Sheets) — stores submitted lead information in an internal record",
-        "Twilio — used to send SMS notifications related to your inquiry",
-        "Resend — a backup email provider used only if our primary systems are temporarily unreachable, so your message is never silently lost",
+        "Vercel: hosts the Site and provides cookie-less, privacy-preserving analytics",
+        "n8n (workflow automation): receives form submissions and routes them to our internal tools",
+        "Google (Google Sheets): stores submitted lead information in an internal record",
+        "Twilio: used to send SMS notifications related to your inquiry",
+        "Resend: a backup email provider used only if our primary systems are temporarily unreachable, so your message is never silently lost",
       ],
       // Note: each processor above only receives the data necessary to perform its function
       // (lead routing, storage, and notification) — none of them are permitted to use it
@@ -100,7 +100,7 @@ export const privacyPolicy: LegalDocument = {
     {
       heading: "Data Security",
       paragraphs: [
-        "We use reasonable administrative and technical safeguards — including encrypted connections (HTTPS/TLS) and access-controlled third-party services — to protect the information you share with us. No method of transmission or storage is completely secure, but we work to protect your information appropriately.",
+        "We use reasonable administrative and technical safeguards, including encrypted connections (HTTPS/TLS) and access-controlled third-party services, to protect the information you share with us. No method of transmission or storage is completely secure, but we work to protect your information appropriately.",
       ],
     },
     {
@@ -135,19 +135,19 @@ export const termsAndConditions: LegalDocument = {
     {
       heading: "Use of the Site",
       paragraphs: [
-        "You may use this Site to learn about Valfin's services, use the Lead Leak Calculator, and contact us. You agree not to misuse the Site — including attempting to disrupt it, scrape it at scale, or submit false or fraudulent information through its forms.",
+        "You may use this Site to learn about Valfin's services, use the Lead Leak Calculator, and contact us. You agree not to misuse the Site, including attempting to disrupt it, scrape it at scale, or submit false or fraudulent information through its forms.",
       ],
     },
     {
       heading: "The Lead Leak Calculator",
       paragraphs: [
-        "The Lead Leak Calculator provides an illustrative estimate based on the figures you enter. It is intended to help you think about the cost of slow follow-up — it is not a guarantee of results, savings, or revenue, and should not be relied upon as financial or business advice. Actual outcomes depend on your specific business.",
+        "The Lead Leak Calculator provides an illustrative estimate based on the figures you enter. It is intended to help you think about the cost of slow follow-up. It is not a guarantee of results, savings, or revenue, and should not be relied upon as financial or business advice. Actual outcomes depend on your specific business.",
       ],
     },
     {
       heading: "Intellectual Property",
       paragraphs: [
-        "The content on this Site — including text, graphics, logos, and the Valfin name and brand — is owned by Valfin Tech or its licensors and is protected by applicable intellectual property laws. You may not reproduce, distribute, or create derivative works from this content without our written permission.",
+        "The content on this Site, including text, graphics, logos, and the Valfin name and brand, is owned by Valfin Tech or its licensors and is protected by applicable intellectual property laws. You may not reproduce, distribute, or create derivative works from this content without our written permission.",
       ],
     },
     {
