@@ -56,7 +56,13 @@ export function SiteHeader() {
           ))}
         </nav>
 
-        <div className="hidden md:block">
+        <div className="hidden items-center gap-2 md:flex">
+          <Link
+            href={siteConfig.secondaryCta.href}
+            className="text-sm text-ink-200 transition-colors hover:text-ink-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent-500 focus-visible:ring-offset-2 focus-visible:ring-offset-background rounded-sm"
+          >
+            {siteConfig.secondaryCta.label}
+          </Link>
           <ButtonLink href={siteConfig.primaryCta.href} size="sm" className="bg-accent-500 text-white hover:bg-accent-400">
             {siteConfig.primaryCta.label}
           </ButtonLink>
@@ -97,6 +103,16 @@ export function SiteHeader() {
                       className={cn(buttonVariants(), "mt-4 bg-accent-500 text-white hover:bg-accent-400")}
                     >
                       {siteConfig.primaryCta.label}
+                    </Link>
+                  }
+                />
+                <SheetClose
+                  render={
+                    <Link
+                      href={siteConfig.secondaryCta.href}
+                      className="mt-1 rounded-md px-3 py-3 text-center text-sm text-ink-400 transition-colors hover:bg-ink-800 hover:text-ink-50"
+                    >
+                      {siteConfig.secondaryCta.label}
                     </Link>
                   }
                 />
