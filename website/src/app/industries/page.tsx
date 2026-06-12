@@ -7,9 +7,9 @@ import { JsonLd } from "@/components/seo/json-ld";
 import { industriesPage, industryList } from "@/content/industries";
 import { breadcrumbSchema } from "@/lib/structured-data";
 
-const TITLE = "Industries — Valfin works for any business that runs on leads";
+const TITLE = "Industries - Valfin works for any business that runs on leads";
 const DESCRIPTION =
-  "Proven first in roofing — one of the most competitive, time-sensitive lead-driven industries there is — and built to work the same way for HVAC, plumbing, real estate, legal, dental, insurance, and more.";
+  "Proven first in roofing, one of the most competitive, time-sensitive lead-driven industries there is, and built to work the same way for HVAC, plumbing, real estate, legal, dental, insurance, and more.";
 
 export const metadata: Metadata = {
   title: TITLE,

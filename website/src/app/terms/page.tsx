@@ -4,7 +4,7 @@ import { JsonLd } from "@/components/seo/json-ld";
 import { termsAndConditions } from "@/content/legal";
 import { breadcrumbSchema } from "@/lib/structured-data";
 
-const TITLE = "Terms & Conditions — Valfin";
+const TITLE = "Terms & Conditions - Valfin";
 const DESCRIPTION = "The terms that govern your use of valfintech.com.";
 
 export const metadata: Metadata = {

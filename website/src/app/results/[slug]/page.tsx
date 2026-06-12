@@ -105,7 +105,7 @@ export default async function CaseStudyPage({ params }: PageProps) {
               Curious what this would look like inside your business?
             </h2>
             <p className="mt-4 text-lg leading-relaxed text-ink-200">
-              Run your own numbers, or talk to us directly — either way, you&apos;ll see something more concrete than a
+              Run your own numbers, or talk to us directly. Either way, you&apos;ll see something more concrete than a
               sales pitch.
             </p>
             <div className="mt-8 flex flex-col items-center justify-center gap-4 sm:flex-row">

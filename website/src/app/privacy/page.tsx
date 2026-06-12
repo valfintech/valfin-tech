@@ -4,7 +4,7 @@ import { JsonLd } from "@/components/seo/json-ld";
 import { privacyPolicy } from "@/content/legal";
 import { breadcrumbSchema } from "@/lib/structured-data";
 
-const TITLE = "Privacy Policy — Valfin";
+const TITLE = "Privacy Policy - Valfin";
 const DESCRIPTION = "How Valfin Tech collects, uses, and protects information submitted through valfintech.com.";
 
 export const metadata: Metadata = {

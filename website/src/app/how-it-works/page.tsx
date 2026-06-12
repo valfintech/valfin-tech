@@ -20,9 +20,9 @@ import {
 } from "@/content/how-it-works";
 import { breadcrumbSchema, faqPageSchema } from "@/lib/structured-data";
 
-const TITLE = "How It Works — Valfin";
+const TITLE = "How It Works - Valfin";
 const DESCRIPTION =
-  "A look underneath the hood: how Valfin answers, qualifies, follows up, and books every lead that reaches your business — without asking your team to learn anything new.";
+  "A look underneath the hood: how Valfin answers, qualifies, follows up, and books every lead that reaches your business, without asking your team to learn anything new.";
 
 export const metadata: Metadata = {
   title: TITLE,
@@ -157,7 +157,7 @@ export default function HowItWorksPage() {
               See what this would change for your business specifically
             </h2>
             <p className="mt-4 text-lg leading-relaxed text-ink-200">
-              Run your numbers through the calculator, or talk to us directly — either way, you&apos;ll walk away with a
+              Run your numbers through the calculator, or talk to us directly: either way, you&apos;ll walk away with a
               clearer picture than you have right now.
             </p>
             <div className="mt-8 flex flex-col items-center justify-center gap-4 sm:flex-row">

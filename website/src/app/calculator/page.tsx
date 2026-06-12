@@ -4,7 +4,7 @@ import { ScrollReveal } from "@/components/motion/scroll-reveal";
 import { JsonLd } from "@/components/seo/json-ld";
 import { breadcrumbSchema } from "@/lib/structured-data";
 
-const TITLE = "Lead Leak Calculator — See what slow follow-up is costing you";
+const TITLE = "Lead Leak Calculator - See what slow follow-up is costing you";
 const DESCRIPTION =
   "Answer two quick questions and see a personalized estimate of how much revenue your business is likely losing each month to slow or missed lead follow-up.";
 
@@ -32,7 +32,7 @@ export default function CalculatorPage() {
           <ScrollReveal className="mx-auto max-w-2xl text-center">
             <p className="text-eyebrow justify-center">Lead Leak Calculator</p>
             <h1 className="mt-4 text-3xl font-semibold leading-tight tracking-tight text-ink-50 sm:text-4xl lg:text-5xl">
-              See what slow follow-up is costing you — in about 60 seconds
+              See what slow follow-up is costing you, in about 60 seconds
             </h1>
             <p className="mt-5 text-base leading-relaxed text-ink-300 sm:text-lg">
               You already know roughly how many leads come in, and roughly what a customer is worth. That&apos;s
@@ -51,7 +51,7 @@ export default function CalculatorPage() {
 
           <ScrollReveal delay={0.15} className="mx-auto mt-10 max-w-xl text-center">
             <p className="text-sm leading-relaxed text-ink-600">
-              No email required to see your number. These are conservative, plainly-stated estimates —
+              No email required to see your number. These are conservative, plainly-stated estimates,
               built to start a conversation, not to replace one.
             </p>
           </ScrollReveal>

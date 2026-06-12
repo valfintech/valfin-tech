@@ -8,7 +8,7 @@ import { JsonLd } from "@/components/seo/json-ld";
 import { flagshipInProgress, resultsPage } from "@/content/results";
 import { breadcrumbSchema } from "@/lib/structured-data";
 
-const TITLE = "Results — Real numbers from real businesses | Valfin";
+const TITLE = "Results - Real numbers from real businesses | Valfin";
 const DESCRIPTION =
   "Every number on this page traces back to a real business and a real before-and-after. We'd rather show you one documented result than a wall of vague claims.";
 
@@ -79,7 +79,7 @@ export default function ResultsPage() {
 
           <ScrollReveal delay={0.08} className="rounded-2xl border border-dashed border-ink-700 p-8 text-center sm:p-10">
             <p className="text-base leading-relaxed text-ink-400">
-              Every additional case study — in every industry we work with — will be held to the same standard
+              Every additional case study, in every industry we work with, will be held to the same standard
               you see above: real numbers, from real businesses, verified against their own records before they
               ever appear on this page.
             </p>

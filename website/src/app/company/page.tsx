@@ -15,7 +15,7 @@ import {
 } from "@/content/company";
 import { breadcrumbSchema } from "@/lib/structured-data";
 
-const TITLE = "Company — Why Valfin exists | Valfin";
+const TITLE = "Company - Why Valfin exists | Valfin";
 const DESCRIPTION =
   "Valfin started inside one real roofing company, not a lab. Here's the story of the problem we found, what we built to fix it, and where we're taking it next.";
 

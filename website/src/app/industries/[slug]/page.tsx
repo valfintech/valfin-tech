@@ -31,8 +31,8 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
   const industry = getIndustryBySlug(slug);
   if (!industry) return {};
 
-  const title = `${industry.name} — Never lose another ${industry.customerNoun} to slow follow-up | Valfin`;
-  const description = `Valfin makes sure your ${industry.shortLabel.toLowerCase()} business answers every ${industry.customerNoun} fast — day or night — and follows up until they book a ${industry.outcomeNoun}.`;
+  const title = `${industry.name} - Never lose another ${industry.customerNoun} to slow follow-up | Valfin`;
+  const description = `Valfin makes sure your ${industry.shortLabel.toLowerCase()} business answers every ${industry.customerNoun} fast, day or night, and follows up until they book a ${industry.outcomeNoun}.`;
 
   return {
     title,
@@ -65,7 +65,7 @@ export default async function IndustryPage({ params }: PageProps) {
           <ScrollReveal className="mx-auto max-w-3xl text-center">
             {industry.isFlagship ? (
               <Badge variant="outline" className="mx-auto border-accent-500/40 bg-accent-500/10 text-accent-400">
-                Flagship industry — proven first here
+                Flagship industry: proven first here
               </Badge>
             ) : (
               <p className="text-eyebrow justify-center">For {industry.shortLabel.toLowerCase()}</p>
@@ -74,8 +74,8 @@ export default async function IndustryPage({ params }: PageProps) {
               Your next {industry.customerNoun} is already trying to reach you. The question is whether anyone answers.
             </h1>
             <p className="mt-5 text-base leading-relaxed text-ink-300 sm:text-lg">
-              Valfin makes sure your business is the one that answers first — every call, text, and form, day or
-              night — and keeps following up until that {industry.customerNoun} either books a {industry.outcomeNoun}
+              Valfin makes sure your business is the one that answers first (every call, text, and form, day or
+              night) and keeps following up until that {industry.customerNoun} either books a {industry.outcomeNoun}
               {" "}or tells you no.
             </p>
             <div className="mt-8 flex flex-col items-center justify-center gap-4 sm:flex-row">
@@ -145,7 +145,7 @@ export default async function IndustryPage({ params }: PageProps) {
             <h2 className="mt-4 text-2xl font-semibold leading-snug tracking-tight text-ink-50 sm:text-3xl">
               {industry.isFlagship
                 ? "This is the industry where we built and proved the entire system."
-                : "We proved this system first in roofing — one of the toughest, most time-sensitive versions of this problem there is."}
+                : "We proved this system first in roofing: one of the toughest, most time-sensitive versions of this problem there is."}
             </h2>
             <p className="mt-4 text-base leading-relaxed text-ink-300">
               {industry.isFlagship

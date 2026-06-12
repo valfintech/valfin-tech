@@ -14,9 +14,9 @@ import { pricingFaq, pricingPage, pricingPlans } from "@/content/pricing";
 import { breadcrumbSchema, faqPageSchema } from "@/lib/structured-data";
 import { cn } from "@/lib/utils";
 
-const TITLE = "Pricing — Valfin";
+const TITLE = "Pricing - Valfin";
 const DESCRIPTION =
-  "Priced against what slow follow-up is already costing your business — not against what software usually costs. See your number, then talk to us about what fits.";
+  "Priced against what slow follow-up is already costing your business, not against what software usually costs. See your number, then talk to us about what fits.";
 
 export const metadata: Metadata = {
   title: TITLE,
@@ -147,7 +147,7 @@ export default function PricingPage() {
               Still not sure where you&apos;d land?
             </h2>
             <p className="mt-4 text-lg leading-relaxed text-ink-200">
-              See what slow follow-up is already costing you — that number tends to make this whole page much
+              See what slow follow-up is already costing you: that number tends to make this whole page much
               easier to think about.
             </p>
             <div className="mt-8 flex flex-col items-center justify-center gap-4 sm:flex-row">
