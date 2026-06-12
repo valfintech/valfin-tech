@@ -56,7 +56,7 @@ export const timeline: TimelineEntry[] = [
 export const vision = {
   eyebrow: "Where this is going",
   headline: "Our long-term goal isn't to be known as an AI company. It's to be the reason businesses stop losing customers to silence.",
-  body: "AI Employees are the part of this you can see today — but they're one capability inside something larger we're building: a system that sits underneath a business and makes sure nothing it already earned slips away unnoticed. Over time, that means more than fast response and follow-up. It means a business owner being able to trust that the revenue they've already worked to generate is being protected, end to end — without having to manage another dashboard to make it happen. We're not trying to be the loudest company talking about AI. We're trying to be the quiet infrastructure that businesses simply stop having to think about.",
+  body: "What you see today is faster response and relentless follow-up — but that's one piece of something larger we're building: a system that sits underneath a business and makes sure nothing it already earned slips away unnoticed. Over time, that means a business owner being able to trust that the revenue they've already worked to generate is being protected, end to end — without having to manage another dashboard to make it happen. We're not trying to be the loudest name in technology. We're trying to be the quiet infrastructure that businesses simply stop having to think about.",
 };
 
 export const principles: TeamPrinciple[] = [

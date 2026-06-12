@@ -91,7 +91,7 @@ export const howItWorks = {
 export const systemUnderneath = {
   eyebrow: "What makes this different",
   headline: "We're not selling you software. We're making sure you never have to think about this again.",
-  body: "Most tools hand you another dashboard to check, another inbox to manage, another thing to remember to use correctly. Valfin was built to disappear into the background of your business — running every hour you're open, and every hour you're not — until the only thing you notice is that nothing falls through the cracks anymore. AI Employees are part of how that happens. They're one capability inside a larger system built around a single goal: making sure no one who tries to reach you is ever met with silence.",
+  body: "Most tools hand you another dashboard to check, another inbox to manage, another thing to remember to use correctly. Valfin was built to disappear into the background of your business — running every hour you're open, and every hour you're not — until the only thing you notice is that nothing falls through the cracks anymore. Every part of it is built around one goal: making sure no one who tries to reach you is ever met with silence.",
   pillars: [
     {
       title: "Always answering",
@@ -102,8 +102,8 @@ export const systemUnderneath = {
       description: "No follow-up missed, no lead left on read, no “I meant to call them back.”",
     },
     {
-      title: "Gets sharper over time",
-      description: "Every conversation teaches the system more about how to recognize and convert your next customer.",
+      title: "Built around your business",
+      description: "Tuned to your services, your pricing, and the way your best people already talk to customers — so every response sounds like it came from your team.",
     },
   ] as Pillar[],
 };

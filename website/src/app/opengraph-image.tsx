@@ -28,7 +28,7 @@ export default async function OpengraphImage() {
           padding: "80px",
           backgroundColor: "#06070a",
           backgroundImage:
-            "radial-gradient(circle at 18% 22%, rgba(91,91,255,0.28), transparent 42%), radial-gradient(circle at 82% 86%, rgba(68,68,219,0.22), transparent 46%)",
+            "radial-gradient(circle at 18% 22%, rgba(37,99,235,0.28), transparent 42%), radial-gradient(circle at 82% 86%, rgba(29,78,216,0.22), transparent 46%)",
           fontFamily: "Helvetica, Arial, sans-serif",
         }}
       >
@@ -38,7 +38,7 @@ export default async function OpengraphImage() {
               width: 14,
               height: 14,
               borderRadius: 9999,
-              backgroundColor: "#5b5bff",
+              backgroundColor: "#2563eb",
             }}
           />
           <span style={{ fontSize: 30, color: "#f5f6f8", fontWeight: 600, letterSpacing: -0.5 }}>
@@ -64,7 +64,7 @@ export default async function OpengraphImage() {
         </div>
 
         <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
-          <span style={{ fontSize: 22, color: "#7b7bff", fontWeight: 500 }}>valfintech.com</span>
+          <span style={{ fontSize: 22, color: "#38bdf8", fontWeight: 500 }}>valfintech.com</span>
         </div>
       </div>
     ),

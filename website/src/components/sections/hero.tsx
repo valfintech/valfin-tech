@@ -1,7 +1,7 @@
 import { ArrowRight } from "lucide-react";
 import { ButtonLink } from "@/components/ui/button-link";
 import { ScrollReveal } from "@/components/motion/scroll-reveal";
-import { ReachOutDiagram } from "@/components/motion/reach-out-diagram";
+import { LeadJourneyDiagram } from "@/components/motion/lead-journey-diagram";
 import { hero } from "@/content/homepage";
 
 export function Hero() {
@@ -13,8 +13,8 @@ export function Hero() {
         className="pointer-events-none absolute inset-x-0 top-0 -z-10 h-[640px] bg-[radial-gradient(ellipse_60%_50%_at_50%_-10%,var(--accent-600)_0%,transparent_70%)] opacity-[0.16]"
       />
 
-      <div className="section-container grid grid-cols-1 items-center gap-16 pb-20 pt-20 sm:pt-28 lg:grid-cols-2 lg:pb-28 lg:pt-36">
-        <ScrollReveal>
+      <div className="section-container flex flex-col gap-14 pb-20 pt-20 sm:pt-28 lg:gap-20 lg:pb-28 lg:pt-36">
+        <ScrollReveal className="max-w-2xl">
           <p className="text-eyebrow">{hero.eyebrow}</p>
           <h1 className="mt-5 text-4xl font-semibold leading-[1.1] tracking-tight text-ink-50 sm:text-5xl lg:text-6xl">
             {hero.headline}
@@ -45,10 +45,14 @@ export function Hero() {
           <p className="mt-5 text-sm text-ink-400">{hero.microcopy}</p>
         </ScrollReveal>
 
-        <ScrollReveal delay={0.15} className="flex justify-center lg:justify-end">
-          <div className="w-full max-w-md rounded-2xl border border-ink-700 bg-ink-900/60 p-8 shadow-[0_0_60px_-20px_rgba(91,91,255,0.25)] backdrop-blur-sm">
-            <ReachOutDiagram size="hero" />
-            <p className="mt-2 text-center text-xs text-ink-400">
+        <ScrollReveal delay={0.15}>
+          <div className="relative overflow-hidden rounded-2xl border border-ink-700 bg-ink-900/60 p-6 shadow-[0_0_80px_-24px_rgba(37,99,235,0.3)] backdrop-blur-sm sm:p-10 lg:p-14">
+            <div
+              aria-hidden="true"
+              className="pointer-events-none absolute inset-0 -z-10 bg-[radial-gradient(ellipse_80%_60%_at_50%_0%,var(--navy-900)_0%,transparent_70%)] opacity-70"
+            />
+            <LeadJourneyDiagram />
+            <p className="mt-8 text-center text-sm text-ink-400 sm:mt-10">
               This is what happens, every time, automatically.
             </p>
           </div>

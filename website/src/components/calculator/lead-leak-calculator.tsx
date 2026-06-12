@@ -20,6 +20,8 @@ const STEP_ORDER: Step[] = ["leads", "value", "result"];
 const PRESET_LEADS = [10, 25, 50, 100];
 const PRESET_VALUES = [500, 2500, 7500, 15000];
 
+const STEP_LABELS = ["Your leads", "Your numbers", "Your result"];
+
 /**
  * The Lead Leak Calculator — Valfin's primary conversion mechanism.
  *
@@ -65,8 +67,21 @@ export function LeadLeakCalculator() {
   }
 
   return (
-    <div className="mx-auto w-full max-w-xl">
+    <div className="relative mx-auto w-full max-w-xl">
+      {/* Ambient glow — marks this as the site's primary interactive moment */}
+      <div
+        aria-hidden="true"
+        className="pointer-events-none absolute -inset-x-6 -inset-y-10 -z-10 rounded-[2.5rem] bg-[radial-gradient(ellipse_80%_70%_at_50%_0%,var(--navy-900)_0%,transparent_70%)] opacity-70 blur-2xl sm:-inset-x-12"
+      />
+
       {/* Progress indicator */}
+      <div className="mb-3 flex items-center gap-2 text-xs font-medium text-ink-400" aria-hidden="true">
+        {STEP_LABELS.map((label, i) => (
+          <span key={label} className={cn("flex-1 text-center", i <= stepIndex ? "text-accent-400" : "text-ink-600")}>
+            {label}
+          </span>
+        ))}
+      </div>
       <div className="mb-8 flex items-center gap-2" aria-hidden="true">
         {STEP_ORDER.map((s, i) => (
           <div
@@ -79,7 +94,7 @@ export function LeadLeakCalculator() {
         ))}
       </div>
 
-      <div className="relative overflow-hidden rounded-2xl border border-ink-700 bg-ink-900/60 p-8 sm:p-10">
+      <div className="relative overflow-hidden rounded-2xl border border-ink-700 bg-ink-900/60 p-8 shadow-[0_0_80px_-24px_rgba(37,99,235,0.3)] backdrop-blur-sm sm:p-10">
         {/*
           Defensive design note — this is the site's primary conversion
           mechanism, so the step transition is built to fail safe:
@@ -333,10 +348,16 @@ function ResultPanel({
         Based on your numbers, slow follow-up could be costing you around
       </h2>
 
-      <p className="mt-4 text-5xl font-semibold tracking-tight text-accent-400 sm:text-6xl">
-        {formatCurrency(result.recoverableMonthlyRevenue)}
-        <span className="ml-2 text-xl font-medium text-ink-400">/ month</span>
-      </p>
+      <div className="relative mt-4">
+        <div
+          aria-hidden="true"
+          className="pointer-events-none absolute -inset-x-8 -inset-y-6 -z-10 rounded-[2rem] bg-[radial-gradient(ellipse_70%_70%_at_20%_50%,var(--accent-500)_0%,transparent_70%)] opacity-[0.18] blur-2xl"
+        />
+        <p className="text-5xl font-semibold tracking-tight text-accent-400 sm:text-6xl">
+          {formatCurrency(result.recoverableMonthlyRevenue)}
+          <span className="ml-2 text-xl font-medium text-ink-400">/ month</span>
+        </p>
+      </div>
       <p className="mt-2 text-sm text-ink-400">
         That&apos;s roughly <span className="text-ink-200">{formatCurrency(result.recoverableAnnualRevenue)}</span> a year — money
         already spent to generate these leads, sitting unconverted.

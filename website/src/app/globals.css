@@ -17,7 +17,7 @@
   --color-foreground: var(--foreground);
   --font-sans: var(--font-sans);
   --font-mono: var(--font-geist-mono);
-  --font-heading: var(--font-sans);
+  --font-heading: var(--font-heading-sans);
 
   /* Valfin ink + accent scale, exposed as Tailwind utilities
      e.g. bg-ink-900, text-ink-200, text-accent-500, bg-success */
@@ -33,6 +33,7 @@
   --color-accent-600: var(--accent-600);
   --color-accent-500: var(--accent-500);
   --color-accent-400: var(--accent-400);
+  --color-navy-900: var(--navy-900);
 
   --color-success: var(--success);
   --color-warning: var(--warning);
@@ -99,10 +100,13 @@
   --ink-200: #a0a6b0;
   --ink-50: #f5f6f8;
 
-  /* Electric accent */
-  --accent-600: #4444db;
-  --accent-500: #5b5bff;
-  --accent-400: #7b7bff;
+  /* Blue accent — deep blue (glows/shadows), modern blue (primary actions), accent sky (highlights) */
+  --accent-600: #1d4ed8;
+  --accent-500: #2563eb;
+  --accent-400: #38bdf8;
+
+  /* Deep navy — reserved for richer gradient backdrops (e.g. hero visualization) */
+  --navy-900: #0b1f44;
 
   /* Semantic */
   --success: #2bd576;
@@ -158,6 +162,9 @@
   html {
     @apply font-sans;
     color-scheme: dark;
+  }
+  h1, h2, h3, h4 {
+    @apply font-heading;
   }
 }
 

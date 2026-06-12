@@ -54,12 +54,12 @@ export const handoff = {
 
 export const underTheHood: Pillar[] = [
   {
-    title: "It learns your business specifically",
-    description: "Not a generic script — a system trained on your services, your service area, your pricing logic, and the way your best people already talk to customers.",
+    title: "Built around your business",
+    description: "Not a generic script — tuned to your services, your service area, your pricing, and the way your best people already talk to customers.",
   },
   {
-    title: "It gets sharper with every conversation",
-    description: "Every interaction adds to its understanding of how your customers ask, hesitate, and decide — so the next conversation is a little better than the last.",
+    title: "Consistent at any volume",
+    description: "Every conversation follows the same playbook your best people would use — so quality doesn't drop as the number of leads goes up.",
   },
   {
     title: "It works inside the tools you already use",

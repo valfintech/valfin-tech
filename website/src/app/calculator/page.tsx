@@ -23,7 +23,11 @@ export default function CalculatorPage() {
   return (
     <>
       <JsonLd data={breadcrumbSchema([{ name: "Home", path: "/" }, { name: "Lead Leak Calculator", path: "/calculator" }])} />
-      <section className="section-padding pb-16 sm:pb-20">
+      <section className="relative overflow-hidden section-padding pb-16 sm:pb-20">
+        <div
+          aria-hidden="true"
+          className="pointer-events-none absolute inset-x-0 top-0 -z-10 h-[640px] bg-[radial-gradient(ellipse_60%_50%_at_50%_-10%,var(--accent-600)_0%,transparent_70%)] opacity-[0.16]"
+        />
         <div className="section-container">
           <ScrollReveal className="mx-auto max-w-2xl text-center">
             <p className="text-eyebrow justify-center">Lead Leak Calculator</p>
