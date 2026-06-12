@@ -1,5 +1,5 @@
 {
-  "_comment": "Local reference copy — synced from live n8n on 2026-06-11 (V1.1 pass). Live ID: wVRHChyFrUNRaH4M. V1.1: 'Lead Score'/'Temperature'/'Urgency' removed from the Leads tab (20 columns -> 17) and from the adapter's input/output contract; all timestamps now use Luxon DateTime in America/New_York instead of new Date().toISOString().",
+  "_comment": "Local reference copy — synced from live n8n on 2026-06-12 (post-V1.1 reconciliation). Live ID: wVRHChyFrUNRaH4M. V1.1: 'Lead Score'/'Temperature'/'Urgency' removed from the Leads tab (20 columns -> 17) and from the adapter's input/output contract; all timestamps now use Luxon DateTime in America/New_York instead of new Date().toISOString(). 2026-06-12 fix: 'Get Leads' returning zero rows (e.g. brand-new client, empty Leads sheet) used to halt the whole sub-workflow before 'Resolve & Build Lead Row' ever ran, so the very first lead always failed silently. Added an 'Ensure Items' Merge (append) node fed by 'Input' and 'Get Leads' so at least one item always reaches 'Resolve & Build Lead Row', whose code already handled an empty 'existing' list correctly.",
   "name": "CRM Adapter (Google Sheets)",
   "active": false,
   "settings": {
@@ -44,6 +44,17 @@
           "name": "Google Sheets account"
         }
       }
+    },
+    {
+      "parameters": {
+        "mode": "append",
+        "numberInputs": 2
+      },
+      "id": "node-ensureitems",
+      "name": "Ensure Items",
+      "type": "n8n-nodes-base.merge",
+      "typeVersion": 3.2,
+      "position": [336, 160]
     },
     {
       "parameters": {
@@ -209,9 +220,12 @@
   ],
   "connections": {
     "Input": {
-      "main": [[{ "node": "Get Leads", "type": "main", "index": 0 }]]
+      "main": [[{ "node": "Get Leads", "type": "main", "index": 0 }, { "node": "Ensure Items", "type": "main", "index": 1 }]]
     },
     "Get Leads": {
+      "main": [[{ "node": "Ensure Items", "type": "main", "index": 0 }]]
+    },
+    "Ensure Items": {
       "main": [[{ "node": "Resolve & Build Lead Row", "type": "main", "index": 0 }]]
     },
     "Resolve & Build Lead Row": {

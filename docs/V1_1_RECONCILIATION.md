@@ -1,6 +1,6 @@
 # V1.1 Reconciliation Report — Simplification & Usability Pass
 
-_Completed 2026-06-11. This is the canonical changelog for the V1.1 pass referenced throughout the repo (`README.md`, `ROADMAP.md`, `PROJECT_STATUS.md`, `PROJECT_AUDIT.md`, `CRM_SHEET_SCHEMA.md`, `CLIENT_DEPLOYMENT_GUIDE.md`, and others)._
+_Completed 2026-06-11, with a post-closure hotfix pass on 2026-06-12 (§12). This is the canonical changelog for the V1.1 pass referenced throughout the repo (`README.md`, `ROADMAP.md`, `PROJECT_STATUS.md`, `PROJECT_AUDIT.md`, `CRM_SHEET_SCHEMA.md`, `CLIENT_DEPLOYMENT_GUIDE.md`, and others)._
 
 ## Why this pass happened
 
@@ -159,6 +159,73 @@ Five founder-requested checks were run against the live system before declaring 
    All other matches (README, ROADMAP, PROJECT_STATUS, PROJECT_AUDIT, etc.) were already correctly annotated as historical/superseded. ✅
 
 **All 5 checks pass. Version 1.1 is fully closed.**
+
+---
+
+## 12. Post-closure hotfix — live end-to-end test found two bugs (2026-06-12)
+
+The founder ran a real live end-to-end test of WF02 (Form Capture + Confirmation) via the public website form using a real payload (Kejsi Cenuka, 50 Barstow Dr, Roof Repair). The test surfaced two issues that the V1.1 closure checks (§11) did not catch, because both only manifest on a brand-new client's very first submission and/or depend on the live form's actual field configuration (not just the workflow JSON).
+
+### 12a. Root cause #1 — CRM Adapter silently failed on a brand-new (empty) Leads sheet
+
+**Symptom:** Executing WF02 only progressed through Website Form → Normalize Lead → CRM: Upsert + Log Inbound. The `Execute Workflow` node (calling CRM Adapter, `wVRHChyFrUNRaH4M`) returned "No output data returned." Nothing was written to Leads, Communication Log, Appointments, or any outbound log/alert.
+
+**Root cause:** Inside the CRM Adapter sub-workflow, the "Get Leads" Google Sheets node read 0 rows (the Leads tab was empty — this was the very first lead ever submitted). Per n8n's execution model, a node that returns zero items halts all downstream execution — "Resolve & Build Lead Row" and everything after it never ran, so the sub-workflow returned an empty result (`[[]]`) to every caller. Confirmed via execution 239 (`lastNodeExecuted: "Get Leads"`, `data.main: [[]]`).
+
+This is a **structural pre-go-live bug**, not specific to this test: it would have broken the first lead for every single new client deployment, since every client's Leads sheet starts empty.
+
+**Fix — live workflow `wVRHChyFrUNRaH4M` (CRM Adapter), 5 operations, `appliedOperations: 5, validationWarnings: []`:**
+- Added a new Merge node, **"Ensure Items"** (`n8n-nodes-base.merge`, `typeVersion: 3.2`, `mode: "append"`, `numberInputs: 2`).
+- Rewired connections: `Input` → `Get Leads` (unchanged) and `Input` → `Ensure Items` (index 1, new); `Get Leads` → `Ensure Items` (index 0, new, replacing the old direct `Get Leads` → `Resolve & Build Lead Row` connection); `Ensure Items` → `Resolve & Build Lead Row` (new).
+- Effect: "Resolve & Build Lead Row" now always receives at least one item (from `Input`, via "Ensure Items"), regardless of whether "Get Leads" returns 0 or N rows. The Code node's existing logic already handled an empty `existing` leads array correctly (it just never got the chance to run before).
+- Note: the more direct textbook fix (`alwaysOutputData: true` on "Get Leads") was not usable — n8n's `update_workflow` operations (`setNodeParameter`/`updateNodeParameters`/`addNode`) only allow setting `node.parameters`, not root-level node properties like `alwaysOutputData`.
+
+**Verification:**
+- Execution 240/241 (first test, empty Leads sheet): sub-execution 241 returned `{leadId: "LEAD-0001", isNew: true, status: "New", dateCreated: "2026-06-12T10:00:33.332-04:00"}` — lead created successfully.
+- Execution 245/246 (second test, same phone number): sub-execution 246 returned `isNew: false` — correctly matched the existing `LEAD-0001` row by phone, confirming the upsert/match logic still works once the sheet has data.
+
+### 12b. Root cause #2 — live website form's "Preferred Time" was still free-text, not V1.1 scheduling UX
+
+**Symptom:** The founder verified the live public form (`https://valfin.app.n8n.cloud/form/04605924-a4ad-44ef-94cf-c829cdc5e8fd`, the n8n Form Trigger inside WF02) still showed a free-text "Preferred Time" field, not the calendar-date-picker + time-dropdown experience required by V1.1.
+
+**Clarification on "the website":** This form is **not** Valfin's own Next.js marketing site (`website/src/components/company/contact-form.tsx`, which has fields for name/email/business/message and is unrelated). It is the **n8n-hosted Form Trigger** that is WF02's entry point and the actual intake form roofing clients/customers use — it went live the moment the workflow was last saved, and V1.1's closure pass (§11) reconciled WF06 (Appointment Booking)'s scheduling UX but never touched WF02's intake form, which still had its original free-text field.
+
+**Fix — live workflow `HdJc5cy8cmqMBfGR` (Form Capture + Confirmation):**
+- **"Website Form" node** (2 operations, `appliedOperations: 2, validationWarnings: []`): replaced the old free-text `{"fieldLabel": "Preferred Time", "fieldType": "text"}` field with two new fields, mirroring WF06's existing pattern:
+  - `"Preferred Date"` — `fieldType: "date"` (true calendar picker, no free text)
+  - `"Preferred Time"` — `fieldType: "dropdown"`, 19 options from 8:00 AM to 5:00 PM in 30-minute increments, `America/New_York`
+- **"Normalize Lead" node**: updated `jsCode` to read both new fields (`Preferred Date` / `preferredDate` and `Preferred Time` / `preferredTime`) and join them into a single `preferredTime` string (e.g. `"2026-06-15 9:00 AM"`), preserving the existing single-column `Preferred Time` schema in the Leads tab (no CRM schema change needed).
+
+**Verification:** Execution 245 — form submission with `{"Preferred Date": "2026-06-15", "Preferred Time": "9:00 AM"}` produced `Normalize Lead` output `preferredTime: "2026-06-15 9:00 AM"`, and the full chain (sub-executions 246, 247, 248) completed: CRM upsert, CRM outbound-SMS log, and Every Lead Alert (`{alerted: true}`).
+
+**No website (Next.js) redeploy was necessary** — the n8n Form Trigger is live immediately on workflow save; there is no separate static site to rebuild for this form.
+
+### 12c. End-to-end validation after both fixes
+
+Executions 245-248 confirmed the full chain now completes:
+
+Website Form → Normalize Lead → CRM: Upsert + Log Inbound (CRM Adapter sub-execution 246, `isNew: false`, matched `LEAD-0001`) → Build Confirmation Request → Claude - Confirmation SMS (Haiku 4.5) → Parse Confirmation → Send Confirmation SMS → Mark Outbound Log → CRM: Log Outbound SMS (sub-execution 247) → Prep Alert Data → Send Lead Alert (sub-execution 248, `{alerted: true}`)
+
+All V1.1 requirements were preserved throughout: AI scoring remains removed, Every Lead Alert remains email-enabled by default, SMS remains optional/disabled by default, the Haiku 4.5 confirmation SMS is intact, and all timestamps use `America/New_York`.
+
+**Naming note:** the founder's validation checklist referred to "WF03 CRM" — the CRM piece in this chain is actually **Workflow 01 (CRM Adapter, `wVRHChyFrUNRaH4M`)**, called twice as a sub-workflow from WF02. Workflow 03 (per repo numbering) is the Missed-Call Auto-SMS workflow and is unrelated to this chain.
+
+### 12d. Files/workflows modified in this hotfix
+
+| Item | Change |
+|---|---|
+| Live n8n `wVRHChyFrUNRaH4M` (CRM Adapter / Workflow 01) | Added "Ensure Items" Merge node + rewired connections (12a) |
+| Live n8n `HdJc5cy8cmqMBfGR` (Form Capture + Confirmation / Workflow 02) | "Website Form" formFields: Preferred Date + Preferred Time dropdown; "Normalize Lead" jsCode updated (12b) |
+| `workflows/01_crm_adapter_google_sheets.json` | Re-synced from live: added "Ensure Items" node + connections, updated `_comment` |
+| `workflows/02_form_capture_scoring.json` | Re-synced from live: new form fields + "Normalize Lead" jsCode, updated `_comment` |
+| `docs/V1_1_RECONCILIATION.md` | This section (§12) |
+
+### 12e. Status
+
+✅ Root cause of "No output data returned" / nothing written anywhere: **identified and fixed** (empty-Leads-sheet zero-item halt in CRM Adapter).
+✅ Live website form now matches V1.1 scheduling requirements: **confirmed** (calendar date picker + 30-min dropdown, 8 AM-5 PM ET, no free text).
+✅ V1.1's core flow is **fully restored** — Website Form → WF02 → CRM Adapter → Leads/Communication Log/Appointments → Confirmation SMS → Outbound log → Every Lead Alert, validated end-to-end via live executions 240/241 and 245-248.
+✅ Ready for continued V1.1 testing of the remaining workflows.
 
 ---
 
