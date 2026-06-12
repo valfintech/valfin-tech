@@ -2,6 +2,12 @@
 
 n8n + Claude API + Google Sheets CRM for a single Boston-area roofing company. See the project brief (`CLAUDE.md`) for the full spec.
 
+> **New Claude session? Start here, before anything else.** `docs/VALFIN_MASTER_CONTEXT_PROMPT.md` (added 2026-06-11) is the canonical onboarding document — what Valfin is, its mission and positioning, the V1 → V1.1 evolution, every workflow/doc/template and where it lives, the full founder-led sales→deployment→support→renewal lifecycle, known non-blocking open items, and explicit instructions for how future sessions should operate (don't proactively invent features — see its §15). Read it first, in full, before consulting anything else in this repo or relying on memory from a prior conversation.
+>
+> **Signing a new client? Open `docs/CLIENT_CLONING_MASTER_PROMPT.md`** (added 2026-06-11) — the self-sufficient operational prompt for deploying a client's instance of the Valfin system: what's reusable framework vs. industry-specific customization, every workflow's mandatory/optional/CONFIG/email-SMS status, the full client intake variable list, every account/credential/approval needed, the exact step-by-step cloning sequence, testing/validation procedures, and go-live / post-launch / renewal / acceptance checklists — including guidance for cloning into entirely different industries (HVAC, plumbing, dental, legal, etc.).
+>
+> Together, these two documents are designed so that **no future Claude session depends on this repo's conversation history** — the repository itself is the institutional memory. See `docs/ROADMAP.md`'s 2026-06-11 entry for why this transition was made.
+
 ## Folder layout
 ```
 workflows/   importable n8n workflow JSON exports — all 12 workflows now have one (closed 2026-06-08;
