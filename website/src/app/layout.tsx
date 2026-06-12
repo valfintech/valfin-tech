@@ -27,7 +27,7 @@ export const metadata: Metadata = {
   metadataBase: new URL(siteConfig.url),
   title: {
     default: siteConfig.title,
-    template: `%s — ${siteConfig.name}`,
+    template: `%s - ${siteConfig.name}`,
   },
   description: siteConfig.description,
   keywords: [...siteConfig.keywords],
@@ -48,9 +48,8 @@ export const metadata: Metadata = {
     title: siteConfig.title,
     description: siteConfig.description,
   },
-  icons: {
-    icon: "/favicon.ico",
-  },
+  // Favicon and Apple touch icon are supplied by the file-based
+  // `icon.png` / `apple-icon.png` conventions in this directory.
   robots: {
     index: true,
     follow: true,
