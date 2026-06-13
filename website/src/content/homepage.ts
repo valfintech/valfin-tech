@@ -90,7 +90,7 @@ export const howItWorks = {
 
 export const systemUnderneath = {
   eyebrow: "What makes this different",
-  headline: "We're not selling you software. We're making sure you never have to think about this again.",
+  headline: "You focus on running your business. We'll make sure every opportunity keeps moving.",
   body: "Most tools hand you another dashboard to check, another inbox to manage, another thing to remember to use correctly. Valfin was built to disappear into the background of your business, running every hour you're open, and every hour you're not, until the only thing you notice is that nothing falls through the cracks anymore. Every part of it is built around one goal: making sure no one who tries to reach you is ever met with silence.",
   pillars: [
     {
