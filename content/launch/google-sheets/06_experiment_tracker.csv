@@ -1,0 +1,5 @@
+Experiment_ID,Date_Started,Hypothesis,Variable_Tested,Variant_A,Variant_B,Metric,Result_A,Result_B,Winner,Confidence,Learning,Next_Action
+EXP-EX01,2026-06-16,A reframe hook will out-retain a pain hook in the first 3 seconds,Hook type,HK-001 Reframe,HK-004 Story,Retention_3s_pct,,,,Low/Med/High,Example row. Fill once both have run.,
+EXP-EX02,2026-06-18,Posting at the hour the content describes (8pm) beats a morning slot for awareness,Post time,8:00 PM,7:15 AM,Calc_Visits per 1k views,,,,,Compare VLF-002 evening vs VLF-001 morning.,
+EXP-EX03,,Founder-on-camera converts better than stills+VO on conversion pieces,Format,Talking-head,Stills+VO,Link_Clicks per 1k views,,,,,,
+EXP-EX04,,A save-optimized CTA grows reach more than a link CTA on consideration pieces,CTA type,CTA-008 Save,CTA-007 Link,Save_Rate_pct,,,,,,

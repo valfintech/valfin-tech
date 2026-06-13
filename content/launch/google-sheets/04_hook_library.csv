@@ -1,0 +1,16 @@
+Hook_ID,Hook_Text,Type,Pillar,Used_In,Status,Best_Platform,Avg_Retention_3s_pct,Notes
+HK-001,Your competitors aren't better than you. They just call back faster.,Reframe,P2,VLF-001,Winner-candidate,,,Signature brand line. Anchor hook.
+HK-002,The guy who took that job from you isn't better at it. He just picked up the phone.,Reframe,P2,VLF-001-altA,Untested,,,Alt hook for VLF-001.
+HK-003,You didn't lose that job on quality. You lost it on timing.,Reframe,P2,VLF-001-altB,Untested,,,
+HK-004,Your best lead this week called at 7:42 at night. Nobody answered.,Story,P1,VLF-002,Untested,,,Specific time is the key. Don't round it.
+HK-005,There's a customer who tried to give you money last night. You'll never know they existed.,Pain,P1,VLF-002-altA,Untested,,,
+HK-006,The most expensive call you got this week is one you never saw.,Pain,P1,VLF-002-altB,Untested,,,
+HK-007,Want to know if your business is leaking money? Take a week off and watch what happens.,Challenge,P1,VLF-005,Untested,,,Strong weekend hook.
+HK-008,The last time you took a real vacation your phone kept ringing. Nobody answered it.,Pain,P1,VLF-005-altA,Untested,,,
+HK-009,You can't take a day off without losing work. That's not normal and it's fixable.,Pain,P4,VLF-005-altB,Untested,,,
+HK-010,Here's what should happen in the 30 seconds after a customer reaches out.,Education,P2,VLF-003,Untested,,,Explainer hook.
+HK-011,A lead just came in. You're up a ladder. Watch what should happen without you.,Education,P2,VLF-003-altA,Untested,,,
+HK-012,You've got a rough guess of how many leads you lose. Stop guessing.,Challenge,P2,VLF-004,Untested,,,Conversion hook.
+HK-013,Most owners are scared to do this math. It takes sixty seconds. Do it anyway.,Challenge,P2,VLF-004-altA,Untested,,,
+HK-014,You don't have a marketing problem. You have a follow-up problem.,Reframe,P1,Backlog,Untested,,,Core reframe. Use in future piece.
+HK-015,Customers don't hire the best business. They hire the first one that makes them feel taken care of.,Reframe,P1,Backlog,Untested,,,

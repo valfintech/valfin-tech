@@ -1,0 +1,12 @@
+CTA_ID,CTA_Text,Funnel_Stage,Destination,Used_In,Status,Click_Rate_pct,Notes
+CTA-001,I'll show you what that's costing you. Link's in the bio.,Consideration,valfintech.com/calculator,VLF-001,Untested,,Calculator driver.
+CTA-002,Curious what slow follow-up costs you? One minute link in bio.,Consideration,valfintech.com/calculator,VLF-001-alt,Untested,,
+CTA-003,Follow for more on the leaks you can't see.,Awareness,Profile,VLF-002,Untested,,Pure awareness CTA.
+CTA-004,Follow — there's a whole list of these you've never seen.,Awareness,Profile,VLF-002-alt,Untested,,
+CTA-005,There's a better way to run it. Link's in the bio.,Consideration,valfintech.com/calculator,VLF-005,Untested,,
+CTA-006,Want a business that runs when you don't? Start with your number link in bio.,Consideration,valfintech.com/calculator,VLF-005-alt,Untested,,
+CTA-007,That's the whole thing. See how it works link in bio.,Consideration,valfintech.com,VLF-003,Untested,,
+CTA-008,Save this so you remember what handled is supposed to look like.,Consideration,Save (no link),VLF-003-alt,Untested,,Save-optimized CTA.
+CTA-009,No pitch. No demo trap. Just your number. It's in the bio go see it.,Conversion,valfintech.com/calculator,VLF-004,Untested,,Honesty-forward conversion CTA.
+CTA-010,Two numbers one minute no sales call. Link in bio.,Conversion,valfintech.com/calculator,VLF-004-alt,Untested,,
+CTA-011,Want us to set this up for your business? Send a message.,Conversion,valfintech.com (Talk to us),Backlog,Untested,,Direct conversion for warm audience.
