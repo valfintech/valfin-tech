@@ -33,7 +33,7 @@ export function SiteFooter() {
       <div className="section-container py-16">
         <div className="grid grid-cols-1 gap-12 sm:grid-cols-2 lg:grid-cols-5">
           <div className="lg:col-span-2">
-            <Link href="/" className="flex items-center gap-2.5 text-lg font-semibold tracking-tight text-ink-50 lowercase">
+            <Link href="/" className="flex items-center gap-2.5 text-lg font-semibold tracking-tight text-ink-50">
               <Image src="/valfin-mark-white.png" alt="" width={640} height={412} className="h-7 w-auto" />
               {siteConfig.name}
             </Link>

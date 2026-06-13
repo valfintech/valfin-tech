@@ -39,7 +39,7 @@ export function SiteHeader() {
       <div className="section-container flex h-16 items-center justify-between">
         <Link
           href="/"
-          className="flex items-center gap-2.5 text-lg font-semibold tracking-tight text-ink-50 lowercase focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent-500 focus-visible:ring-offset-2 focus-visible:ring-offset-background rounded-sm"
+          className="flex items-center gap-2.5 text-lg font-semibold tracking-tight text-ink-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent-500 focus-visible:ring-offset-2 focus-visible:ring-offset-background rounded-sm"
         >
           <Image src="/valfin-mark-white.png" alt="" width={640} height={412} priority className="h-6 w-auto" />
           {siteConfig.name}
@@ -82,7 +82,7 @@ export function SiteHeader() {
             />
             <SheetContent side="right" className="bg-ink-900 border-ink-700">
               <SheetHeader>
-                <SheetTitle className="text-ink-50 lowercase">{siteConfig.name}</SheetTitle>
+                <SheetTitle className="text-ink-50">{siteConfig.name}</SheetTitle>
               </SheetHeader>
               <nav aria-label="Mobile" className="mt-6 flex flex-col gap-1 px-4">
                 {siteConfig.nav.map((item) => (

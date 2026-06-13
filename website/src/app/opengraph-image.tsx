@@ -42,7 +42,7 @@ export default async function OpengraphImage() {
             }}
           />
           <span style={{ fontSize: 30, color: "#f5f6f8", fontWeight: 600, letterSpacing: -0.5 }}>
-            {siteConfig.name.toLowerCase()}
+            {siteConfig.name}
           </span>
         </div>
 
