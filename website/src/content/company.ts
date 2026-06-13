@@ -83,7 +83,7 @@ export const contact = {
   headline: "Tell us about your business. We'll tell you honestly whether this is a fit.",
   subheadline:
     "No pressure, no script, no 45-minute pitch deck. Just a real conversation about how leads move through your business today, and whether closing that gap would make a meaningful difference for you.",
-  email: "hello@valfintech.com",
+  email: "valfintechnologies@gmail.com",
   calendarCta: { label: "Book a time to talk", href: "#contact-form" },
   calculatorPrompt: {
     label: "Or see your number first: it takes about a minute",
