@@ -1,5 +1,6 @@
 from openpyxl import Workbook
 from openpyxl.styles import Font, PatternFill, Alignment
+from openpyxl.worksheet.datavalidation import DataValidation
 
 OUT = "/Users/kejsicenuka/Desktop/Valfin Tech/templates/Roofing_CRM_Google_Sheets_TEMPLATE.xlsx"
 
@@ -62,28 +63,50 @@ make_sheet(
 )
 
 # 2. Appointments — verified live schema (extracted from workflow 06 'Write Appointment' node)
-make_sheet(
+appointments_ws = make_sheet(
     "Appointments",
     ["Appt ID", "Lead ID", "Customer Name", "Phone", "Address", "Service Type", "Appt Date", "Appt Time",
      "Status", "Team Member", "Team Approval", "Calendar Event ID", "Reminder 24h", "Reminder 2h", "Notes",
-     "Notified Appt Date", "Notified Appt Time"],
+     "Notified Appt Date", "Notified Appt Time", "Notify Customer", "Reschedule Status", "Reschedule Attempts"],
     [
         ["EXAMPLE-APT-20260603100000", "EXAMPLE-LEAD-0001", "Maria Santos", "16175550111",
          "42 Beacon St, Boston, MA", "Roof Inspection", "2026-06-10", "10:00 AM", "Scheduled",
          "J. Reyes", "", "", "", "", "Example row — booked via owner-facing form (workflow 06).",
-         "2026-06-10", "10:00 AM"],
+         "2026-06-10", "10:00 AM", "No", "None", 0],
     ],
-    col_widths=[24, 18, 16, 14, 24, 16, 12, 12, 12, 14, 14, 18, 14, 12, 40, 18, 18],
+    col_widths=[24, 18, 16, 14, 24, 16, 12, 12, 12, 14, 14, 18, 14, 12, 40, 18, 18, 16, 16, 16],
     note=("SOURCE OF TRUTH: matches the exact column set written by workflow 06's 'Write Appointment' "
-          "node (live, verified) — 17 columns. 'Appt Date' must stay 'YYYY-MM-DD' and 'Appt Time' must "
+          "node (live, verified) — 20 columns. 'Appt Date' must stay 'YYYY-MM-DD' and 'Appt Time' must "
           "stay 'H:MM AM/PM' — workflows 09 (Reminders), 11 (Health Monitor), and 13 (Reschedule "
           "Notifier) parse these with strict regexes. 'Reminder 24h'/'Reminder 2h' are write-only flag "
           "columns — leave them blank; the system manages them. 'Team Approval' and 'Calendar Event ID' "
           "are reserved for future phases (crew-approval workflow, calendar sync) — currently always "
           "blank. 'Notified Appt Date'/'Notified Appt Time' (added 2026-06-12) should be seeded equal "
           "to 'Appt Date'/'Appt Time' at booking time — workflow 13 compares against these to detect "
-          "owner-initiated reschedules and notify the customer."),
+          "owner-initiated reschedules and notify the customer. 'Notify Customer' (added 2026-06-13) is "
+          "a dropdown defaulting to 'No' — the owner picks 'Send Update' to trigger workflow 13's "
+          "reschedule-notification flow; workflow 13 resets it back to 'No' after a successful run so "
+          "the field can be reused for another notification later. 'Reschedule Status' "
+          "('None'/'Pending Customer Confirmation'/'Confirmed'/'Escalated to Owner') and 'Reschedule "
+          "Attempts' (0-2) track the YES/NO customer-confirmation flow and the two-attempt escalation "
+          "rule — both managed by workflow 13 and reset to 'None'/0 on each new notification cycle."),
 )
+
+# Notify Customer dropdown (column R) — mirrors the live Appointments sheet data-validation rule:
+# strict ("Reject input") list of "No" (default) / "Send Update" (trigger), applied to rows 2-200.
+notify_customer_col = appointments_ws.cell(row=1, column=18).column_letter
+notify_dv = DataValidation(
+    type="list",
+    formula1='"No,Send Update"',
+    allow_blank=False,
+    showDropDown=False,
+    errorStyle="stop",
+    showErrorMessage=True,
+    error="Please select 'No' or 'Send Update' from the dropdown.",
+    errorTitle="Invalid entry",
+)
+appointments_ws.add_data_validation(notify_dv)
+notify_dv.add(f"{notify_customer_col}2:{notify_customer_col}200")
 
 # 3. Quotes — NOT YET BUILT. Reconstructed schema (no live workflow references this tab).
 make_sheet(
