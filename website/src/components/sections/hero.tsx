@@ -13,8 +13,8 @@ export function Hero() {
         className="pointer-events-none absolute inset-x-0 top-0 -z-10 h-[640px] bg-[radial-gradient(ellipse_60%_50%_at_50%_-10%,var(--accent-600)_0%,transparent_70%)] opacity-[0.16]"
       />
 
-      <div className="section-container flex flex-col gap-14 pb-20 pt-20 sm:pt-28 lg:gap-20 lg:pb-28 lg:pt-36">
-        <ScrollReveal className="max-w-2xl">
+      <div className="section-container grid grid-cols-1 gap-14 pb-20 pt-20 sm:pt-28 lg:grid-cols-12 lg:items-center lg:gap-10 lg:pb-28 lg:pt-32">
+        <ScrollReveal className="max-w-2xl lg:col-span-7">
           <p className="text-eyebrow">{hero.eyebrow}</p>
           <h1 className="mt-5 text-4xl font-semibold leading-[1.1] tracking-tight text-ink-50 sm:text-5xl lg:text-6xl">
             {hero.headline}
@@ -45,14 +45,14 @@ export function Hero() {
           <p className="mt-5 text-sm text-ink-400">{hero.microcopy}</p>
         </ScrollReveal>
 
-        <ScrollReveal delay={0.15}>
-          <div className="relative overflow-hidden rounded-2xl border border-ink-700 bg-ink-900/60 p-6 shadow-[0_0_80px_-24px_rgba(37,99,235,0.3)] backdrop-blur-sm sm:p-10 lg:p-14">
+        <ScrollReveal delay={0.15} className="lg:col-span-5">
+          <div className="relative overflow-hidden rounded-2xl border border-ink-700 bg-ink-900/60 p-6 shadow-[0_0_80px_-24px_rgba(37,99,235,0.3)] backdrop-blur-sm sm:p-8">
             <div
               aria-hidden="true"
               className="pointer-events-none absolute inset-0 -z-10 bg-[radial-gradient(ellipse_80%_60%_at_50%_0%,var(--navy-900)_0%,transparent_70%)] opacity-70"
             />
-            <LeadJourneyDiagram />
-            <p className="mt-8 text-center text-sm text-ink-400 sm:mt-10">
+            <LeadJourneyDiagram compact />
+            <p className="mt-6 text-center text-sm text-ink-400">
               This is what happens, every time, automatically.
             </p>
           </div>
