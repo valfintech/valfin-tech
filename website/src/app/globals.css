@@ -181,7 +181,7 @@
 
   /* Standard section vertical rhythm */
   .section-padding {
-    @apply py-24 sm:py-32 lg:py-40;
+    @apply py-16 sm:py-20 lg:py-28;
   }
 
   /* Subtle hairline divider in the spirit of the design system */
