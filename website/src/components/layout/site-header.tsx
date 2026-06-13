@@ -1,5 +1,6 @@
 "use client";
 
+import Image from "next/image";
 import Link from "next/link";
 import { useEffect, useState } from "react";
 import { Menu } from "lucide-react";
@@ -38,8 +39,9 @@ export function SiteHeader() {
       <div className="section-container flex h-16 items-center justify-between">
         <Link
           href="/"
-          className="text-lg font-semibold tracking-tight text-ink-50 lowercase focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent-500 focus-visible:ring-offset-2 focus-visible:ring-offset-background rounded-sm"
+          className="flex items-center gap-2.5 text-lg font-semibold tracking-tight text-ink-50 lowercase focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent-500 focus-visible:ring-offset-2 focus-visible:ring-offset-background rounded-sm"
         >
+          <Image src="/valfin-mark-white.png" alt="" width={640} height={412} priority className="h-6 w-auto" />
           {siteConfig.name}
         </Link>
 
