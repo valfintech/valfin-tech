@@ -229,6 +229,59 @@ All V1.1 requirements were preserved throughout: AI scoring remains removed, Eve
 
 ---
 
+## 13. Workflow 13 redesign — owner-controlled reschedule notification (2026-06-12, same day as §12)
+
+**Why this pass happened:** Real end-to-end QA of the Workflow 13 (Appointment Reschedule Notifier) built earlier the same day (see the now-superseded description previously in this doc and in `README.md`) surfaced a flaw: owners frequently adjust an appointment's date and/or time **multiple times** before settling on a final value (e.g. Tuesday 10 AM → Wednesday 10 AM → Wednesday 1 PM). The original design — an hourly job that compared `Appt Date`/`Appt Time` against `Notified Appt Date`/`Notified Appt Time` and texted the customer on any mismatch — could fire mid-edit, notifying the customer of an intermediate, not-yet-final time, or fire again on a later edit and confuse the customer with back-to-back reschedule texts.
+
+### 13a. New design — owner-controlled checkbox
+
+**Owner workflow (unchanged regardless of how many edits):**
+1. Edit `Appt Date` / `Appt Time` in the Appointments tab, as many times as needed.
+2. Verify the appointment is correct.
+3. Check `Notify Customer = TRUE`.
+4. Walk away — no other steps.
+
+**New Appointments-tab columns** (added near `Appt Date`/`Appt Time` for owner convenience, 17 → 20 columns total):
+- `Notify Customer` — checkbox, default `FALSE`. The owner's explicit trigger.
+- `Reschedule Status` — `None` / `Pending Customer Confirmation` / `Confirmed` / `Customer Requested Different Time` / `Manual Follow-Up Required`.
+- `Reschedule Attempts` — integer, default `0`.
+
+**Workflow 13 (`WzWw9vCYOCS6dSSS`) — "Detect Appointment Changes" replaces the old mismatch comparison:** on its hourly run, filters `Scheduled` rows where `Notify Customer` is checked (and `Appt Date`/`Appt Time` pass the existing format guards). For each: sends the customer the required YES/NO reschedule-confirmation SMS for the **current** `Appt Date`/`Appt Time`, sets `Reschedule Status = Pending Customer Confirmation`, updates `Notified Appt Date`/`Notified Appt Time` to the new values, clears `Reminder 24h`/`Reminder 2h` (so Workflow 09 issues fresh reminders against the new time), resets `Notify Customer = FALSE`, logs `Outbound — Appointment Reschedule Notice` to Communication Log via the CRM Adapter, and emails (and optionally SMS-alerts, per `CONFIG.SMS_ALERTS_ENABLED`) the owner.
+
+### 13b. Workflow 10 (`Bj5b3sUexa8EeQcK`) — customer reply handling, reusing the existing inbound-SMS mechanism
+
+Workflow 10's existing "Normalize Inbound SMS" classifier (already handling `reschedule`/`cancel`/opt-out keywords) was **extended, not rebuilt**, with two new intents:
+
+- **`confirm_yes`** (regex matches "yes", "yep", "confirmed", "ok", etc.): matched only against appointments with `Reschedule Status = Pending Customer Confirmation`. Sets `Reschedule Status = Confirmed`, logs `Inbound — Reschedule Confirmation` to Communication Log, and emails the owner "[Customer Name] confirmed the updated appointment." (SMS owner alert continues to follow `CONFIG.SMS_ALERTS_ENABLED`, per the existing toggle convention). No further automated action.
+- **`confirm_no`** (regex matches "no", "nope", "nah", etc.): same row-matching. Increments `Reschedule Attempts`. If `Reschedule Attempts < 2`: sets `Reschedule Status = Customer Requested Different Time`, logs `Inbound — Customer Requested Different Time`, emails the owner "[Customer Name] cannot make the proposed appointment. Please contact them to finalize scheduling.", and replies to the customer "No problem. A member of our team will contact you shortly to help find a time that works best for you." If `Reschedule Attempts >= 2`: sets `Reschedule Status = Manual Follow-Up Required`, emails the owner "[Customer Name] has exceeded automated rescheduling attempts. Please contact them directly.", and replies to the customer with the company-phone fallback message — **no further automated rescheduling occurs** for that appointment.
+
+New nodes added to Workflow 10 to support this: "Has Customer Reply?", "Check SMS Enabled" (now reads `sendOwnerSms` from "Build Reply Plan"), "Check Email Enabled", "Is Confirmation Reply?", "Send Owner Email" (Gmail), "CRM: Log Inbound Message" (executeWorkflow → CRM Adapter). "Build Reply Plan" gained a full `CONFIG` block (`COMPANY_NAME`, `COMPANY_PHONE`, `OWNER_PHONE`, `OWNER_EMAIL`, `TWILIO_FROM_NUMBER`, `EMAIL_ALERTS_ENABLED`, `SMS_ALERTS_ENABLED`, `DEFAULT_TIMEZONE`) and four branches (`cancel`/`reschedule` unchanged, plus new `confirm_yes`/`confirm_no`).
+
+### 13c. Workflow 06 (Appointment Booking) — seeding defaults
+
+"Write Appointment" now also writes `Notify Customer: false`, `Reschedule Status: "None"`, `Reschedule Attempts: 0` for every newly booked appointment, so the schema is self-consistent from the moment a row is created.
+
+### 13d. Scenario testing (live n8n, executions 322–352)
+
+| Scenario | Test | Result |
+|---|---|---|
+| A — date changed only | Edited `Appt Date` only, checked `Notify Customer` | Workflow 13 fired once, sent reschedule SMS for new date/original time, `Reschedule Status = Pending Confirmation`, `Notify Customer` reset to `FALSE` |
+| B — time changed only | Edited `Appt Time` only, checked `Notify Customer` | Same as A, for the time field |
+| C — date and time changed multiple times before checking the box | Edited date, then time, then date again — `Notify Customer` left `FALSE` throughout — then checked it once | Workflow 13 did not fire on any intermediate edit (filter requires `Notify Customer = TRUE`); fired exactly once after the final check, notifying the customer of the **final** date/time only — confirms the premature/duplicate-notification risk from the old design is eliminated |
+| D — customer replies YES | Sent `confirm_yes`-matching reply to a `Pending Customer Confirmation` row | `Reschedule Status = Confirmed`, `Inbound — Reschedule Confirmation` logged, owner emailed |
+| E — customer replies NO (1st time) | Sent `confirm_no`-matching reply, `Reschedule Attempts` starting at 0 | `Reschedule Attempts → 1`, `Reschedule Status = Customer Requested Different Time`, owner emailed, customer received the "team will contact you" reply, logged |
+| F — customer replies NO twice | Repeated scenario E once more on the same row (`Reschedule Attempts` now 1 → 2) | `Reschedule Status = Manual Follow-Up Required`, owner emailed the escalation alert, customer received the company-phone fallback message, no further automated rescheduling triggered |
+| G — WF09 reminders post-reschedule | After Workflow 13 cleared `Reminder 24h`/`Reminder 2h` in scenario A/B, ran Workflow 09 against the updated `Appt Date`/`Appt Time` | Workflow 09 correctly computed fresh 24h/2h windows from the new date/time and was eligible to send reminders again (flags were blank, as expected) |
+
+### 13e. Final report
+
+- **Existing customer-reply mechanisms reused?** Yes. Workflow 10's inbound-SMS Twilio trigger, "Normalize Inbound SMS" classifier, "Find Customer Appointment" lookup, "Build Reply Plan" → reply/owner-alert fan-out, and the CRM Adapter logging path were all **extended** with `confirm_yes`/`confirm_no` branches and the new `Reschedule Status`/`Reschedule Attempts` writes — none of it was rebuilt from scratch.
+- **New components introduced:** 3 Appointments-tab columns (`Notify Customer`, `Reschedule Status`, `Reschedule Attempts`); Workflow 13's "Detect Appointment Changes" code node rewritten around the checkbox filter (replacing the mismatch comparison) and "Build Reschedule Notification Content" rewritten for the YES/NO SMS copy; Workflow 10's `confirm_yes`/`confirm_no` classification, CONFIG block, 4-branch reply logic, and 4 new nodes (Has Customer Reply?, Check Email Enabled, Is Confirmation Reply?, Send Owner Email, CRM: Log Inbound Message); Workflow 06's "Write Appointment" seeds the 3 new columns at booking time.
+- **Why this design is safer than the automatic mismatch approach:** the owner explicitly controls *when* the customer is notified, decoupling "the owner is mid-edit" from "the customer gets texted." No matter how many times `Appt Date`/`Appt Time` change (Scenarios A-D), exactly one notification goes out, for the final value, only when the owner says so — eliminating both the premature-notification and duplicate-notification failure modes of the mismatch trigger. The new `Reschedule Status`/`Reschedule Attempts` fields also give the owner a clear, sheet-visible state machine for each appointment, and the 2-attempt cap guarantees automated back-and-forth hands off to a human before it becomes confusing for the customer.
+- **Classification:** **V1.1 reconciliation enhancement.** This closes a same-day QA finding on a feature (Workflow 13) that was itself part of the 2026-06-12 V1.1 reconciliation pass (§12), preserves all V1.1 compatibility requirements (Email/SMS `CONFIG` toggles, `America/New_York` conventions, Communication Log conventions, client-cloning guidance), and does not introduce new operational scope beyond what Workflow 13 was already chartered to do (notify customers of owner-initiated reschedules) — it corrects *how* that notification is triggered.
+
+---
+
 ## Quick reference — what to tell a client or new founder
 
 - **No more "Hot/Warm/Cold" or lead scores.** Every lead gets the same fast notification.
@@ -236,3 +289,4 @@ All V1.1 requirements were preserved throughout: AI scoring remains removed, Eve
 - **Appointment booking now uses a calendar + time-slot picker** — no more typing in a time by hand.
 - **Everything is timed to Boston time (`America/New_York`)** unless reconfigured for a client elsewhere.
 - **Cloning to a new client/industry** = filling in one `CONFIG` block per workflow (8 workflows total) — see `CLIENT_DEPLOYMENT_GUIDE.md` §3e.
+- **Rescheduling an appointment is a one-checkbox action.** The owner edits the date/time as many times as needed in the Appointments tab, then checks "Notify Customer" — the system sends the customer a YES/NO confirmation text, tracks their reply, and escalates to "please call us" only after two declines.

@@ -1,5 +1,5 @@
 {
-  "_comment": "Local reference copy — synced from live n8n on 2026-06-12 (WF13 schema migration). Live ID: ax2sMbvv0lqyJHMg. Phase 3 workflow. Form URL: https://valfin.app.n8n.cloud/form/eca6bfbb-ef53-4f82-b909-cbd2b818991a. V1.1: structured date picker + 30-min time-slot dropdown (8AM-5PM America/New_York), CONFIG block in 'Build Booking Payload', Luxon-based timestamps, AI lead-scoring fields removed. 2026-06-12: 'Write Appointment' now seeds 'Notified Appt Date'/'Notified Appt Time' = the booked Appt Date/Time, so WF13 (Appointment Reschedule Notifier) has a correct baseline and won't fire a false reschedule notice for a brand-new appointment.",
+  "_comment": "Local reference copy — synced from live n8n on 2026-06-12 (WF13 schema migration + V1.1 reconciliation). Live ID: ax2sMbvv0lqyJHMg. Phase 3 workflow. Form URL: https://valfin.app.n8n.cloud/form/eca6bfbb-ef53-4f82-b909-cbd2b818991a. V1.1: structured date picker + 30-min time-slot dropdown (8AM-5PM America/New_York), CONFIG block in 'Build Booking Payload', Luxon-based timestamps, AI lead-scoring fields removed. 2026-06-12: 'Write Appointment' seeds 'Notified Appt Date'/'Notified Appt Time' = the booked Appt Date/Time (correct baseline for WF13), and 'Notify Customer' = false / 'Reschedule Status' = 'None' / 'Reschedule Attempts' = 0 (defaults for the owner-controlled reschedule-notification flow — see CRM_SHEET_SCHEMA.md and workflows/13_appointment_reschedule_notifier.json).",
   "name": "Appointment Booking",
   "active": false,
   "settings": { "executionOrder": "v1" },
@@ -144,7 +144,10 @@
             "Reminder 2h": "",
             "Notes": "={{ $json.notes }}",
             "Notified Appt Date": "={{ $json.apptDate }}",
-            "Notified Appt Time": "={{ $json.apptTime }}"
+            "Notified Appt Time": "={{ $json.apptTime }}",
+            "Notify Customer": false,
+            "Reschedule Status": "None",
+            "Reschedule Attempts": 0
           },
           "matchingColumns": [],
           "schema": []

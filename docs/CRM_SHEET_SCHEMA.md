@@ -26,7 +26,7 @@ Rather than trust any prior summary (including this project's own memory files, 
 |---|---|---|
 | `Leads` | `workflows/01_crm_adapter_google_sheets.json` — the adapter's upsert contract | Documented in `docs/PROJECT_AUDIT.md` lines 118–123, cross-checked against the adapter's `Resolve & Build Lead Row` code node |
 | `Communication Log` | `workflows/01_crm_adapter_google_sheets.json` — the adapter's `Build Log Row` / `Append Comm Log` nodes | Documented in `docs/PROJECT_AUDIT.md` lines 125–130 |
-| `Appointments` | `workflows/06_appointment_booking.json` — the **`Write Appointment`** Google Sheets node's `columns.value` mapping (read directly from the live workflow JSON on 2026-06-08, not from a prior summary). `Notified Appt Date`/`Notified Appt Time` added 2026-06-12 per `workflows/13_appointment_reschedule_notifier.json` — verified end-to-end via live n8n executions 297–299 | See exact extraction below |
+| `Appointments` | `workflows/06_appointment_booking.json` — the **`Write Appointment`** Google Sheets node's `columns.value` mapping (read directly from the live workflow JSON on 2026-06-08, not from a prior summary). `Notified Appt Date`/`Notified Appt Time` added 2026-06-12 per `workflows/13_appointment_reschedule_notifier.json` — verified end-to-end via live n8n executions 297–299. `Notify Customer` / `Reschedule Status` / `Reschedule Attempts` added 2026-06-12 (same-day reconciliation pass replacing WF13's automatic mismatch trigger with an owner-controlled checkbox) — verified end-to-end via live n8n executions 322–352 | See exact extraction below |
 
 If you need to re-verify any of these in the future (e.g. before a client clone), the most reliable method is the same one used here: open the relevant workflow's JSON (or call `get_workflow_details` against its live n8n ID) and read the Google Sheets node's `columns.value` mapping directly — that mapping **is** the schema contract; nothing downstream can disagree with it without breaking.
 
@@ -61,7 +61,7 @@ Follow-up Count | Assigned To | Notes
 
 ---
 
-## ✅ VERIFIED LIVE — Tab 2: `Appointments` (17 columns)
+## ✅ VERIFIED LIVE — Tab 2: `Appointments` (20 columns)
 
 Written directly by **Workflow 06 (Appointment Booking)** — append-only, no dedup concern, intentionally bypasses the CRM Adapter (a documented exception to the "Adapter is the only Sheets-toucher" rule, because this tab is a pure log). Read by workflows 09, 10, 11, 13; updated (specific columns only) by workflows 09, 10, and 13.
 
@@ -70,7 +70,7 @@ Extracted verbatim from the live `Write Appointment` node's column mapping (`wor
 ```
 Appt ID | Lead ID | Customer Name | Phone | Address | Service Type | Appt Date | Appt Time |
 Status | Team Member | Team Approval | Calendar Event ID | Reminder 24h | Reminder 2h | Notes |
-Notified Appt Date | Notified Appt Time
+Notified Appt Date | Notified Appt Time | Notify Customer | Reschedule Status | Reschedule Attempts
 ```
 
 | Column | Notes |
@@ -78,15 +78,18 @@ Notified Appt Date | Notified Appt Time
 | `Appt ID` | **Match key.** Format `APT-` + 14-digit timestamp (e.g. `APT-20260606143052`), minted at booking time |
 | `Customer Name` | Denormalized copy of the lead's name at booking time (not a live join — if the lead's name changes later, this does not update) |
 | `Service Type` | Free text, copied from the lead's `Service Needed` at booking time |
-| `Appt Date` | **Must be exactly `YYYY-MM-DD`.** Workflow 06's booking form uses a structured `date` field to guarantee this (a 2026-06-07 fix — the original free-text field produced unparseable values like `"Tuesday, June 10"`). Workflows 09, 11, and 13 all parse this with the strict regex `/^(\d{4})-(\d{2})-(\d{2})$/` — anything else is silently skipped (by design — see the parsing-guard verification in `docs/PROJECT_AUDIT.md`) |
-| `Appt Time` | **Must be exactly `H:MM AM/PM`** (e.g. `2:00 PM`, `10:00 AM`). Guaranteed by the booking form's fixed-slot `dropdown` field (10 hourly slots, 8 AM–5 PM). Parsed with `/^(\d{1,2}):(\d{2})\s*(AM|PM)$/i` by workflows 09 and 11. **If this value is ever overwritten outside the booking form's dropdown convention** (e.g. a manual edit entered as a Sheets time-of-day value), Google Sheets may coerce it to 24-hour `H:MM` display — which will then silently fail the `AM/PM` regex in 09/11/13 and skip that row for reminders/health checks. WF13 itself never reformats this column; it only compares the existing string value against `Notified Appt Time` |
+| `Appt Date` | **Must be exactly `YYYY-MM-DD`.** Workflow 06's booking form uses a structured `date` field to guarantee this (a 2026-06-07 fix — the original free-text field produced unparseable values like `"Tuesday, June 10"`). Workflows 09, 11, and 13 all parse this with the strict regex `/^(\d{4})-(\d{2})-(\d{2})$/` — anything else is silently skipped (by design — see the parsing-guard verification in `docs/PROJECT_AUDIT.md`). **This is the field the owner edits when rescheduling** — edit it as many times as needed before checking `Notify Customer` |
+| `Appt Time` | **Must be exactly `H:MM AM/PM`** (e.g. `2:00 PM`, `10:00 AM`). Guaranteed by the booking form's fixed-slot `dropdown` field (10 hourly slots, 8 AM–5 PM). Parsed with `/^(\d{1,2}):(\d{2})\s*(AM|PM)$/i` by workflows 09, 11, and 13. **If this value is ever overwritten outside the booking form's dropdown convention** (e.g. a manual edit entered as a Sheets time-of-day value), Google Sheets may coerce it to 24-hour `H:MM` display — which will then silently fail the `AM/PM` regex in 09/11/13 and skip that row for reminders/health checks/reschedule notices. **This is the other field the owner edits when rescheduling** |
 | `Status` | One of `Scheduled` / `Cancelled` (set by workflow 10 on a cancel reply — reschedules leave it `Scheduled`, staff coordinates manually) |
 | `Team Member` | Set from the booking form's optional "Team Member" field |
 | `Team Approval` | **Reserved, currently always blank.** Named in the brief; no live workflow reads or writes it. Presumably intended for a future crew-acceptance step |
 | `Calendar Event ID` | **Reserved, currently always blank.** Presumably intended for a future Google Calendar / Outlook sync (cataloged as an optional enhancement in `CLIENT_DEPLOYMENT_GUIDE.md` §6) |
-| `Reminder 24h` / `Reminder 2h` | **Write-only flag columns**, managed exclusively by workflow 09 (writes an ISO timestamp to whichever flag was just sent, round-trips the other untouched) and read by workflow 11 (treats any non-empty value as "already sent"). Leave blank when seeding new rows — never pre-fill. **Workflow 13 clears both of these back to `""`** whenever it detects and notifies a reschedule, so workflow 09 issues fresh reminders against the new `Appt Date`/`Appt Time` |
+| `Reminder 24h` / `Reminder 2h` | **Write-only flag columns**, managed exclusively by workflow 09 (writes an ISO timestamp to whichever flag was just sent, round-trips the other untouched) and read by workflow 11 (treats any non-empty value as "already sent"). Leave blank when seeding new rows — never pre-fill. **Workflow 13 clears both of these back to `""`** whenever the owner triggers a reschedule notification, so workflow 09 issues fresh reminders against the new `Appt Date`/`Appt Time` |
 | `Notes` | Free text; workflow 10 appends timestamped `[ISO] Customer {action} via SMS reply: "..."` entries here, pipe-separated, preserving prior notes |
-| `Notified Appt Date` / `Notified Appt Time` | **Added 2026-06-12 (Workflow 13).** Snapshot of the `Appt Date`/`Appt Time` the customer was last notified about. Seeded by workflow 06 at booking time (equal to the initial `Appt Date`/`Appt Time`, so a brand-new appointment never looks "rescheduled"). Workflow 13 runs on a schedule, compares `Appt Date`/`Appt Time` against these two columns for every `Scheduled` row, and — on a mismatch — sends the customer a reschedule SMS, then updates these two columns to match the new `Appt Date`/`Appt Time` (and clears `Reminder 24h`/`Reminder 2h`). If the values already match, the row is skipped — this is the duplicate-notification guard |
+| `Notified Appt Date` / `Notified Appt Time` | **Added 2026-06-12 (Workflow 13).** Snapshot of the `Appt Date`/`Appt Time` the customer was last notified about. Seeded by workflow 06 at booking time (equal to the initial `Appt Date`/`Appt Time`, so a brand-new appointment never looks "rescheduled"). When workflow 13 fires (see `Notify Customer` below), it updates these two columns to match the current `Appt Date`/`Appt Time` at that moment |
+| `Notify Customer` | **Added 2026-06-12, checkbox, default `FALSE`.** The owner's trigger for sending a reschedule notice. Owner workflow: edit `Appt Date`/`Appt Time` (as many times as needed), verify, then check this box. On its next hourly run, Workflow 13 picks up any `Scheduled` row where this is `TRUE`, sends the customer a YES/NO reschedule-confirmation SMS for the **current** `Appt Date`/`Appt Time`, sets `Reschedule Status = Pending Customer Confirmation`, updates `Notified Appt Date`/`Notified Appt Time`, resets `Reminder 24h`/`Reminder 2h`, and resets this checkbox back to `FALSE`. Replaces the V1.1-original automatic mismatch-detection trigger (which risked notifying customers prematurely or multiple times while the owner was still adjusting the appointment) |
+| `Reschedule Status` | **Added 2026-06-12.** One of `None` / `Pending Customer Confirmation` / `Confirmed` / `Customer Requested Different Time` / `Manual Follow-Up Required`. Defaults to `None` at booking. Set to `Pending Customer Confirmation` by Workflow 13 when the reschedule SMS goes out. Workflow 10 then updates it based on the customer's SMS reply: `Confirmed` (customer replied YES), `Customer Requested Different Time` (customer replied NO, 1st time), or `Manual Follow-Up Required` (customer replied NO a 2nd time — no further automated rescheduling occurs; staff must contact the customer directly). Workflow 10 only matches YES/NO replies against rows where this column is currently `Pending Customer Confirmation` |
+| `Reschedule Attempts` | **Added 2026-06-12, integer, default `0`.** Incremented by Workflow 10 each time the customer replies NO to a reschedule-confirmation SMS. At `>= 2`, Workflow 10 sets `Reschedule Status = Manual Follow-Up Required` and stops sending automated rescheduling SMS for that appointment |
 
 ---
 
@@ -106,6 +109,11 @@ Log ID | Date / Time | Lead ID | Customer Name | Channel | Direction | Handler |
 | `Channel` | e.g. `SMS`, `Phone`, `Form`, `Email` |
 | `Direction` | `Inbound` / `Outbound` |
 | `Handler` | e.g. `AI (Haiku 4.5)`, `System`, or a staff name |
+
+**Added 2026-06-12 — new `Message Summary` values from the owner-controlled reschedule flow** (workflows 13 and 10, via the CRM Adapter):
+- `Outbound` / `Appointment Reschedule Notice` — Workflow 13 sent the customer the YES/NO reschedule-confirmation SMS after the owner checked `Notify Customer`
+- `Inbound` / `Reschedule Confirmation` — Workflow 10 logged the customer's `YES` reply (`Reschedule Status` → `Confirmed`)
+- `Inbound` / `Customer Requested Different Time` — Workflow 10 logged a customer `NO` reply (`Reschedule Status` → `Customer Requested Different Time`, or `Manual Follow-Up Required` on the 2nd `NO`)
 
 ---
 

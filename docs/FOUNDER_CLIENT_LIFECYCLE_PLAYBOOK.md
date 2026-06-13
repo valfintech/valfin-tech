@@ -257,7 +257,7 @@ This is the experience you're selling — and it's fully described from the clie
 - **Every missed call** → an instant text-back within seconds, acknowledging it and inviting them to share what they need
 - **Every new lead** (form, referral, etc.) → read, scored, and replied to automatically; urgent ones flagged straight to the owner's phone the moment they arrive
 - **Leads that don't book right away** → followed up automatically on a schedule (Day 1/3/7 by default), never just "forgotten"
-- **Appointments** → confirmed, reminded (24h + 2h), and tracked; reschedule/cancel requests handled conversationally via SMS reply; if the owner manually moves an appointment, the customer is texted the new time automatically
+- **Appointments** → confirmed, reminded (24h + 2h), and tracked; reschedule/cancel requests handled conversationally via SMS reply; if the owner moves an appointment, they check one box ("Notify Customer") and the system texts the customer the new time and walks them through confirming it
 - **The owner gets told what's happening** on a predictable schedule (see §10) — without having to ask or check anything
 
 The client's own customers experience a business that "never goes home for the night." The client (the owner) experiences a system that **tells them what they need to know, when they need to know it**, and otherwise stays out of their way.
@@ -324,7 +324,7 @@ Once client #1 is live and the 60-90 day case study (`CASE_STUDY_DATA_PLAN.md`) 
 | | Automated (the system does this) | Manual (you do this) |
 |---|---|---|
 | **Lead response** | Missed-call SMS, form-capture confirmation, every-lead owner alert (email by default, SMS optional), follow-up sequence | — |
-| **Appointments** | Booking confirmations, reminders (24h/2h), reschedule/cancel handling, owner-reschedule customer notification | Booking the appointment itself happens via the owner-facing form (someone enters it) |
+| **Appointments** | Booking confirmations, reminders (24h/2h), reschedule/cancel handling, owner-reschedule customer notification (incl. YES/NO confirmation handling and escalation to manual follow-up after 2 declines) | Booking the appointment itself happens via the owner-facing form (someone enters it); after moving an appointment, the owner checks "Notify Customer" in the Appointments tab to trigger the notification |
 | **Reporting** | Daily digest, weekly report, monthly ROI report, daily health monitor | Glancing at the monthly ROI report (§10); responding if a client asks about it |
 | **Compliance backstop** | Opt-out keyword detection (STOP/UNSUBSCRIBE/etc.) | Verifying the client's *own* intake forms carry consent language (`SMS_CONSENT_LANGUAGE_GUIDE.md`) — this can never be automated, it lives on the client's forms |
 | **Sales** | Lead Leak Calculator (on the website, runs itself) | Sourcing prospects, discovery calls, proposals, follow-up — all of Stages 1-4 |

@@ -1,5 +1,5 @@
 {
-  "_comment": "Local reference copy — synced from live n8n on 2026-06-11 (V1.1 pass). Live ID: Bj5b3sUexa8EeQcK. Inbound SMS → classifies reschedule/cancel intent, finds the customer's upcoming appointment, updates status/notes, replies to customer, alerts owner. Core reschedule/cancel logic and SMS opt-out compliance backstop unchanged from prior version (no AI-scoring refs existed here); V1.1 moved OWNER_PHONE/TWILIO_FROM_NUMBER into a CONFIG block in 'Build Reply Plan' and switched its timestamp generation to Luxon DateTime in America/New_York.",
+  "_comment": "Local reference copy — synced from live n8n on 2026-06-12 (V1.1 reconciliation: WF13 redesign companion). Live ID: Bj5b3sUexa8EeQcK. Inbound SMS → classifies cancel/reschedule/confirm_yes/confirm_no intent, finds the relevant appointment, updates status/Reschedule Status/Reschedule Attempts/notes, replies to customer (where applicable), alerts owner, and logs reschedule-confirmation replies to the Communication Log via the CRM Adapter. Cancel/reschedule handling and the SMS opt-out compliance backstop are unchanged from the prior version. New for this pass: 'Normalize Inbound SMS' also classifies standalone YES/NO replies as confirm_yes/confirm_no; 'Find Customer Appointment' matches confirm replies only against appointments with Reschedule Status = 'Pending Customer Confirmation'; 'Build Reply Plan' (CONFIG block at top) handles confirm_yes (sets Reschedule Status = Confirmed, emails owner, logs 'Reschedule Confirmation') and confirm_no (increments Reschedule Attempts; on attempt 1 sets Reschedule Status = 'Customer Requested Different Time' and tells the customer the team will reach out; on attempt >= 2 escalates to 'Manual Follow-Up Required', emails the owner, and tells the customer to call CONFIG.COMPANY_PHONE — no further automated rescheduling). SMS owner alerts continue to follow CONFIG.SMS_ALERTS_ENABLED; email owner alerts follow CONFIG.EMAIL_ALERTS_ENABLED.",
   "name": "Reschedule Cancel",
   "active": false,
   "settings": { "executionOrder": "v1" },
@@ -17,7 +17,7 @@
     {
       "parameters": {
         "mode": "runOnceForAllItems",
-        "jsCode": "const b = $json.body || $json;\nconst from = String(b.From || b.from || '').trim();\nconst bodyText = String(b.Body || b.body || '').trim();\nconst lower = bodyText.toLowerCase();\nconst trimmedLower = lower.trim();\n\n// SMS compliance: standalone opt-out keywords (STOP, UNSUBSCRIBE, etc.) must NEVER be\n// treated as an appointment-cancellation request and must NEVER trigger an automated\n// reply — that would conflict with the customer's opt-out intent and carrier rules.\n// Twilio's own Advanced Opt-Out feature may also intercept these at the carrier level\n// before this workflow ever sees them; this check is a defense-in-depth backstop.\n// Matched only when the ENTIRE message is an opt-out keyword (not a substring of a\n// longer sentence like \"please stop my service appointment\" — which IS a cancel intent).\nconst isStandaloneOptOut = /^(stop|stopall|unsubscribe|cancel\\s*all|quit|end|opt[\\s-]?out|remove)[.!\\s]*$/i.test(trimmedLower);\n\nlet intent = 'other';\nif (isStandaloneOptOut) {\n  intent = 'other'; // silently ignored — no auto-reply sent to a likely opt-out message\n} else if (/\\b(cancel|cancelled|can't make it|cant make it|won't be able|wont be able)\\b/.test(lower)) {\n  intent = 'cancel';\n} else if (/\\b(reschedule|resched|change|move|different time|new time|push back|push it)\\b/.test(lower)) {\n  intent = 'reschedule';\n}\n\nconst raw = from.replace(/\\D/g, '');\nconst e164 = raw.length === 11 && raw.startsWith('1') ? '+' + raw\n  : raw.length === 10 ? '+1' + raw\n  : (from.startsWith('+') ? from : null);\n\nif (!e164) intent = 'other';\n\nreturn [{ json: { fromPhone: from, e164Phone: e164, messageBody: bodyText, intent } }];"
+        "jsCode": "const b = $json.body || $json;\nconst from = String(b.From || b.from || '').trim();\nconst bodyText = String(b.Body || b.body || '').trim();\nconst lower = bodyText.toLowerCase();\nconst trimmedLower = lower.trim();\n\n// SMS compliance: standalone opt-out keywords (STOP, UNSUBSCRIBE, etc.) must NEVER be\n// treated as an appointment-cancellation request and must NEVER trigger an automated\n// reply — that would conflict with the customer's opt-out intent and carrier rules.\n// Twilio's own Advanced Opt-Out feature may also intercept these at the carrier level\n// before this workflow ever sees them; this check is a defense-in-depth backstop.\n// Matched only when the ENTIRE message is an opt-out keyword (not a substring of a\n// longer sentence like \"please stop my service appointment\" — which IS a cancel intent).\nconst isStandaloneOptOut = /^(stop|stopall|unsubscribe|cancel\\s*all|quit|end|opt[\\s-]?out|remove)[.!\\s]*$/i.test(trimmedLower);\n\n// Reschedule-confirmation replies (YES/NO) are short, standalone responses to WF13's\n// \"reply YES to confirm or NO if this doesn't work\" SMS. Anchored to the whole message\n// so longer sentences like \"can't make it\" still classify as cancel, not confirm_no.\nconst isConfirmYes = /^(y|yes|yep|yeah|yup|confirm|confirmed|sounds good|that works|works for me|ok|okay)[.!\\s]*$/i.test(trimmedLower);\nconst isConfirmNo = /^(n|no|nope|nah)[.!\\s]*$/i.test(trimmedLower);\n\nlet intent = 'other';\nif (isStandaloneOptOut) {\n  intent = 'other'; // silently ignored — no auto-reply sent to a likely opt-out message\n} else if (/\\b(cancel|cancelled|can't make it|cant make it|won't be able|wont be able)\\b/.test(lower)) {\n  intent = 'cancel';\n} else if (/\\b(reschedule|resched|change|move|different time|new time|push back|push it)\\b/.test(lower)) {\n  intent = 'reschedule';\n} else if (isConfirmYes) {\n  intent = 'confirm_yes';\n} else if (isConfirmNo) {\n  intent = 'confirm_no';\n}\n\nconst raw = from.replace(/\\D/g, '');\nconst e164 = raw.length === 11 && raw.startsWith('1') ? '+' + raw\n  : raw.length === 10 ? '+1' + raw\n  : (from.startsWith('+') ? from : null);\n\nif (!e164) intent = 'other';\n\nreturn [{ json: { fromPhone: from, e164Phone: e164, messageBody: bodyText, intent } }];"
       },
       "id": "cf45c0c6-909c-428b-aa20-b1f3967f8191",
       "name": "Normalize Inbound SMS",
@@ -59,7 +59,7 @@
     {
       "parameters": {
         "mode": "runOnceForAllItems",
-        "jsCode": "const inbound = $('Normalize Inbound SMS').first().json;\nconst appts = $input.all().map(i => i.json);\n\nfunction normalizePhone(p) {\n  const raw = String(p || '').replace(/\\D/g, '');\n  if (raw.length === 11 && raw.startsWith('1')) return raw.slice(1);\n  return raw;\n}\n\nconst inboundDigits = normalizePhone(inbound.fromPhone);\n\nconst candidates = appts.filter(a => {\n  const status = (a['Status'] || '').trim();\n  if (status !== 'Scheduled') return false;\n  return inboundDigits.length === 10 && normalizePhone(a['Phone']) === inboundDigits;\n});\n\ncandidates.sort((a, b) => {\n  const da = String(a['Appt Date'] || '');\n  const db = String(b['Appt Date'] || '');\n  if (da !== db) return da < db ? -1 : 1;\n  return String(a['Appt Time'] || '').localeCompare(String(b['Appt Time'] || ''));\n});\n\nconst appt = candidates[0];\n\nif (!appt) {\n  return [{ json: { found: false, intent: inbound.intent, fromPhone: inbound.fromPhone, e164Phone: inbound.e164Phone, messageBody: inbound.messageBody } }];\n}\n\nreturn [{ json: {\n  found: true,\n  intent: inbound.intent,\n  fromPhone: inbound.fromPhone,\n  e164Phone: inbound.e164Phone,\n  messageBody: inbound.messageBody,\n  apptId: appt['Appt ID'],\n  customerName: appt['Customer Name'] || '',\n  serviceType: appt['Service Type'] || 'roofing appointment',\n  apptDate: appt['Appt Date'] || '',\n  apptTime: appt['Appt Time'] || '',\n  existingNotes: appt['Notes'] || ''\n} }];"
+        "jsCode": "const inbound = $('Normalize Inbound SMS').first().json;\nconst appts = $input.all().map(i => i.json);\n\nfunction normalizePhone(p) {\n  const raw = String(p || '').replace(/\\D/g, '');\n  if (raw.length === 11 && raw.startsWith('1')) return raw.slice(1);\n  return raw;\n}\n\nconst inboundDigits = normalizePhone(inbound.fromPhone);\nconst isConfirmReply = inbound.intent === 'confirm_yes' || inbound.intent === 'confirm_no';\n\nconst candidates = appts.filter(a => {\n  const status = (a['Status'] || '').trim();\n  if (status !== 'Scheduled') return false;\n  if (!(inboundDigits.length === 10 && normalizePhone(a['Phone']) === inboundDigits)) return false;\n  if (isConfirmReply) {\n    return String(a['Reschedule Status'] || '').trim() === 'Pending Customer Confirmation';\n  }\n  return true;\n});\n\ncandidates.sort((a, b) => {\n  const da = String(a['Appt Date'] || '');\n  const db = String(b['Appt Date'] || '');\n  if (da !== db) return da < db ? -1 : 1;\n  return String(a['Appt Time'] || '').localeCompare(String(b['Appt Time'] || ''));\n});\n\nconst appt = candidates[0];\n\nif (!appt) {\n  return [{ json: { found: false, intent: inbound.intent, fromPhone: inbound.fromPhone, e164Phone: inbound.e164Phone, messageBody: inbound.messageBody } }];\n}\n\nreturn [{ json: {\n  found: true,\n  intent: inbound.intent,\n  fromPhone: inbound.fromPhone,\n  e164Phone: inbound.e164Phone,\n  messageBody: inbound.messageBody,\n  apptId: appt['Appt ID'],\n  leadId: appt['Lead ID'] || '',\n  customerName: appt['Customer Name'] || '',\n  serviceType: appt['Service Type'] || 'roofing appointment',\n  apptDate: appt['Appt Date'] || '',\n  apptTime: appt['Appt Time'] || '',\n  existingNotes: appt['Notes'] || '',\n  rescheduleStatus: appt['Reschedule Status'] || 'None',\n  rescheduleAttempts: Number(appt['Reschedule Attempts'] || 0)\n} }];"
       },
       "id": "93d0099b-c2bf-4ebf-b468-2055ef4581d4",
       "name": "Find Customer Appointment",
@@ -85,7 +85,7 @@
     {
       "parameters": {
         "mode": "runOnceForAllItems",
-        "jsCode": "const CONFIG = {\n  DEFAULT_TIMEZONE: 'America/New_York',\n  OWNER_PHONE: '+18575261499',\n  TWILIO_FROM_NUMBER: '+18889839308'\n};\n\nconst d = $json;\nconst firstName = String(d.customerName || '').trim().split(/\\s+/)[0] || '';\nconst greeting = firstName ? 'Hi ' + firstName + ',' : 'Hi,';\nconst svc = d.serviceType || 'roofing appointment';\n\nconst ts = DateTime.now().setZone(CONFIG.DEFAULT_TIMEZONE).toISO();\n\nlet customerReply, ownerAlert, newStatus, notesAppend;\n\nif (d.intent === 'cancel') {\n  customerReply = greeting + ' your ' + svc + ' appointment with Valfin Tech (' + d.apptDate + ' at ' + d.apptTime + ') has been cancelled per your request. Want to rebook? Just call us anytime.';\n  ownerAlert = 'CANCELLATION via SMS: ' + (d.customerName || d.fromPhone) + ' (' + d.fromPhone + ') cancelled appt ' + d.apptId + ' \\u2014 ' + d.apptDate + ' at ' + d.apptTime + ' (' + svc + '). Consider following up to rebook.';\n  newStatus = 'Cancelled';\n  notesAppend = '[' + ts + '] Customer cancelled via SMS reply: \"' + d.messageBody + '\"';\n} else {\n  customerReply = greeting + ' thanks for letting us know \\u2014 we got your reschedule request for your ' + svc + ' appointment (' + d.apptDate + ' at ' + d.apptTime + '). Our team will call you shortly to find a new time. You can also call us anytime.';\n  ownerAlert = 'RESCHEDULE REQUEST via SMS: ' + (d.customerName || d.fromPhone) + ' (' + d.fromPhone + ') wants to reschedule appt ' + d.apptId + ' \\u2014 currently ' + d.apptDate + ' at ' + d.apptTime + ' (' + svc + '). Please call them to confirm a new time.';\n  newStatus = 'Scheduled';\n  notesAppend = '[' + ts + '] Customer requested reschedule via SMS reply: \"' + d.messageBody + '\"';\n}\n\nconst updatedNotes = (d.existingNotes ? d.existingNotes + ' | ' : '') + notesAppend;\n\nreturn [{ json: {\n  apptId: d.apptId,\n  customerReply,\n  ownerAlert,\n  newStatus,\n  updatedNotes,\n  e164Phone: d.e164Phone,\n  ownerPhone: CONFIG.OWNER_PHONE,\n  from: CONFIG.TWILIO_FROM_NUMBER\n} }];"
+        "jsCode": "const CONFIG = {\n  COMPANY_NAME: 'Valfin Tech',\n  COMPANY_PHONE: '(857) 526-1499',\n  OWNER_PHONE: '+18575261499',\n  OWNER_EMAIL: 'valfintechnologies@gmail.com',\n  TWILIO_FROM_NUMBER: '+18889839308',\n  EMAIL_ALERTS_ENABLED: true,\n  SMS_ALERTS_ENABLED: false,\n  DEFAULT_TIMEZONE: 'America/New_York'\n};\n\nconst d = $json;\nconst firstName = String(d.customerName || '').trim().split(/\\s+/)[0] || '';\nconst greeting = firstName ? 'Hi ' + firstName + ',' : 'Hi,';\nconst svc = d.serviceType || 'roofing appointment';\nconst who = d.customerName || d.fromPhone;\n\nconst ts = DateTime.now().setZone(CONFIG.DEFAULT_TIMEZONE).toISO();\n\nlet customerReply = '';\nlet ownerAlert = '';\nlet ownerEmailSubject = '';\nlet ownerEmailHtml = '';\nlet newStatus = 'Scheduled';\nlet newRescheduleStatus = String(d.rescheduleStatus || 'None');\nlet newRescheduleAttempts = Number(d.rescheduleAttempts || 0);\nlet notesAppend = '';\nlet sendOwnerSms = false;\nlet sendOwnerEmail = false;\nlet shouldLogCommunication = false;\nlet logDirection = '';\nlet logSummary = '';\nlet logNotes = '';\n\nif (d.intent === 'cancel') {\n  customerReply = greeting + ' your ' + svc + ' appointment with Valfin Tech (' + d.apptDate + ' at ' + d.apptTime + ') has been cancelled per your request. Want to rebook? Just call us anytime.';\n  ownerAlert = 'CANCELLATION via SMS: ' + who + ' (' + d.fromPhone + ') cancelled appt ' + d.apptId + ' — ' + d.apptDate + ' at ' + d.apptTime + ' (' + svc + '). Consider following up to rebook.';\n  newStatus = 'Cancelled';\n  notesAppend = '[' + ts + '] Customer cancelled via SMS reply: \"' + d.messageBody + '\"';\n  sendOwnerSms = true;\n} else if (d.intent === 'reschedule') {\n  customerReply = greeting + ' thanks for letting us know — we got your reschedule request for your ' + svc + ' appointment (' + d.apptDate + ' at ' + d.apptTime + '). Our team will call you shortly to find a new time. You can also call us anytime.';\n  ownerAlert = 'RESCHEDULE REQUEST via SMS: ' + who + ' (' + d.fromPhone + ') wants to reschedule appt ' + d.apptId + ' — currently ' + d.apptDate + ' at ' + d.apptTime + ' (' + svc + '). Please call them to confirm a new time.';\n  newStatus = 'Scheduled';\n  notesAppend = '[' + ts + '] Customer requested reschedule via SMS reply: \"' + d.messageBody + '\"';\n  sendOwnerSms = true;\n} else if (d.intent === 'confirm_yes') {\n  customerReply = '';\n  newRescheduleStatus = 'Confirmed';\n  notesAppend = '[' + ts + '] Customer confirmed rescheduled appointment via SMS reply: \"' + d.messageBody + '\"';\n  ownerAlert = who + ' confirmed the updated appointment (' + d.apptDate + ' at ' + d.apptTime + ').';\n  ownerEmailSubject = who + ' confirmed the updated appointment';\n  ownerEmailHtml = '<p>' + who + ' confirmed the updated appointment.</p><p>Appointment <strong>' + d.apptId + '</strong> — ' + d.apptDate + ' at ' + d.apptTime + ' (' + svc + ').</p>';\n  sendOwnerEmail = CONFIG.EMAIL_ALERTS_ENABLED;\n  sendOwnerSms = CONFIG.SMS_ALERTS_ENABLED;\n  shouldLogCommunication = true;\n  logDirection = 'Inbound';\n  logSummary = 'Reschedule Confirmation';\n  logNotes = d.messageBody;\n} else if (d.intent === 'confirm_no') {\n  newRescheduleAttempts = Number(d.rescheduleAttempts || 0) + 1;\n  shouldLogCommunication = true;\n  logDirection = 'Inbound';\n  logSummary = 'Customer Requested Different Time';\n  logNotes = d.messageBody;\n\n  if (newRescheduleAttempts >= 2) {\n    newRescheduleStatus = 'Manual Follow-Up Required';\n    customerReply = 'We want to make sure we find the best time for you. Please give us a call at ' + CONFIG.COMPANY_PHONE + ', or we will reach out shortly to coordinate directly.';\n    ownerAlert = who + ' has exceeded automated rescheduling attempts. Please contact them directly.';\n    ownerEmailSubject = who + ' has exceeded automated rescheduling attempts';\n    ownerEmailHtml = '<p>' + who + ' has exceeded automated rescheduling attempts (appt ' + d.apptId + ', currently ' + d.apptDate + ' at ' + d.apptTime + '). Please contact them directly.</p>';\n    notesAppend = '[' + ts + '] Customer declined proposed time again via SMS reply (attempt ' + newRescheduleAttempts + '), escalated to manual follow-up: \"' + d.messageBody + '\"';\n  } else {\n    newRescheduleStatus = 'Customer Requested Different Time';\n    customerReply = 'No problem. A member of our team will contact you shortly to help find a time that works best for you.';\n    ownerAlert = who + ' cannot make the proposed appointment. Please contact them to finalize scheduling.';\n    ownerEmailSubject = who + ' cannot make the proposed appointment';\n    ownerEmailHtml = '<p>' + who + ' cannot make the proposed appointment (appt ' + d.apptId + ', currently ' + d.apptDate + ' at ' + d.apptTime + '). Please contact them to finalize scheduling.</p>';\n    notesAppend = '[' + ts + '] Customer declined proposed time via SMS reply: \"' + d.messageBody + '\"';\n  }\n\n  sendOwnerEmail = CONFIG.EMAIL_ALERTS_ENABLED;\n  sendOwnerSms = CONFIG.SMS_ALERTS_ENABLED;\n}\n\nconst updatedNotes = (d.existingNotes ? d.existingNotes + ' | ' : '') + notesAppend;\n\nreturn [{ json: {\n  apptId: d.apptId,\n  leadId: d.leadId || '',\n  customerReply,\n  hasCustomerReply: customerReply !== '',\n  ownerAlert,\n  ownerEmailSubject,\n  ownerEmailHtml,\n  newStatus,\n  newRescheduleStatus,\n  newRescheduleAttempts,\n  updatedNotes,\n  e164Phone: d.e164Phone,\n  ownerPhone: CONFIG.OWNER_PHONE,\n  ownerEmail: CONFIG.OWNER_EMAIL,\n  from: CONFIG.TWILIO_FROM_NUMBER,\n  sendOwnerSms,\n  sendOwnerEmail,\n  shouldLogCommunication,\n  logChannel: 'SMS',\n  logDirection,\n  logHandler: 'Customer',\n  logSummary,\n  logNotes\n} }];"
       },
       "id": "4fb6cfcb-749c-46fa-a79e-9aee936bf7ca",
       "name": "Build Reply Plan",
@@ -103,7 +103,9 @@
           "value": {
             "Appt ID": "={{ $json.apptId }}",
             "Status": "={{ $json.newStatus }}",
-            "Notes": "={{ $json.updatedNotes }}"
+            "Notes": "={{ $json.updatedNotes }}",
+            "Reschedule Status": "={{ $json.newRescheduleStatus }}",
+            "Reschedule Attempts": "={{ $json.newRescheduleAttempts }}"
           },
           "matchingColumns": ["Appt ID"],
           "schema": []
@@ -119,6 +121,21 @@
       "maxTries": 3,
       "waitBetweenTries": 2000,
       "credentials": { "googleSheetsOAuth2Api": { "id": "", "name": "Google Sheets account" } }
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": { "caseSensitive": true, "leftValue": "", "typeValidation": "strict", "version": 1 },
+          "conditions": [{ "leftValue": "={{ $json.hasCustomerReply }}", "operator": { "type": "boolean", "operation": "true", "singleValue": true } }],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "id": "941487f3-ce6b-4458-9fcd-74855342bf3c",
+      "name": "Has Customer Reply?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [1792, -300]
     },
     {
       "parameters": {
@@ -139,6 +156,21 @@
     },
     {
       "parameters": {
+        "conditions": {
+          "options": { "caseSensitive": true, "leftValue": "", "typeValidation": "strict", "version": 1 },
+          "conditions": [{ "leftValue": "={{ $(\"Build Reply Plan\").item.json.sendOwnerSms }}", "operator": { "type": "boolean", "operation": "true", "singleValue": true } }],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "id": "fefd4c4e-1b82-45a5-978e-bb8ecb5b3162",
+      "name": "Check SMS Enabled",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [1792, -50]
+    },
+    {
+      "parameters": {
         "from": "={{ $(\"Build Reply Plan\").item.json.from }}",
         "to": "={{ $(\"Build Reply Plan\").item.json.ownerPhone }}",
         "message": "={{ $(\"Build Reply Plan\").item.json.ownerAlert }}",
@@ -153,6 +185,82 @@
       "maxTries": 3,
       "waitBetweenTries": 3000,
       "credentials": { "twilioApi": { "id": "", "name": "Twilio account" } }
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": { "caseSensitive": true, "leftValue": "", "typeValidation": "strict", "version": 1 },
+          "conditions": [{ "leftValue": "={{ $(\"Build Reply Plan\").item.json.sendOwnerEmail }}", "operator": { "type": "boolean", "operation": "true", "singleValue": true } }],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "id": "092a4047-d336-49d6-b359-fa9e709a4876",
+      "name": "Check Email Enabled",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [1792, 130]
+    },
+    {
+      "parameters": {
+        "resource": "message",
+        "operation": "send",
+        "sendTo": "={{ $(\"Build Reply Plan\").item.json.ownerEmail }}",
+        "subject": "={{ $(\"Build Reply Plan\").item.json.ownerEmailSubject }}",
+        "emailType": "html",
+        "message": "={{ $(\"Build Reply Plan\").item.json.ownerEmailHtml }}",
+        "options": { "appendAttribution": false }
+      },
+      "id": "729d6c7e-fe58-4191-9fce-cddf7ad1d2bb",
+      "name": "Send Owner Email",
+      "type": "n8n-nodes-base.gmail",
+      "typeVersion": 2.2,
+      "position": [2016, 130],
+      "webhookId": "92cc1897-ac6a-4f94-9370-6eb7b1ec3e14",
+      "credentials": { "gmailOAuth2": { "id": "", "name": "Gmail account" } }
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": { "caseSensitive": true, "leftValue": "", "typeValidation": "strict", "version": 1 },
+          "conditions": [{ "leftValue": "={{ $(\"Build Reply Plan\").item.json.shouldLogCommunication }}", "operator": { "type": "boolean", "operation": "true", "singleValue": true } }],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "id": "a2f20793-45ee-48b7-95bf-a287f31028ab",
+      "name": "Is Confirmation Reply?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [1792, 310]
+    },
+    {
+      "parameters": {
+        "source": "database",
+        "workflowId": { "__rl": true, "mode": "id", "value": "wVRHChyFrUNRaH4M" },
+        "mode": "each",
+        "workflowInputs": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "leadId": "={{ $(\"Build Reply Plan\").item.json.leadId }}",
+            "logChannel": "={{ $(\"Build Reply Plan\").item.json.logChannel }}",
+            "logDirection": "={{ $(\"Build Reply Plan\").item.json.logDirection }}",
+            "logHandler": "={{ $(\"Build Reply Plan\").item.json.logHandler }}",
+            "logSummary": "={{ $(\"Build Reply Plan\").item.json.logSummary }}",
+            "logNotes": "={{ $(\"Build Reply Plan\").item.json.logNotes }}"
+          },
+          "matchingColumns": [],
+          "schema": [],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": true
+        },
+        "options": {}
+      },
+      "id": "f18d08f0-44c8-4e8b-ba22-2ca6b93f5de0",
+      "name": "CRM: Log Inbound Message",
+      "type": "n8n-nodes-base.executeWorkflow",
+      "typeVersion": 1.3,
+      "position": [2016, 310]
     },
     {
       "parameters": {
@@ -173,9 +281,9 @@
     },
     {
       "parameters": {
-        "content": "This workflow processes incoming SMS messages related to appointment changes, determines whether the customer wants to reschedule or cancel, updates the appointment records accordingly, sends a response back to the customer, and notifies the business owner of the request.",
-        "height": 192,
-        "width": 272
+        "content": "This workflow processes incoming SMS messages related to appointment changes, determines whether the customer wants to reschedule, cancel, or is responding YES/NO to a reschedule-confirmation request (WF13), updates the appointment record (Status / Reschedule Status / Reschedule Attempts / Notes) accordingly, replies to the customer where applicable, notifies the business owner, and logs reschedule-confirmation replies to the Communication Log via the CRM Adapter. NO replies escalate to 'Manual Follow-Up Required' after 2 attempts and stop further automated rescheduling.",
+        "height": 224,
+        "width": 320
       },
       "id": "c2d7e9be-1eb7-4247-a54b-0e7752680c15",
       "name": "Sticky Note",
@@ -192,7 +300,19 @@
     "Find Customer Appointment": { "main": [[{ "node": "Appointment Found?", "type": "main", "index": 0 }]] },
     "Appointment Found?": { "main": [[{ "node": "Build Reply Plan", "type": "main", "index": 0 }], [{ "node": "Send Not Found Reply", "type": "main", "index": 0 }]] },
     "Build Reply Plan": { "main": [[{ "node": "Update Appointment Row", "type": "main", "index": 0 }]] },
-    "Update Appointment Row": { "main": [[{ "node": "Send Customer Reply SMS", "type": "main", "index": 0 }]] },
-    "Send Customer Reply SMS": { "main": [[{ "node": "Notify Owner of Inbound Request", "type": "main", "index": 0 }]] }
+    "Update Appointment Row": {
+      "main": [
+        [
+          { "node": "Has Customer Reply?", "type": "main", "index": 0 },
+          { "node": "Check SMS Enabled", "type": "main", "index": 0 },
+          { "node": "Check Email Enabled", "type": "main", "index": 0 },
+          { "node": "Is Confirmation Reply?", "type": "main", "index": 0 }
+        ]
+      ]
+    },
+    "Has Customer Reply?": { "main": [[{ "node": "Send Customer Reply SMS", "type": "main", "index": 0 }]] },
+    "Check SMS Enabled": { "main": [[{ "node": "Notify Owner of Inbound Request", "type": "main", "index": 0 }]] },
+    "Check Email Enabled": { "main": [[{ "node": "Send Owner Email", "type": "main", "index": 0 }]] },
+    "Is Confirmation Reply?": { "main": [[{ "node": "CRM: Log Inbound Message", "type": "main", "index": 0 }]] }
   }
 }

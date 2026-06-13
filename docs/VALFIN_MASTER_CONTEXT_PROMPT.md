@@ -75,10 +75,10 @@ Valfin's mission is to close that gap — instantly, automatically, and honestly
 | 07 | Pipeline Status Digest | Daily owner email: status counts + Stale leads list + today's activity. |
 | 08 | Weekly Pipeline Report | Weekly owner email: trailing-7-day metrics, top sources. |
 | 09 | Appointment Reminders | Hourly; sends 24h/2h reminder SMS with dedup flags. |
-| 10 | Reschedule/Cancel | Inbound SMS → classify reschedule/cancel/opt-out → update Appointments → reply + alert owner. Opt-out keywords silently suppressed. |
+| 10 | Reschedule/Cancel | Inbound SMS → classify reschedule/cancel/opt-out/`confirm_yes`/`confirm_no` → update Appointments → reply + alert owner. Opt-out keywords silently suppressed. `confirm_yes`/`confirm_no` handle customer replies to Workflow 13's reschedule SMS (sets `Reschedule Status`, tracks `Reschedule Attempts`, escalates to `Manual Follow-Up Required` after 2 NO replies). |
 | 11 | System Health Monitor | Daily check of CRM data freshness vs. 09/05's own thresholds → alerts the Valfin operator if something looks stale. |
 | 12 | Client ROI Report | Every 30 days, emails the client a plain-language recap of leads/bookings/missed-calls-recovered — the renewal-justification tool. |
-| 13 | Appointment Reschedule Notifier | Hourly; detects owner-initiated `Appt Date`/`Appt Time` changes (vs. `Notified Appt Date`/`Notified Appt Time`) on a `Scheduled` appointment, texts the customer the new time, emails the owner, resets reminder flags, and logs the SMS. Added 2026-06-12 (V1.1 reconciliation fix). |
+| 13 | Appointment Reschedule Notifier | Hourly; owner-controlled checkbox. After the owner edits `Appt Date`/`Appt Time` (as many times as needed) and checks `Notify Customer = TRUE`, the workflow texts the customer a YES/NO reschedule-confirmation, sets `Reschedule Status = Pending Customer Confirmation`, emails the owner, resets reminder flags, resets the checkbox, and logs the SMS. Added 2026-06-12, redesigned same-day from an automatic mismatch-detection trigger to this checkbox flow (V1.1 reconciliation). |
 
 Full per-workflow detail, CONFIG keys, and cloning instructions: `docs/CLIENT_CLONING_MASTER_PROMPT.md`.
 
