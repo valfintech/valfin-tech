@@ -20,68 +20,55 @@ export const pricingPage = {
     href: "/calculator",
   },
   /**
-   * Short orientation copy shown directly above the three plan cards.
-   * Added to address "pricing clarity" — visitors were landing on three
-   * cards that all say "Custom" / "Let's talk" with no immediate sense
-   * of how to tell them apart or which one fits their situation. This
-   * gives a one-glance frame for reading the cards before the FAQ (which
-   * explains *why* there's no published price) ever comes into view.
+   * Short orientation copy shown directly above the plan cards.
+   * Added to address "pricing clarity" — visitors were landing on cards
+   * that all say "Custom" / "Let's talk" with no immediate sense of how
+   * to tell them apart or which one fits their situation. This gives a
+   * one-glance frame for reading the cards before the FAQ (which explains
+   * *why* there's no published price) ever comes into view.
    */
   tiersIntro: {
-    eyebrow: "How the three compare",
-    headline: "One system, three starting points",
+    eyebrow: "How they compare",
+    headline: "One system, two ways to start",
     subheadline:
-      "All three are the same underlying system: the difference is how much of your pipeline it's covering on day one. Most businesses start with Foundation or Growth; \"Built for you\" exists for the handful of operations complex enough to need a custom shape from the start.",
+      "The Core Growth System covers everything most businesses need: capture, follow-up, recovery, booking, and reporting, in one place. Custom Systems exists for the handful of operations that need something built specifically around how they run.",
   },
 };
 
 export const pricingPlans: PricingPlan[] = [
   {
-    name: "Foundation",
-    tagline: "For businesses ready to stop losing leads to slow response",
+    name: "Core Growth System",
+    tagline: "Everything you need to capture and convert more leads",
     priceLabel: "Custom",
-    priceNote: "Built around your call volume and team setup",
+    priceNote: "Built around your lead volume and team setup",
     description:
-      "Everything required to make sure your business answers fast, every time: calls, texts, and forms covered, day and night, with a clean handoff to your team whenever a real person is needed.",
+      "Designed for businesses that want to stop losing leads and automate follow-up without adding more work.",
     features: [
-      "Always-on response across calls, texts, and web forms",
-      "Fast qualifying conversation, in your business's voice",
-      "Direct booking onto the calendar your team already uses",
-      "Human handoff with full conversation context, nothing repeated",
-      "Weekly visibility into what came in and what happened to it",
+      "Capture leads from your website, contact forms, and social inquiries, all in one place",
+      "Instant SMS follow-up, plus automated email follow-up, day and night",
+      "Automatic re-engagement of leads that would otherwise go quiet",
+      "Simplified booking that moves prospects toward an appointment",
+      "One organized view of every lead, conversation, and status",
+      "Daily, weekly, and monthly reports on leads, conversations, and bookings",
+      "Less manual follow-up, faster responses, and a more consistent experience for every lead",
     ],
-    cta: { label: "Talk to us about Foundation", href: "/company#contact" },
-  },
-  {
-    name: "Growth",
-    tagline: "For businesses ready to recover leads that already went quiet",
-    priceLabel: "Custom",
-    priceNote: "Built around your call volume, team setup, and pipeline size",
-    description:
-      "Everything in Foundation, plus ongoing follow-up that keeps working a lead until it becomes a customer or a clear no, recovering the part of your pipeline that usually goes cold and gets forgotten.",
-    features: [
-      "Everything in Foundation",
-      "Automatic, multi-touch follow-up across phone, text, and email",
-      "Re-engagement of past quotes and stalled conversations",
-      "Custom qualifying logic for your specific business and offers",
-      "Monthly review of what's working and what to adjust",
-    ],
-    cta: { label: "Talk to us about Growth", href: "/company#contact" },
+    cta: { label: "Book Your Strategy Call", href: "/company#contact" },
     isFeatured: true,
   },
   {
-    name: "Built for you",
-    tagline: "For multi-location, franchise, or higher-volume operations",
+    name: "Custom Systems",
+    tagline: "Custom automation solutions for how your business actually operates",
     priceLabel: "Let's talk",
-    priceNote: "Scoped around your structure, locations, and goals",
+    priceNote: "Scoped around your structure and goals",
     description:
-      "For businesses with more complexity: multiple locations, layered teams, or unique systems already in place. We design the system around how your business actually runs, not the other way around.",
+      "For businesses that want systems tailored specifically to how they operate. We build around your business instead of forcing you into a one-size-fits-all system.",
     features: [
-      "Everything in Growth",
-      "Multi-location and multi-team configuration",
-      "Custom integrations with the tools you already rely on",
-      "A dedicated build-and-tune relationship, not a self-serve tool",
-      "Priority access as new capabilities roll out",
+      "Advanced workflow automation and custom lead pipelines",
+      "Multi-step nurture sequences and reactivation campaigns",
+      "Team notifications, routing, and department-specific automations",
+      "Custom reporting dashboards and CRM customization",
+      "Integrations with the tools your business already runs on",
+      "Multi-location and industry-specific configurations",
     ],
     cta: { label: "Talk to us about a custom build", href: "/company#contact" },
   },
@@ -89,24 +76,29 @@ export const pricingPlans: PricingPlan[] = [
 
 export const pricingFaq: FaqItem[] = [
   {
+    question: "Which plan is right for me?",
+    answer:
+      "Most businesses start with the Core Growth System; it covers capture, follow-up, recovery, booking, and reporting in one place. Custom Systems is for the smaller number of operations that need something built specifically around how they already work. If you're not sure, start the conversation and we'll point you to the right one.",
+  },
+  {
     question: "Why isn't there a price on the page?",
     answer:
       "Because the honest answer depends on how many leads come through your business and how your team works today, and a number that ignores that would either be misleading or wrong. We'd rather understand your situation for fifteen minutes and give you a real answer than publish a number that doesn't apply to you.",
   },
   {
-    question: "How should I think about whether this is worth it?",
+    question: "Can I upgrade later?",
     answer:
-      "Run your numbers on the Lead Leak Calculator first. Most businesses find that what they're losing every month to slow follow-up is several times what this costs to fix, which is the only comparison that actually matters.",
+      "Yes. Most businesses start with the Core Growth System and move to a Custom System later if their needs grow beyond it, more locations, more complex routing, deeper integrations. Nothing about starting with Core Growth locks you out of that path.",
+  },
+  {
+    question: "Do I need any technical knowledge to use this?",
+    answer:
+      "No. We handle setup, configuration, and the ongoing automation using the number, calendar, and tools your business already has. Nobody on your team has to learn a new system to benefit from it.",
   },
   {
     question: "Is there a contract? What if it doesn't work for my business?",
     answer:
       "We'll walk you through exactly how this works before you commit to anything. The goal is a long relationship built on results, not a lock-in built on fine print.",
-  },
-  {
-    question: "Do I need new software or hardware to use this?",
-    answer:
-      "No. It's built to work with the number, calendar, and tools your business already uses. Nobody on your team has to learn a new system to benefit from this.",
   },
   {
     question: "How is this priced compared to hiring someone?",

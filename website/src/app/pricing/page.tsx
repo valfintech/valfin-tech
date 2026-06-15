@@ -60,7 +60,7 @@ export default function PricingPage() {
             subheadline={pricingPage.tiersIntro.subheadline}
             className="mb-10 sm:mb-12"
           />
-          <ScrollRevealGroup className="grid gap-6 lg:grid-cols-3" staggerAmount={0.06}>
+          <ScrollRevealGroup className="mx-auto grid max-w-4xl gap-6 lg:grid-cols-2" staggerAmount={0.06}>
             {pricingPlans.map((plan) => (
               <ScrollRevealItem key={plan.name}>
                 <div
@@ -73,7 +73,7 @@ export default function PricingPage() {
                 >
                   {plan.isFeatured ? (
                     <span className="mb-4 inline-block w-fit rounded-full border border-accent-500/40 bg-accent-500/10 px-3 py-1 text-xs font-medium text-accent-400">
-                      Most common fit
+                      Most Businesses Start Here
                     </span>
                   ) : null}
                   <h2 className="text-xl font-semibold text-ink-50">{plan.name}</h2>
