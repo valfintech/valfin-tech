@@ -13,6 +13,7 @@ type ContactPayload = {
   calcMonthlyLeads?: number | null;
   calcAvgValue?: number | null;
   calcMonthlyLoss?: string | null;
+  smsConsent?: boolean;
 };
 
 function isNonEmptyString(value: unknown): value is string {
@@ -105,7 +106,7 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: "Invalid JSON body." }, { status: 400 });
   }
 
-  const { name, email, business, message, phone, calcMonthlyLeads, calcAvgValue, calcMonthlyLoss } =
+  const { name, email, business, message, phone, calcMonthlyLeads, calcAvgValue, calcMonthlyLoss, smsConsent } =
     body;
 
   if (!isNonEmptyString(name) || !isNonEmptyString(email) || !isNonEmptyString(message)) {
@@ -126,6 +127,7 @@ export async function POST(request: Request) {
     phone: isNonEmptyString(phone) ? phone.trim() : null,
     businessName: isNonEmptyString(business) ? business.trim() : null,
     message: message.trim(),
+    smsConsent: smsConsent === true,
     calcMonthlyLeads: calcMonthlyLeads ?? null,
     calcAvgValue: calcAvgValue ?? null,
     calcMonthlyLoss: calcMonthlyLoss ?? null,
