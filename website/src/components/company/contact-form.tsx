@@ -18,14 +18,23 @@ type Status = "idle" | "submitting" | "success" | "error";
 export function ContactForm() {
   const [status, setStatus] = useState<Status>("idle");
   const [error, setError] = useState<string | null>(null);
+  const [smsConsent, setSmsConsent] = useState(false);
 
   const nameId = useId();
   const emailId = useId();
   const businessId = useId();
   const messageId = useId();
+  const smsConsentId = useId();
 
   async function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
+
+    if (!smsConsent) {
+      setStatus("error");
+      setError("Please check the box to agree to receive SMS messages before submitting.");
+      return;
+    }
+
     setStatus("submitting");
     setError(null);
 
@@ -36,6 +45,7 @@ export function ContactForm() {
       email: String(data.get("email") ?? ""),
       business: String(data.get("business") ?? ""),
       message: String(data.get("message") ?? ""),
+      smsConsent: true,
     };
 
     try {
@@ -52,6 +62,7 @@ export function ContactForm() {
 
       setStatus("success");
       form.reset();
+      setSmsConsent(false);
     } catch (err) {
       setStatus("error");
       setError(err instanceof Error ? err.message : "Something went wrong. Please try again.");
@@ -125,6 +136,23 @@ export function ContactForm() {
         </p>
       ) : null}
 
+      <div className="mt-5 flex items-start gap-3">
+        <input
+          id={smsConsentId}
+          name="smsConsent"
+          type="checkbox"
+          required
+          checked={smsConsent}
+          onChange={(event) => setSmsConsent(event.target.checked)}
+          className="mt-0.5 size-4 shrink-0 rounded border border-ink-700 bg-ink-950 accent-accent-500 outline-none focus-visible:ring-2 focus-visible:ring-accent-500/40"
+        />
+        <Label htmlFor={smsConsentId} className="text-xs leading-relaxed font-normal text-ink-600">
+          I agree to receive SMS messages from Valfin Tech regarding my inquiry, appointments, service updates,
+          and customer support communications. Message frequency varies. Message and data rates may apply. Reply
+          STOP to opt out and HELP for help. Consent is not a condition of purchase.
+        </Label>
+      </div>
+
       <Button
         type="submit"
         size="lg"
@@ -135,12 +163,7 @@ export function ContactForm() {
         <ArrowRight className="ml-1 size-4" />
       </Button>
       <p className="mt-4 text-xs text-ink-600">
-        No spam, no automated drip campaign, just a real reply from a real person at Valfin.
-      </p>
-      <p className="mt-3 text-xs leading-relaxed text-ink-600">
-        By submitting this form, you consent to receive communications from Valfin Tech regarding your inquiry,
-        including SMS messages related to your request. Message frequency varies. Message and data rates may
-        apply. Reply STOP to opt out of SMS communications at any time.
+        No spam, no automated drip campaigns, just a real reply from a real person at Valfin Tech.
       </p>
     </form>
   );
