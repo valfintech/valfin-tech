@@ -95,6 +95,15 @@ export default function PricingPage() {
                     ))}
                   </ul>
 
+                  {plan.proofPeriod ? (
+                    <div className="mt-6 rounded-xl border border-ink-700/60 bg-ink-800/40 px-4 py-3.5">
+                      <p className="text-xs font-semibold uppercase tracking-widest text-accent-400">
+                        {plan.proofPeriod.title}
+                      </p>
+                      <p className="mt-1.5 text-xs leading-relaxed text-ink-400">{plan.proofPeriod.body}</p>
+                    </div>
+                  ) : null}
+
                   <div className="mt-8 pt-2">
                     <ButtonLink
                       href={plan.cta.href}

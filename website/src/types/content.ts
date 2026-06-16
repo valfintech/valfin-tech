@@ -101,6 +101,7 @@ export type PricingPlan = {
   priceNote?: string;
   description: string;
   features: string[];
+  proofPeriod?: { title: string; body: string };
   cta: { label: string; href: string };
   isFeatured?: boolean;
 };
