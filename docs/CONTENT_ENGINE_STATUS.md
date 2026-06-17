@@ -16,9 +16,10 @@ A full content operating system, built 2026-06-13, now committed on `feature/con
 - **15 production-ready video packages** — full scripts, hooks, B-roll, AI visual prompts, captions, hashtags.
 - **Operating systems** — repurposing system (1 video → 7+ assets), end-to-end content operating system (idea → publish → optimize), and a future automation blueprint (plan only, not implemented).
 - **Templates & checklists** — video script, LinkedIn post, carousel, blog, email newsletter, caption/hashtag bank, content approval checklist, publishing checklist.
-- **Launch campaign (execution-ready)** — 5 of the 15 packages selected, expanded into fully self-contained launch pieces (script, VO, scenes, on-screen text, thumbnails, CapCut notes, captions, hashtags, posting times, cross-platform adaptations), plus a Google Sheets implementation package (6 pre-populated CSVs) and a Google Drive folder hierarchy + setup guide.
+- **Launch campaign (execution-ready)** — 5 of the 15 packages selected, expanded into fully self-contained launch pieces (script, scenes, on-screen text, captions, hashtags, posting times, cross-platform adaptations), plus a Google Sheets implementation package (6 pre-populated CSVs) and a Google Drive folder hierarchy + setup guide.
+- **All 5 launch reels fully produced (2026-06-14)** — built end-to-end in Remotion (`motion-engine/`) as motion-graphics videos with Higgsfield object-based hero shots (no AI humans), original music beds, and UI sound design (no voiceover). Each has a finished MP4 + cover image and a publish-ready Instagram posting package (caption, hashtags, pinned comment, CTA, posting time, alt text). **All 5 are publish-ready — no further production work needed before posting.**
 
-All of this is now committed to git in 6 commits on `feature/content-launch-v1` (brand guidelines; department overview/strategy; idea database; production packages; templates/checklists/systems; launch campaign).
+All of this is now committed to git in commits on `feature/content-launch-v1` (brand guidelines; department overview/strategy; idea database; production packages; templates/checklists/systems; launch campaign; Remotion motion engine + 5 finished reels).
 
 ---
 
@@ -51,27 +52,34 @@ content/
 └── launch/
     ├── README.md                        # Execution command center for the launch 5
     ├── pieces/LAUNCH-01 .. LAUNCH-05    # The 5 launch-ready pieces (VLF-001..005)
+    ├── pieces/VLF-001_PRODUCTION_PACKAGE.md  # VLF-001 asset+IG package
     ├── google-sheets/                   # 6 CSVs + SHEETS_SETUP_GUIDE.md
     └── google-drive/DRIVE_SETUP_GUIDE.md
+
+content/production/packages/
+└── VLF-002..005_POSTING_PACKAGE.md      # Finished asset list + IG package for each reel
+
+motion-engine/                           # Remotion production engine
+└── out/
+    ├── vlf-001.mp4, vlf-001-cover.png   # VLF-001 final render + cover
+    ├── VLF-002/VLF-002.mp4, cover.png   # VLF-002 final render + cover
+    ├── VLF-003/VLF-003.mp4, cover.png   # VLF-003 final render + cover
+    ├── VLF-004/VLF-004.mp4, cover.png   # VLF-004 final render + cover
+    └── VLF-005/VLF-005.mp4, cover.png   # VLF-005 final render + cover
 ```
 
 ---
 
 ## 3. Remaining Launch Tasks
 
-None of these are blockers in the technical sense — they're small, concrete prep items called out in [`content/launch/README.md`](../content/launch/README.md) §4:
+All 5 reels are fully produced and publish-ready — production tasks (AI stills, screen-capture, B-roll, CapCut editing, voiceover) are **done and no longer needed**, since every piece was built natively in Remotion with Higgsfield hero shots and music/SFX, no voiceover. What's left is founder-side setup, called out in [`content/launch/README.md`](../content/launch/README.md) §4:
 
 1. **Decide and set up social profiles/handles** on Instagram, TikTok, YouTube, LinkedIn — bio link pointing to `valfintech.com/calculator`, UTM-tagged per the convention in [`content/FILE_STRUCTURE_AND_CONVENTIONS.md`](../content/FILE_STRUCTURE_AND_CONVENTIONS.md) §2.
 2. **Confirm the public contact email** shown in bios/profiles — the repo recently switched the displayed contact email to a temporary Gmail address (commit `201dcbe`); verify this is the intended address before it goes into public bios.
-3. **Record one phone screen-capture of the live Calculator** (`valfintech.com/calculator`) — hero asset for VLF-004, reusable elsewhere.
-4. **Generate AI stills** (≈3–5 per piece, ChatGPT Pro) for all 5 launch pieces per the prompts already written into each piece file.
-5. **Capture a few real phone B-roll clips** (phone ringing, missed-call screen, calendar add) — reusable across all 5 pieces.
-6. **Decide on voiceover approach** — founder records on phone (recommended for authenticity) vs. text-only with music for launch. No paid tool required either way.
-7. **Install CapCut Free** (desktop or mobile).
-8. **Stand up the Google Sheets Content Dashboard** (~15 min, [`SHEETS_SETUP_GUIDE.md`](../content/launch/google-sheets/SHEETS_SETUP_GUIDE.md)) and the **Google Drive folder hierarchy** (~20 min, [`DRIVE_SETUP_GUIDE.md`](../content/launch/google-drive/DRIVE_SETUP_GUIDE.md)).
-9. **Confirm the Calculator and contact form are reachable** from link clicks (both are live; Twilio SMS verification pending does NOT block content).
+3. **Stand up the Google Sheets Content Dashboard** (~15 min, [`SHEETS_SETUP_GUIDE.md`](../content/launch/google-sheets/SHEETS_SETUP_GUIDE.md)) and the **Google Drive folder hierarchy** (~20 min, [`DRIVE_SETUP_GUIDE.md`](../content/launch/google-drive/DRIVE_SETUP_GUIDE.md)).
+4. **Confirm the Calculator and contact form are reachable** from link clicks (both are live; Twilio SMS verification pending does NOT block content).
 
-Estimated founder time to get all 5 produced and ready: **~6 hours**, spreadable across the 10-day window (a single 3–4 hour batch day is the recommended path — see [`content/launch/README.md`](../content/launch/README.md) "one-batch-day playbook").
+Founder time required to start publishing: just the setup above (~35–45 min) — every video and posting package is ready to download and post as-is.
 
 ---
 
@@ -99,9 +107,8 @@ Deliberately reuses tools the business already runs on (no new paid tools for la
 |---|---|---|
 | Content database / tracker | Google Sheets (6-tab Content Dashboard) | Setup guide ready, not yet stood up |
 | Asset storage | Google Drive (`Valfin Content Engine` folder) | Folder hierarchy designed, not yet built |
-| Editing | CapCut Free | Not yet installed |
-| Voiceover | Founder's phone (or text-only) | Decision pending |
-| AI stills | ChatGPT Pro | Not yet generated |
+| Production / editing | Remotion (`motion-engine/`) + Higgsfield object shots | Done — all 5 reels rendered |
+| Voiceover | None — music + UI sound design only | Final, no further decision needed |
 | Conversion destination | `valfintech.com/calculator` (Lead Leak Calculator) | Live |
 | Secondary destination | `valfintech.com` → "Talk to us" / `/company#contact` | Live |
 | Analytics | Vercel Analytics | Live on the site |
@@ -142,7 +149,7 @@ In order, for the founder:
 1. **Review [`docs/CONTENT_BRAND_GUIDELINES.md`](CONTENT_BRAND_GUIDELINES.md)** — confirm it sounds like Valfin before anything gets published.
 2. **Decide and create social handles** (IG, TikTok, YouTube, LinkedIn) with calculator bio link, UTM-tagged. Resolve the contact-email question (item 3 in §7) at the same time.
 3. **Stand up the Google Sheets Content Dashboard and Drive folder hierarchy** (~35 min combined) — instrument before publishing so post #1 is measurable from day one.
-4. **Run the one-batch-day playbook**: generate AI stills + B-roll for all 5 pieces, record (or decide against) VO, edit VLF-001 first, post it, pin it, then edit and schedule the remaining 4 per the publishing sequence in §4.
+4. **Download the 5 finished reels** from `motion-engine/out/` (VLF-001 through VLF-005, each with a cover image), post VLF-001 first and pin it, then post the remaining 4 per the publishing sequence in §4 — each posting package (caption, hashtags, pinned comment, CTA, alt text) is ready to copy-paste as-is.
 5. **Publish on the 10-day sequence**, logging each post in the Content Pipeline tab, and engage for 60–90 minutes after each post — route any real lead into the sales pipeline per the Operating Manual.
 6. **After 3–4 weeks, read the Content Insights tab** and let real Calculator-visit data — not intuition — decide what to make next, then layer in ElevenLabs and Buffer per §6.
 7. **Do not open new content fronts (blog, email list, automation phases) until the launch 5 are live and measured** — per Operating Manual §15, builder mode stays paused outside of real signal.

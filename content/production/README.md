@@ -41,6 +41,15 @@ Each package is a self-contained production kit. A producer (human or AI-assiste
 13. TikTok description
 14. YouTube Shorts description
 
+## Carousel derivatives (Phase 1 — Nano Banana 2 batch)
+Five carousels selected from the 15 above as the fastest, most save/share-friendly Phase 1 batch (myth, list, math, and comparison formats per [`CAROUSEL_TEMPLATE.md`](../templates/CAROUSEL_TEMPLATE.md)). Each is fully self-contained (slide copy, Nano Banana prompts, cover, caption, hashtags, pinned comment, CTA, posting slot):
+
+- [PKG-008_carousel.md](packages/PKG-008_carousel.md) — The Missed Call Math
+- [PKG-005_carousel.md](packages/PKG-005_carousel.md) — The 30 Seconds After Someone Calls (repurposes VLF-003)
+- [PKG-007_carousel.md](packages/PKG-007_carousel.md) — Myth: I Need More Leads
+- [PKG-013_carousel.md](packages/PKG-013_carousel.md) — Myth: This Is Just a Chatbot
+- [PKG-015_carousel.md](packages/PKG-015_carousel.md) — Look Like 50, Run Like 3
+
 ## Production notes (apply to all)
 - **Format:** Vertical 9:16, 1080×1920. Captions burned in (most watch on mute).
 - **Voice:** Calm, plain, human. No hype, no exclamation points. ~8th-grade level.

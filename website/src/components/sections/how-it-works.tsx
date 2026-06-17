@@ -1,5 +1,6 @@
 import { SectionHeader } from "@/components/sections/section-header";
 import { ScrollReveal, ScrollRevealGroup, ScrollRevealItem } from "@/components/motion/scroll-reveal";
+import { SpotlightCard } from "@/components/ui/spotlight-card";
 import { howItWorks } from "@/content/homepage";
 
 export function HowItWorks() {
@@ -20,13 +21,13 @@ export function HowItWorks() {
           />
           {howItWorks.steps.map((step) => (
             <ScrollRevealItem key={step.number}>
-              <div className="relative flex h-full flex-col rounded-xl border border-ink-700 bg-ink-900/50 p-7">
+              <SpotlightCard className="relative flex h-full flex-col rounded-xl border border-ink-700 bg-ink-900/50 p-7">
                 <span className="text-sm font-semibold tracking-wide text-accent-400">
                   {step.number}
                 </span>
                 <h3 className="mt-4 text-lg font-semibold text-ink-50">{step.title}</h3>
                 <p className="mt-3 text-sm leading-relaxed text-ink-400">{step.description}</p>
-              </div>
+              </SpotlightCard>
             </ScrollRevealItem>
           ))}
         </ScrollRevealGroup>

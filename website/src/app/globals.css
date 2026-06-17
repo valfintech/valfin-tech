@@ -222,3 +222,116 @@
     transform: translateX(0);
   }
 }
+
+/* ============================================================
+   SPOTLIGHT CARD — cursor-reactive radial glow
+   Used by SpotlightCard component. The --sx / --sy custom
+   properties are set directly on the element via JS on
+   mousemove (no React re-renders). Falls back gracefully to
+   a plain card when JS hasn't run yet or motion is reduced.
+   ============================================================ */
+.spotlight-card {
+  position: relative;
+  overflow: hidden;
+  transition: border-color 0.3s ease;
+}
+
+.spotlight-card::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+  pointer-events: none;
+  background: radial-gradient(
+    300px circle at var(--sx, -999px) var(--sy, -999px),
+    rgba(37, 99, 235, 0.09),
+    transparent 70%
+  );
+  opacity: 0;
+  transition: opacity 0.35s ease;
+}
+
+.spotlight-card:hover::before {
+  opacity: 1;
+}
+
+.spotlight-card:hover {
+  border-color: rgba(37, 99, 235, 0.3) !important;
+}
+
+/* Children stack above the spotlight layer */
+.spotlight-card > * {
+  position: relative;
+  z-index: 1;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .spotlight-card::before {
+    display: none;
+  }
+  .spotlight-card:hover {
+    border-color: inherit !important;
+  }
+}
+
+/* ============================================================
+   SMS THREAD — typing indicator dots
+   ============================================================ */
+@keyframes sms-dot-bounce {
+  0%, 60%, 100% {
+    transform: translateY(0);
+    opacity: 0.4;
+  }
+  30% {
+    transform: translateY(-4px);
+    opacity: 1;
+  }
+}
+
+.sms-typing-dot:nth-child(1) { animation: sms-dot-bounce 1.2s ease infinite 0s; }
+.sms-typing-dot:nth-child(2) { animation: sms-dot-bounce 1.2s ease infinite 0.2s; }
+.sms-typing-dot:nth-child(3) { animation: sms-dot-bounce 1.2s ease infinite 0.4s; }
+
+@media (prefers-reduced-motion: reduce) {
+  .sms-typing-dot { animation: none; opacity: 1; }
+}
+
+/* ============================================================
+   CALCULATOR REVEAL — blur transition
+   ============================================================ */
+@keyframes calc-reveal-number {
+  from {
+    filter: blur(10px);
+    opacity: 0.3;
+  }
+  to {
+    filter: blur(0px);
+    opacity: 1;
+  }
+}
+
+@keyframes calc-reveal-slide-up {
+  from {
+    opacity: 0;
+    transform: translateY(12px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.calc-number-reveal {
+  animation: calc-reveal-number 0.6s cubic-bezier(0.16, 1, 0.3, 1) both;
+}
+
+.calc-detail-reveal {
+  animation: calc-reveal-slide-up 0.5s cubic-bezier(0.16, 1, 0.3, 1) both;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .calc-number-reveal,
+  .calc-detail-reveal {
+    animation: none;
+  }
+}

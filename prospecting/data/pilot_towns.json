@@ -1,0 +1,13 @@
+{
+  "description": "Pilot town list for the MA Roofing Finder Agent. See docs/PILOT_CITY_LIST.md for rationale.",
+  "towns": [
+    "Worcester",
+    "Brockton",
+    "Lowell",
+    "Springfield",
+    "New Bedford",
+    "Framingham",
+    "Plymouth",
+    "Quincy"
+  ]
+}
