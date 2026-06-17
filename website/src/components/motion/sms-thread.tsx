@@ -121,11 +121,13 @@ export function SmsThread() {
   useEffect(() => {
     if (!isInView) {
       clearTimer();
+      // eslint-disable-next-line react-hooks/set-state-in-effect
       setState({ visibleCount: 0, showTyping: false });
       return;
     }
 
     if (prefersReduced) {
+      // eslint-disable-next-line react-hooks/set-state-in-effect
       setState({ visibleCount: MESSAGES.length, showTyping: false });
       return;
     }

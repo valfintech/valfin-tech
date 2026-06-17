@@ -355,7 +355,9 @@ function ResultPanel({
 
   useEffect(() => {
     if (prefersReduced) {
+      // eslint-disable-next-line react-hooks/set-state-in-effect
       setPhase("done");
+      // eslint-disable-next-line react-hooks/set-state-in-effect
       setDisplayMonthly(result.recoverableMonthlyRevenue);
       return;
     }
