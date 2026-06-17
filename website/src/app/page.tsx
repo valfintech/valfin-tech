@@ -4,8 +4,7 @@ import { Wound } from "@/components/sections/wound";
 import { ResponseTimeline } from "@/components/sections/response-timeline";
 import { Reframe } from "@/components/sections/reframe";
 import { HowItWorks } from "@/components/sections/how-it-works";
-import { SmsSection } from "@/components/sections/sms-section";
-import { SystemUnderneath } from "@/components/sections/system-underneath";
+import { CalculatorCta } from "@/components/sections/calculator-cta";
 import { Proof } from "@/components/sections/proof";
 import { Industries } from "@/components/sections/industries";
 import { Trust } from "@/components/sections/trust";
@@ -31,8 +30,7 @@ export default function HomePage() {
       <ResponseTimeline />
       <Reframe />
       <HowItWorks />
-      <SmsSection />
-      <SystemUnderneath />
+      <CalculatorCta />
       <Proof />
       <Industries />
       <Trust />

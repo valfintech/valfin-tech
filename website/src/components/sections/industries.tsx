@@ -9,7 +9,6 @@ export function Industries() {
         <SectionHeader
           eyebrow={industries.eyebrow}
           headline={industries.headline}
-          subheadline={industries.subheadline}
         />
 
         <ScrollRevealGroup className="mt-12 flex flex-wrap gap-3" staggerAmount={0.03}>
