@@ -1,0 +1,12 @@
+Post_ID,Content_ID,Platform,Publish_Date,Views,Likes,Comments,Saves,Shares,Follows_From_Post,Link_Clicks,Calc_Visits,Contact_Submits,Avg_Watch_Time_s,Retention_3s_pct,Save_Rate_pct,Engagement_Rate_pct,Notes
+POST-20260616-ig-01,VLF-001,Instagram,2026-06-16,,,,,,,,,,,,,,Fill after publish. Save_Rate=Saves/Views. Eng_Rate=(Likes+Comments+Saves+Shares)/Views.
+POST-20260616-tt-01,VLF-001,TikTok,2026-06-16,,,,,,,,,,,,,,
+POST-20260616-yt-01,VLF-001,YouTube,2026-06-16,,,,,,,,,,,,,,
+POST-20260616-li-01,VLF-001,LinkedIn,2026-06-16,,,,,,,,,,,,,,
+POST-20260618-ig-01,VLF-002,Instagram,2026-06-18,,,,,,,,,,,,,,
+POST-20260618-tt-01,VLF-002,TikTok,2026-06-18,,,,,,,,,,,,,,
+POST-20260618-yt-01,VLF-002,YouTube,2026-06-18,,,,,,,,,,,,,,
+POST-20260620-ig-01,VLF-005,Instagram,2026-06-20,,,,,,,,,,,,,,
+POST-20260620-tt-01,VLF-005,TikTok,2026-06-20,,,,,,,,,,,,,,
+POST-20260623-ig-01,VLF-003,Instagram,2026-06-23,,,,,,,,,,,,,,
+POST-20260625-ig-01,VLF-004,Instagram,2026-06-25,,,,,,,,,,,,,,

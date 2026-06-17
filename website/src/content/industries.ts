@@ -12,9 +12,9 @@ import type { IndustryVocabulary } from "@/types/content";
 
 export const industriesPage = {
   eyebrow: "Industries",
-  headline: "Built first for roofing. Built to work anywhere a missed response costs you money.",
+  headline: "Built in the field. Built to work anywhere a missed response costs you money.",
   subheadline:
-    "Every business on this list runs on the same moment of truth: someone reaches out, ready to spend money, and what happens in the next few minutes decides whether they become a customer or a competitor's customer. We proved the system in roofing, one of the most competitive, time-sensitive versions of that moment there is, and built it to carry the same logic into every other lead-based business.",
+    "Every business on this list runs on the same moment of truth: someone reaches out, ready to spend money, and what happens in the next few minutes decides whether they become a customer or a competitor's customer. We proved the system in one of the most competitive, time-sensitive service markets around, and built it to carry the same logic into every lead-based business.",
   closingLine: "Don't see your industry? If people call, message, or book with you, this still applies. Talk to us.",
 };
 

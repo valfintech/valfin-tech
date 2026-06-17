@@ -1,8 +1,10 @@
 import type { Metadata } from "next";
 import { Hero } from "@/components/sections/hero";
 import { Wound } from "@/components/sections/wound";
+import { ResponseTimeline } from "@/components/sections/response-timeline";
 import { Reframe } from "@/components/sections/reframe";
 import { HowItWorks } from "@/components/sections/how-it-works";
+import { SmsSection } from "@/components/sections/sms-section";
 import { SystemUnderneath } from "@/components/sections/system-underneath";
 import { Proof } from "@/components/sections/proof";
 import { Industries } from "@/components/sections/industries";
@@ -26,8 +28,10 @@ export default function HomePage() {
       <JsonLd data={faqPageSchema(faq.items)} />
       <Hero />
       <Wound />
+      <ResponseTimeline />
       <Reframe />
       <HowItWorks />
+      <SmsSection />
       <SystemUnderneath />
       <Proof />
       <Industries />

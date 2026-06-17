@@ -9,6 +9,7 @@ import {
 } from "@/components/ui/accordion";
 import { SectionHeader } from "@/components/sections/section-header";
 import { ScrollReveal, ScrollRevealGroup, ScrollRevealItem } from "@/components/motion/scroll-reveal";
+import { SpotlightCard } from "@/components/ui/spotlight-card";
 import { JsonLd } from "@/components/seo/json-ld";
 import { pricingFaq, pricingPage, pricingPlans } from "@/content/pricing";
 import { breadcrumbSchema, faqPageSchema } from "@/lib/structured-data";
@@ -63,7 +64,7 @@ export default function PricingPage() {
           <ScrollRevealGroup className="mx-auto grid max-w-4xl gap-6 lg:grid-cols-2" staggerAmount={0.06}>
             {pricingPlans.map((plan) => (
               <ScrollRevealItem key={plan.name}>
-                <div
+                <SpotlightCard
                   className={cn(
                     "flex h-full flex-col rounded-2xl border p-8",
                     plan.isFeatured
@@ -118,7 +119,7 @@ export default function PricingPage() {
                       {plan.cta.label}
                     </ButtonLink>
                   </div>
-                </div>
+                </SpotlightCard>
               </ScrollRevealItem>
             ))}
           </ScrollRevealGroup>

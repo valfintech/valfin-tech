@@ -75,8 +75,8 @@ export function ContactForm() {
         <CheckCircle2 className="mx-auto size-8 text-success" aria-hidden="true" />
         <h3 className="mt-4 text-xl font-semibold text-ink-50">Got it, thank you.</h3>
         <p className="mt-2 text-sm leading-relaxed text-ink-300">
-          We read every message ourselves. Expect to hear back from a real person, usually within one business
-          day, often sooner.
+          Thanks! Check your email — we&apos;ve sent you a link to schedule your discovery call. If you don&apos;t
+          see it within a few minutes, check your spam folder.
         </p>
       </div>
     );

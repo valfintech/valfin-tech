@@ -1,0 +1,11 @@
+Insight_ID,Date_Logged,Dimension,Segment_Value,Posts_Count,Avg_Save_Rate_pct,Avg_Engagement_pct,Total_Calc_Visits,Best_Performer_PostID,Takeaway,Action
+INS-EX01,2026-06-30,Pillar,P1 The Leak,0,,,,,Example row — fill after week 1. Which pillar drives the most saves + Calculator visits?,
+INS-EX02,2026-06-30,Pillar,P2 The Fix,0,,,,,,
+INS-EX03,2026-06-30,Hook_Type,Pain,0,,,,,Do pain hooks out-retain reframe hooks in the first 3s?,
+INS-EX04,2026-06-30,Hook_Type,Reframe,0,,,,,,
+INS-EX05,2026-06-30,Format,Talking-head,0,,,,,Talking-head vs graphic-explainer vs stills-only — which converts?,
+INS-EX06,2026-06-30,Format,Stills+VO,0,,,,,,
+INS-EX07,2026-06-30,Platform,Instagram,0,,,,,Which platform sends the most qualified Calculator traffic?,
+INS-EX08,2026-06-30,Platform,TikTok,0,,,,,,
+INS-EX09,2026-06-30,Post_Time,Morning 7-8am,0,,,,,Best posting window for this audience?,
+INS-EX10,2026-06-30,Post_Time,Evening 7-9pm,0,,,,,,

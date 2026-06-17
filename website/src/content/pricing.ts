@@ -42,7 +42,7 @@ export const pricingPlans: PricingPlan[] = [
     priceLabel: "$497/mo",
     priceNote: "Includes our 60-Day Proof Period",
     description:
-      "Built for roofing companies that want to stop losing opportunities, follow up instantly, and turn more inquiries into booked estimates — without adding office staff.",
+      "Built for service businesses that want to stop losing opportunities, follow up instantly, and turn more inquiries into booked jobs — without adding office staff.",
     features: [
       "Capture leads from your website, forms, and social inquiries",
       "Instant SMS and email follow-up",

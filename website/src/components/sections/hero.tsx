@@ -1,7 +1,7 @@
 import { ArrowRight } from "lucide-react";
 import { ButtonLink } from "@/components/ui/button-link";
 import { ScrollReveal } from "@/components/motion/scroll-reveal";
-import { LeadJourneyDiagram } from "@/components/motion/lead-journey-diagram";
+import { SmsThread } from "@/components/motion/sms-thread";
 import { hero } from "@/content/homepage";
 
 export function Hero() {
@@ -46,16 +46,7 @@ export function Hero() {
         </ScrollReveal>
 
         <ScrollReveal delay={0.15} className="lg:col-span-5">
-          <div className="relative overflow-hidden rounded-2xl border border-ink-700 bg-ink-900/60 p-6 shadow-[0_0_80px_-24px_rgba(37,99,235,0.3)] backdrop-blur-sm sm:p-8">
-            <div
-              aria-hidden="true"
-              className="pointer-events-none absolute inset-0 -z-10 bg-[radial-gradient(ellipse_80%_60%_at_50%_0%,var(--navy-900)_0%,transparent_70%)] opacity-70"
-            />
-            <LeadJourneyDiagram compact />
-            <p className="mt-6 text-center text-sm text-ink-400">
-              This is what happens, every time, automatically.
-            </p>
-          </div>
+          <SmsThread />
         </ScrollReveal>
       </div>
     </section>

@@ -1,7 +1,8 @@
 "use client";
 
-import { useId, useMemo, useState } from "react";
+import { useId, useMemo, useState, useEffect, useRef } from "react";
 import { ArrowRight, ArrowLeft } from "lucide-react";
+import { animate } from "framer-motion";
 import { Button } from "@/components/ui/button";
 import { ButtonLink } from "@/components/ui/button-link";
 import { Label } from "@/components/ui/label";
@@ -330,6 +331,8 @@ function NumberStepForm({
   );
 }
 
+type RevealPhase = "anticipating" | "counting" | "done";
+
 function ResultPanel({
   monthlyLeads,
   avgCustomerValue,
@@ -341,6 +344,39 @@ function ResultPanel({
   result: ReturnType<typeof estimateLeakage>;
   onReset: () => void;
 }) {
+  const [phase, setPhase] = useState<RevealPhase>("anticipating");
+  const [displayMonthly, setDisplayMonthly] = useState(0);
+  const prefersReduced =
+    typeof window !== "undefined"
+      ? window.matchMedia("(prefers-reduced-motion: reduce)").matches
+      : false;
+
+  const numberRef = useRef<HTMLParagraphElement>(null);
+
+  useEffect(() => {
+    if (prefersReduced) {
+      setPhase("done");
+      setDisplayMonthly(result.recoverableMonthlyRevenue);
+      return;
+    }
+
+    // Phase 1 → 2: short anticipation hold, then start counting
+    const t1 = setTimeout(() => {
+      setPhase("counting");
+
+      const controls = animate(0, result.recoverableMonthlyRevenue, {
+        duration: 1.8,
+        ease: [0.16, 1, 0.3, 1],
+        onUpdate: (v) => setDisplayMonthly(v),
+        onComplete: () => setPhase("done"),
+      });
+
+      return () => controls.stop();
+    }, 800);
+
+    return () => clearTimeout(t1);
+  }, [result.recoverableMonthlyRevenue, prefersReduced]);
+
   return (
     <div>
       <p className="text-eyebrow">Your estimate</p>
@@ -348,58 +384,89 @@ function ResultPanel({
         Based on your numbers, slow follow-up could be costing you around
       </h2>
 
+      {/* Number reveal area */}
       <div className="relative mt-4">
         <div
           aria-hidden="true"
           className="pointer-events-none absolute -inset-x-8 -inset-y-6 -z-10 rounded-[2rem] bg-[radial-gradient(ellipse_70%_70%_at_20%_50%,var(--accent-500)_0%,transparent_70%)] opacity-[0.18] blur-2xl"
         />
-        <p className="text-5xl font-semibold tracking-tight text-accent-400 sm:text-6xl">
-          {formatCurrency(result.recoverableMonthlyRevenue)}
-          <span className="ml-2 text-xl font-medium text-ink-400">/ month</span>
-        </p>
-      </div>
-      <p className="mt-2 text-sm text-ink-400">
-        That&apos;s roughly <span className="text-ink-200">{formatCurrency(result.recoverableAnnualRevenue)}</span> a year:
-        money already spent to generate these leads, sitting unconverted.
-      </p>
 
-      <div className="mt-8 rounded-xl border border-ink-700 bg-ink-950/60 p-6">
-        <p className="text-sm font-medium text-ink-200">Here&apos;s the math, in plain sight:</p>
-        <ul className="mt-3 space-y-2 text-sm leading-relaxed text-ink-400">
-          <li>
-            • You told us you get about <span className="text-ink-50">{monthlyLeads} leads</span> a month, each
-            worth roughly <span className="text-ink-50">{formatCurrency(avgCustomerValue)}</span> if they become a customer.
-          </li>
-          <li>
-            • On average, businesses like yours lose around{" "}
-            <span className="text-ink-50">{Math.round(ASSUMED_LOST_LEAD_RATE * 100)}%</span> of leads to slow or
-            missed follow-up, about <span className="text-ink-50">{result.lostLeadsPerMonth}</span> people a month who
-            wanted to do business with you and never heard back in time.
-          </li>
-          <li>
-            • Conservatively, roughly <span className="text-ink-50">{Math.round(ASSUMED_RECOVERABLE_CONVERSION_RATE * 100)}%</span> of
-            those would have converted with fast, consistent follow-up, which is where the number above comes from.
-          </li>
-        </ul>
-        <p className="mt-3 text-xs text-ink-600">
-          These are conservative, industry-informed estimates, shown plainly rather than dressed up. Your real number
-          may be higher or lower. We&apos;ll happily walk through your actual numbers on a call.
-        </p>
+        {/* Anticipation state — blurred placeholder */}
+        {phase === "anticipating" && (
+          <div aria-hidden="true">
+            <p
+              className="select-none text-5xl font-semibold tracking-tight text-accent-400 sm:text-6xl"
+              style={{ filter: "blur(10px)", opacity: 0.4 }}
+            >
+              {formatCurrency(result.recoverableMonthlyRevenue)}
+              <span className="ml-2 text-xl font-medium text-ink-400">/ month</span>
+            </p>
+            <p className="mt-2 text-sm text-ink-500 animate-pulse">
+              Running your numbers...
+            </p>
+          </div>
+        )}
+
+        {/* Count-up and final revealed state */}
+        {(phase === "counting" || phase === "done") && (
+          <p
+            ref={numberRef}
+            className="calc-number-reveal text-5xl font-semibold tracking-tight text-accent-400 sm:text-6xl"
+            aria-label={formatCurrency(result.recoverableMonthlyRevenue) + " per month"}
+          >
+            {formatCurrency(displayMonthly)}
+            <span className="ml-2 text-xl font-medium text-ink-400">/ month</span>
+          </p>
+        )}
       </div>
 
-      <div className="mt-8 flex flex-col gap-3 sm:flex-row sm:items-center">
-        <ButtonLink
-          href="/company#contact"
-          size="lg"
-          className="bg-accent-500 text-white hover:-translate-y-0.5 hover:bg-accent-400"
-        >
-          Talk to us about this number
-          <ArrowRight className="ml-1 size-4" />
-        </ButtonLink>
-        <Button variant="ghost" size="lg" className="text-ink-300 hover:bg-ink-800 hover:text-ink-50" onClick={onReset}>
-          Run it again with different numbers
-        </Button>
-      </div>
+      {/* Supporting context — slides up after number lands */}
+      {phase === "done" && (
+        <div className="calc-detail-reveal">
+          <p className="mt-2 text-sm text-ink-400">
+            Revenue missed because follow-up took too long.{" "}
+            <span className="text-ink-200">{formatCurrency(result.recoverableAnnualRevenue)}</span> over a full year.
+          </p>
+
+          <div className="mt-8 rounded-xl border border-ink-700 bg-ink-950/60 p-6">
+            <p className="text-sm font-medium text-ink-200">Here&apos;s the math, in plain sight:</p>
+            <ul className="mt-3 space-y-2 text-sm leading-relaxed text-ink-400">
+              <li>
+                • You told us you get about <span className="text-ink-50">{monthlyLeads} leads</span> a month, each
+                worth roughly <span className="text-ink-50">{formatCurrency(avgCustomerValue)}</span> if they become a customer.
+              </li>
+              <li>
+                • On average, businesses like yours lose around{" "}
+                <span className="text-ink-50">{Math.round(ASSUMED_LOST_LEAD_RATE * 100)}%</span> of leads to slow or
+                missed follow-up. That&apos;s roughly <span className="text-ink-50">{result.lostLeadsPerMonth}</span> people a month who
+                wanted to do business with you and never heard back in time.
+              </li>
+              <li>
+                • Conservatively, roughly <span className="text-ink-50">{Math.round(ASSUMED_RECOVERABLE_CONVERSION_RATE * 100)}%</span> of
+                those would have converted with faster follow-up. That&apos;s where the number above comes from.
+              </li>
+            </ul>
+            <p className="mt-3 text-xs text-ink-600">
+              Conservative, industry-informed estimates, shown plainly. Your real number may be higher or lower.
+              We&apos;ll walk through your actual numbers on a call.
+            </p>
+          </div>
+
+          <div className="mt-8 flex flex-col gap-3 sm:flex-row sm:items-center">
+            <ButtonLink
+              href="/company#contact"
+              size="lg"
+              className="bg-accent-500 text-white hover:-translate-y-0.5 hover:bg-accent-400"
+            >
+              Book Your Strategy Call
+              <ArrowRight className="ml-1 size-4" />
+            </ButtonLink>
+            <Button variant="ghost" size="lg" className="text-ink-300 hover:bg-ink-800 hover:text-ink-50" onClick={onReset}>
+              Run it again with different numbers
+            </Button>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

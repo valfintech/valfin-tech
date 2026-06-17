@@ -1,0 +1,112 @@
+{
+  "_backup_note": "ROLLBACK BACKUP — Captured 2026-06-16 before Discovery Call booking system implementation. To restore: import this JSON into n8n and activate. Original workflow ID: OIakSYLK2iMWsB32.",
+  "_rollback_steps": [
+    "1. In n8n, go to Workflows → New → Import from JSON",
+    "2. Paste this file content",
+    "3. The webhook path 'valfin-leads' will be restored",
+    "4. Verify Google Sheets and Gmail credentials are assigned",
+    "5. Activate the workflow",
+    "6. Deactivate the modified version (OIakSYLK2iMWsB32) if it still exists",
+    "7. Update N8N_VALFIN_LEADS_WEBHOOK_URL in Vercel if webhook ID changed"
+  ],
+  "id": "OIakSYLK2iMWsB32",
+  "name": "Valfin — Website Lead Capture",
+  "active": true,
+  "nodes": [
+    {
+      "parameters": {"httpMethod": "POST", "path": "valfin-leads", "responseMode": "responseNode", "options": {}},
+      "id": "7ce35c31-d247-408f-9d90-c979ba1a71c8",
+      "name": "Receive Website Lead",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2.1,
+      "position": [0, 0],
+      "webhookId": "f939406f-eefe-4eed-ad1a-183af3cc7490"
+    },
+    {
+      "parameters": {
+        "jsCode": "\nconst body = $input.first().json.body || $input.first().json;\n\nconst now = new Date();\nconst dateStr = now.toISOString().slice(0,10).replace(/-/g,'');\nconst rand = Math.floor(1000 + Math.random() * 9000);\nconst leadId = 'VLEAD-' + dateStr + '-' + rand;\n\nconst sourceLabel = (body.source === 'calculator') ? 'Calculator Completion' : 'Contact Form';\n\nconst months = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];\nconst mo = months[now.getUTCMonth()];\nconst d  = now.getUTCDate();\nconst y  = now.getUTCFullYear();\nlet   h  = now.getUTCHours();\nconst mi = String(now.getUTCMinutes()).padStart(2,'0');\nconst ap = h >= 12 ? 'PM' : 'AM';\nh = h % 12 || 12;\nconst readableDate = `${mo} ${d}, ${y} ${h}:${mi} ${ap} UTC`;\n\nreturn [{\n  json: {\n    'Lead ID':             leadId,\n    'Date Created':        readableDate,\n    'Source':              sourceLabel,\n    'Name':                (body.name         || '').trim(),\n    'Email':               (body.email        || '').trim().toLowerCase(),\n    'Phone':               (body.phone        || '').trim(),\n    'Business Name':       (body.businessName || '').trim(),\n    'Message':             (body.message      || '').trim(),\n    'Calc Monthly Leads':  body.calcMonthlyLeads  || '',\n    'Calc Avg Value':      body.calcAvgValue      || '',\n    'Calc Monthly Loss':   body.calcMonthlyLoss   || '',\n    'Status':              'New',\n    'Last Contact':        '',\n    'Notes':               '',\n  }\n}];\n"
+      },
+      "id": "c1c48029-8a5f-43a9-ab00-a4b9db2e4da2",
+      "name": "Normalize Lead",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [224, 0]
+    },
+    {
+      "parameters": {
+        "operation": "append",
+        "documentId": {"__rl": true, "mode": "id", "value": "1eCzFh9jrzlqFGu9BoXLAsZ7a76tN7oTApm_bVG2n-zg"},
+        "sheetName": {"__rl": true, "mode": "name", "value": "Leads"},
+        "columns": {"mappingMode": "autoMapInputData", "value": {}, "schema": [
+          {"id": "Lead ID", "displayName": "Lead ID", "required": false, "defaultMatch": false, "display": true, "type": "string", "canBeUsedToMatch": true},
+          {"id": "Date Created", "displayName": "Date Created", "required": false, "defaultMatch": false, "display": true, "type": "string", "canBeUsedToMatch": false},
+          {"id": "Source", "displayName": "Source", "required": false, "defaultMatch": false, "display": true, "type": "string", "canBeUsedToMatch": false},
+          {"id": "Name", "displayName": "Name", "required": false, "defaultMatch": false, "display": true, "type": "string", "canBeUsedToMatch": false},
+          {"id": "Email", "displayName": "Email", "required": false, "defaultMatch": false, "display": true, "type": "string", "canBeUsedToMatch": false},
+          {"id": "Phone", "displayName": "Phone", "required": false, "defaultMatch": false, "display": true, "type": "string", "canBeUsedToMatch": false},
+          {"id": "Business Name", "displayName": "Business Name", "required": false, "defaultMatch": false, "display": true, "type": "string", "canBeUsedToMatch": false},
+          {"id": "Message", "displayName": "Message", "required": false, "defaultMatch": false, "display": true, "type": "string", "canBeUsedToMatch": false},
+          {"id": "Calc Monthly Leads", "displayName": "Calc Monthly Leads", "required": false, "defaultMatch": false, "display": true, "type": "string", "canBeUsedToMatch": false},
+          {"id": "Calc Avg Value", "displayName": "Calc Avg Value", "required": false, "defaultMatch": false, "display": true, "type": "string", "canBeUsedToMatch": false},
+          {"id": "Calc Monthly Loss", "displayName": "Calc Monthly Loss", "required": false, "defaultMatch": false, "display": true, "type": "string", "canBeUsedToMatch": false},
+          {"id": "Status", "displayName": "Status", "required": false, "defaultMatch": false, "display": true, "type": "string", "canBeUsedToMatch": false},
+          {"id": "Last Contact", "displayName": "Last Contact", "required": false, "defaultMatch": false, "display": true, "type": "string", "canBeUsedToMatch": false},
+          {"id": "Notes", "displayName": "Notes", "required": false, "defaultMatch": false, "display": true, "type": "string", "canBeUsedToMatch": false}
+        ]},
+        "options": {}
+      },
+      "id": "f1baa13a-fc13-475f-ac3d-b4ab5ec2cb26",
+      "name": "Append to Valfin Leads Sheet",
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.7,
+      "position": [448, 0]
+    },
+    {
+      "parameters": {
+        "sendTo": "valfintechnologies@gmail.com",
+        "subject": "=New Valfin lead: {{ $json[\"Name\"] || \"Unknown\" }} ({{ $json[\"Source\"] }})",
+        "emailType": "html",
+        "message": "=<h2 style=\"margin:0 0 16px\">New Valfin Website Lead</h2><table style=\"width:100%;border-collapse:collapse;font-family:sans-serif;font-size:14px\"><tr><td style=\"padding:6px 12px;font-weight:600;width:160px;background:#f5f5f5\">Lead ID</td><td style=\"padding:6px 12px\">{{ $json[\"Lead ID\"] }}</td></tr><tr><td style=\"padding:6px 12px;font-weight:600;background:#f5f5f5\">Date</td><td style=\"padding:6px 12px\">{{ $json[\"Date Created\"] }}</td></tr><tr><td style=\"padding:6px 12px;font-weight:600;background:#f5f5f5\">Source</td><td style=\"padding:6px 12px\">{{ $json[\"Source\"] }}</td></tr><tr><td style=\"padding:6px 12px;font-weight:600;background:#f5f5f5\">Name</td><td style=\"padding:6px 12px\">{{ $json[\"Name\"] }}</td></tr><tr><td style=\"padding:6px 12px;font-weight:600;background:#f5f5f5\">Email</td><td style=\"padding:6px 12px\"><a href=\"mailto:{{ $json[\"Email\"] }}\">{{ $json[\"Email\"] }}</a></td></tr><tr><td style=\"padding:6px 12px;font-weight:600;background:#f5f5f5\">Phone</td><td style=\"padding:6px 12px\">{{ $json[\"Phone\"] || \"(not provided)\" }}</td></tr><tr><td style=\"padding:6px 12px;font-weight:600;background:#f5f5f5\">Business</td><td style=\"padding:6px 12px\">{{ $json[\"Business Name\"] || \"(not provided)\" }}</td></tr><tr><td style=\"padding:6px 12px;font-weight:600;background:#f5f5f5\">Message</td><td style=\"padding:6px 12px\">{{ $json[\"Message\"] || \"(none)\" }}</td></tr>{{ $json[\"Calc Monthly Loss\"] ? \"<tr><td style=\\\"padding:6px 12px;font-weight:600;background:#fff3cd\\\">Est. Monthly Loss</td><td style=\\\"padding:6px 12px;font-weight:700;color:#b45309\\\">\" + $json[\"Calc Monthly Loss\"] + \"</td></tr>\" : \"\" }}</table><p style=\"margin:16px 0 0;font-size:12px;color:#888\">Saved as {{ $json[\"Lead ID\"] }} — reply directly to this email to reach the lead.</p>",
+        "options": {"appendAttribution": false},
+        "resource": "message",
+        "operation": "send",
+        "authentication": "oAuth2"
+      },
+      "id": "97e19af2-f2e4-42fa-b80c-8ee7f7260419",
+      "name": "Send Lead Email Alert",
+      "type": "n8n-nodes-base.gmail",
+      "typeVersion": 2.2,
+      "position": [672, 0]
+    },
+    {
+      "parameters": {
+        "from": "+18889839308",
+        "to": "+18575261499",
+        "message": "=🔔 New Valfin lead ({{ $json[\"Lead ID\"] }})\n{{ $json[\"Name\"] || \"Unknown\" }}{{ $json[\"Business Name\"] ? \" — \" + $json[\"Business Name\"] : \"\" }}\n📧 {{ $json[\"Email\"] }}{{ $json[\"Phone\"] ? \"\\n📞 \" + $json[\"Phone\"] : \"\" }}{{ $json[\"Calc Monthly Loss\"] ? \"\\n💰 Est. loss: \" + $json[\"Calc Monthly Loss\"] : \"\" }}\nSource: {{ $json[\"Source\"] }}",
+        "options": {}
+      },
+      "id": "83817dbb-3736-4d70-8a72-390b57eb89e8",
+      "name": "Send Lead SMS Alert",
+      "type": "n8n-nodes-base.twilio",
+      "typeVersion": 1,
+      "position": [896, 0],
+      "onError": "continueRegularOutput"
+    },
+    {
+      "parameters": {"respondWith": "json", "responseBody": {"received": true}, "options": {}},
+      "id": "375f281d-808c-4e0e-82ba-dcc788995ef9",
+      "name": "Respond Success",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.5,
+      "position": [1120, 0]
+    }
+  ],
+  "connections": {
+    "Receive Website Lead": {"main": [[{"node": "Normalize Lead", "type": "main", "index": 0}]]},
+    "Normalize Lead": {"main": [[{"node": "Append to Valfin Leads Sheet", "type": "main", "index": 0}]]},
+    "Append to Valfin Leads Sheet": {"main": [[{"node": "Send Lead Email Alert", "type": "main", "index": 0}]]},
+    "Send Lead Email Alert": {"main": [[{"node": "Send Lead SMS Alert", "type": "main", "index": 0}]]},
+    "Send Lead SMS Alert": {"main": [[{"node": "Respond Success", "type": "main", "index": 0}]]}
+  },
+  "settings": {"executionOrder": "v1"}
+}

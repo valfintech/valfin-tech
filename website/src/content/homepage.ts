@@ -18,10 +18,10 @@ import type { CaseStudyInProgress, FaqItem, Pillar, ProcessStep, Stat } from "@/
  */
 
 export const hero = {
-  eyebrow: "For businesses that run on leads",
-  headline: "Every missed call is money walking out the door.",
+  eyebrow: "Response automation for service businesses",
+  headline: "Your competitors aren't better than you. They just follow up faster.",
   subheadline:
-    "Valfin makes sure your business is always the one that answers first, day or night, every single time. The fastest, highest-return place to find more revenue usually isn't in generating more leads. It's in making sure you stop losing the ones you already have. That's where we start.",
+    "Valfin makes sure every call, text, and form submission gets a real response within seconds, automatically, so you're always the first business customers hear back from.",
   primaryCta: { label: "See what slow follow-up is costing you", href: "/calculator" },
   secondaryCta: { label: "See how it works", href: "#how-it-works" },
   microcopy: "Takes 60 seconds. No email required to see your number.",
@@ -116,11 +116,11 @@ export const proof: {
 } = {
   eyebrow: "What's actually happening",
   headline: "We're proving this inside a real business first, and showing our work as we go.",
-  intro: "Before we called this a product, we put it to work inside a real roofing company, in one of the most competitive, time-sensitive, lead-driven trades there is. That's still running today, and we're measuring it the same way we'll measure every business that comes after it.",
+  intro: "Before we called this a product, we put it to work inside a real operating business, in one of the most competitive, time-sensitive, lead-driven service markets there is. That's still running today, and we're measuring it the same way we'll measure every business that comes after it.",
   featured: {
-    industryTag: "Roofing",
+    industryTag: "Home Services",
     status: "Measurement in progress",
-    headline: "A real roofing company was missing roughly 4 out of every 10 calls. Here's what we're tracking now that something answers for them.",
+    headline: "A real service business was missing roughly 4 out of every 10 calls. Here's what we're tracking now that something answers for them.",
     body: "We're partway through the measurement period that will produce our first fully-verified numbers, checked against this business's own call logs, booking calendar, and job records, not our estimates. We'd rather wait and show you the real figures than publish a guess that looks good today and turns out to be wrong later.",
     metrics: [
       { label: "Response time", note: "How much faster inbound calls and messages get answered, day and night" },
@@ -136,7 +136,7 @@ export const industries = {
   eyebrow: "Who this is for",
   headline: "If a missed response ever costs you money, this is for you.",
   subheadline:
-    "We proved this first in roofing, where a missed call can mean a lost roof replacement by Monday morning. The same system now works for any business where someone reaching out is the moment that matters most.",
+    "We proved this first in one of the most time-sensitive, lead-driven service markets there is. The same system now works for any business where someone reaching out is the moment that matters most.",
   list: [
     "Roofing",
     "HVAC",
