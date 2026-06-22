@@ -1,1 +1,290 @@
-{"id":"KIpMMKM8H5IZB9wb","name":"Every Lead Alert","active":true,"isArchived":false,"versionId":"d1458439-460d-4021-a780-2dae22a1e7b5","activeVersionId":"d1458439-460d-4021-a780-2dae22a1e7b5","createdAt":"2026-06-06T17:52:50.190Z","updatedAt":"2026-06-20T22:29:11.959Z","settings":{"executionOrder":"v1","availableInMCP":true},"connections":{"Input":{"main":[[{"node":"Build Alert Content","type":"main","index":0},{"node":"Settings Loader","type":"main","index":0}]]},"Build Alert Content":{"main":[[{"node":"Check Email Enabled","type":"main","index":0}]]},"Check Email Enabled":{"main":[[{"node":"Send Owner Email","type":"main","index":0}],[{"node":"Check SMS Enabled","type":"main","index":0}]]},"Send Owner Email":{"main":[[{"node":"Check SMS Enabled","type":"main","index":0}]]},"Check SMS Enabled":{"main":[[{"node":"Send Owner SMS","type":"main","index":0}],[{"node":"Return","type":"main","index":0}]]},"Send Owner SMS":{"main":[[{"node":"Return","type":"main","index":0}]]}},"nodes":[{"parameters":{"inputSource":"passthrough"},"id":"decc21ca-715a-4bdd-abea-0eff32a6d869","name":"Input","type":"n8n-nodes-base.executeWorkflowTrigger","typeVersion":1.2,"position":[0,0]},{"parameters":{"jsCode":"const lead = $input.first().json;\nconst s = $('Settings Loader').first().json;\n\nconst CONFIG = {\n  COMPANY_NAME: s.business_name,\n  APPOINTMENT_TERM: s.appointment_term,\n  OWNER_PHONE: s.owner_phone_e164,\n  OWNER_EMAIL: s.owner_email,\n  TWILIO_FROM_NUMBER: s.twilio_from_number,\n  EMAIL_ALERTS_ENABLED: s.email_alerts_enabled,\n  SMS_ALERTS_ENABLED: s.sms_owner_alerts_enabled,\n  DEFAULT_TIMEZONE: s.timezone,\n  SHEET_URL: s.crm_sheet_url\n};\n\nconst render = (tpl, vars) => tpl.replace(/\\{\\{(\\w+)\\}\\}/g, (_, k) => (vars[k] !== undefined && vars[k] !== null) ? vars[k] : '');\n\nconst name = [lead.firstName, lead.lastName].filter(Boolean).join(' ') || 'Unknown';\nconst firstName = lead.firstName || 'there';\nconst phone = lead.phone || 'Not provided';\nconst email = lead.email || 'Not provided';\nconst service = lead.serviceNeeded || 'Not specified';\nconst address = lead.address || 'Not provided';\nconst notes = lead.description || lead.notes || '';\nconst source = lead.source || 'Unknown';\nconst leadId = lead.leadId || '';\nconst schedulingFailed = !!lead.schedulingFailed;\nconst confirmedDate = lead.confirmedDate || '';\nconst confirmedTime = lead.confirmedTime || '';\n\nlet apptDisplay = 'Not yet scheduled — needs manual scheduling';\nif (!schedulingFailed && confirmedDate && confirmedTime) {\n  try {\n    const dm = String(confirmedDate).split('-').map(Number);\n    const dt = DateTime.fromObject({ year: dm[0], month: dm[1], day: dm[2] }, { zone: CONFIG.DEFAULT_TIMEZONE });\n    apptDisplay = dt.toFormat('cccc, LLLL d') + ' at ' + confirmedTime;\n  } catch (e) { apptDisplay = confirmedDate + ' ' + confirmedTime; }\n}\n\nlet submitted = 'Just now';\nif (lead.dateCreated) {\n  try {\n    submitted = DateTime.fromISO(lead.dateCreated).setZone(CONFIG.DEFAULT_TIMEZONE).toFormat(\"MMM d, yyyy 'at' h:mm a ZZZZ\");\n  } catch (e) { submitted = lead.dateCreated; }\n}\n\nconst smsMessage = schedulingFailed\n  ? render(s.sms_template_lead_alert_failed, { name, service, appointmentTerm: CONFIG.APPOINTMENT_TERM, phone })\n  : render(s.sms_template_lead_alert_success, { appointmentTerm: CONFIG.APPOINTMENT_TERM, name, service, apptDisplay, phone });\n\nconst emailSubject = CONFIG.COMPANY_NAME + ' - ' + (schedulingFailed ? 'ACTION NEEDED: ' : 'New ' + CONFIG.APPOINTMENT_TERM + ' booked: ') + name;\n\nconst rows = [\n  ['Name', name],\n  ['Phone', phone],\n  ['Email', email],\n  ['Address', address],\n  ['Service Requested', service],\n  [CONFIG.APPOINTMENT_TERM.charAt(0).toUpperCase() + CONFIG.APPOINTMENT_TERM.slice(1), apptDisplay],\n  ['Notes', notes || 'None'],\n  ['Lead Source', source],\n  ['Submitted', submitted]\n];\nif (leadId) rows.push(['Lead ID', leadId]);\n\nconst rowsHtml = rows.map(([label, value]) =>\n  '<tr><td style=\"padding:6px 12px 6px 0;font-weight:bold;color:#374151;white-space:nowrap;\">' + label + '</td><td style=\"padding:6px 0;color:#111827;\">' + value + '</td></tr>'\n).join('');\n\nconst noteHtml = schedulingFailed\n  ? '<p style=\"color:#b91c1c;font-weight:bold;\">This lead could not be auto-scheduled. Please call them to set up their ' + CONFIG.APPOINTMENT_TERM + '.</p>'\n  : '<p style=\"color:#6b7280;font-size:12px;margin-top:24px;\">This ' + CONFIG.APPOINTMENT_TERM + ' was booked automatically. Reply to the text alert: <strong>1</strong> to keep it, <strong>2</strong> to reschedule, or <strong>3</strong> to cancel. No login or sheet access needed.</p>';\n\nconst emailHtml =\n  '<div style=\"font-family:Arial,Helvetica,sans-serif;max-width:560px;margin:0 auto;color:#111827;\">' +\n  '<h2 style=\"color:#111827;border-bottom:2px solid #e5e7eb;padding-bottom:8px;\">' + (schedulingFailed ? 'Lead Needs Manual Scheduling' : 'New ' + CONFIG.APPOINTMENT_TERM.charAt(0).toUpperCase() + CONFIG.APPOINTMENT_TERM.slice(1) + ' Booked') + '</h2>' +\n  '<table style=\"width:100%;border-collapse:collapse;margin-top:12px;\">' + rowsHtml + '</table>' +\n  '<p style=\"margin-top:20px;\">' +\n  '<a href=\"tel:' + phone + '\" style=\"background:#111827;color:#ffffff;padding:10px 18px;border-radius:6px;text-decoration:none;font-weight:bold;display:inline-block;\">Call ' + firstName + '</a>' +\n  '&nbsp;&nbsp;' +\n  '<a href=\"' + CONFIG.SHEET_URL + '\" style=\"background:#374151;color:#ffffff;padding:10px 18px;border-radius:6px;text-decoration:none;font-weight:bold;display:inline-block;\">View in Sheet</a>' +\n  '</p>' +\n  noteHtml +\n  '</div>';\n\nreturn [{ json: {\n  ...lead,\n  emailEnabled: CONFIG.EMAIL_ALERTS_ENABLED,\n  smsEnabled: CONFIG.SMS_ALERTS_ENABLED,\n  ownerEmail: CONFIG.OWNER_EMAIL,\n  ownerPhone: CONFIG.OWNER_PHONE,\n  twilioFrom: CONFIG.TWILIO_FROM_NUMBER,\n  emailSubject,\n  emailHtml,\n  smsMessage\n}}];"},"id":"df685acf-ab72-443c-9cc7-9c3b3718b1bc","name":"Build Alert Content","type":"n8n-nodes-base.code","typeVersion":2,"position":[224,0]},{"parameters":{"from":"={{ $('Build Alert Content').first().json.twilioFrom }}","to":"={{ $('Build Alert Content').first().json.ownerPhone }}","message":"={{ $('Build Alert Content').first().json.smsMessage }}","options":{}},"id":"d17bc9bf-5b58-41c8-b3cc-13e5123448b4","name":"Send Owner SMS","type":"n8n-nodes-base.twilio","typeVersion":1,"position":[1120,-120],"retryOnFail":true,"maxTries":3,"waitBetweenTries":3000},{"parameters":{"jsCode":"return [{ json: { alerted: true, alertedAt: DateTime.now().setZone('America/New_York').toISO() } }];"},"id":"76d6b5be-1816-4911-99e4-3aca3faff52c","name":"Return","type":"n8n-nodes-base.code","typeVersion":2,"position":[1344,0]},{"parameters":{"content":"Every Lead Alert: receives lead + appointment data from any intake workflow, builds an HTML email and SMS summary showing the auto-booked appointment time, then sends an email and SMS to the owner (both default ON, since SMS is how the owner triggers a reschedule). The owner never needs to open Google Sheets.","height":220,"width":320},"type":"n8n-nodes-base.stickyNote","typeVersion":1,"position":[-320,-272],"id":"120a3dc8-edfc-4d1d-8716-ef035d1e5b1f","name":"Sticky Note"},{"id":"c54806ff-ead4-4a69-9ffa-6649929499c2","name":"Check Email Enabled","type":"n8n-nodes-base.if","typeVersion":2.3,"position":[448,0],"parameters":{"conditions":{"options":{"caseSensitive":true,"leftValue":"","typeValidation":"strict"},"conditions":[{"id":"email-enabled","leftValue":"={{ $json.emailEnabled }}","rightValue":true,"operator":{"type":"boolean","operation":"true"}}],"combinator":"and"},"options":{}}},{"id":"3aa6ccbf-b6bb-48aa-99dd-c038677ff615","name":"Send Owner Email","type":"n8n-nodes-base.gmail","typeVersion":2.2,"position":[672,-120],"parameters":{"resource":"message","operation":"send","sendTo":"={{ $json.ownerEmail }}","subject":"={{ $json.emailSubject }}","emailType":"html","message":"={{ $json.emailHtml }}","options":{"appendAttribution":false}},"webhookId":"a779bf5a-4739-479d-b7e6-c5d8b741cc01"},{"id":"70a0a854-8426-4b1b-b5f0-05cc89b8e705","name":"Check SMS Enabled","type":"n8n-nodes-base.if","typeVersion":2.3,"position":[896,0],"parameters":{"conditions":{"options":{"caseSensitive":true,"leftValue":"","typeValidation":"strict"},"conditions":[{"id":"sms-enabled","leftValue":"={{ $('Build Alert Content').first().json.smsEnabled }}","rightValue":true,"operator":{"type":"boolean","operation":"true"}}],"combinator":"and"},"options":{}}},{"id":"d73fb538-3c7c-4302-963d-f736de994292","name":"Settings Loader","type":"n8n-nodes-base.executeWorkflow","typeVersion":1.3,"position":[224,-200],"parameters":{"source":"database","workflowId":{"__rl":true,"mode":"id","value":"HaFQg1kGR5tWd6Y9"},"mode":"each","workflowInputs":{"mappingMode":"defineBelow","value":{},"matchingColumns":[],"schema":[]},"options":{}}}],"tags":[],"description":"Every Lead Alert sub-workflow - called by Form Capture/Missed-Call workflows for every new lead. Sends a professional email to the owner (default ON) and an optional SMS (default OFF), both centrally configurable via the CONFIG block."}
+{
+  "id": "KIpMMKM8H5IZB9wb",
+  "name": "Every Lead Alert",
+  "active": true,
+  "isArchived": false,
+  "versionId": "d1458439-460d-4021-a780-2dae22a1e7b5",
+  "activeVersionId": "d1458439-460d-4021-a780-2dae22a1e7b5",
+  "createdAt": "2026-06-06T17:52:50.190Z",
+  "updatedAt": "2026-06-20T22:29:11.959Z",
+  "settings": {
+    "executionOrder": "v1",
+    "availableInMCP": true
+  },
+  "connections": {
+    "Input": {
+      "main": [
+        [
+          {
+            "node": "Build Alert Content",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Settings Loader",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Build Alert Content": {
+      "main": [
+        [
+          {
+            "node": "Check Email Enabled",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Check Email Enabled": {
+      "main": [
+        [
+          {
+            "node": "Send Owner Email",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Check SMS Enabled",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Send Owner Email": {
+      "main": [
+        [
+          {
+            "node": "Check SMS Enabled",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Check SMS Enabled": {
+      "main": [
+        [
+          {
+            "node": "Send Owner SMS",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Return",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Send Owner SMS": {
+      "main": [
+        [
+          {
+            "node": "Return",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "nodes": [
+    {
+      "parameters": {
+        "inputSource": "passthrough"
+      },
+      "id": "decc21ca-715a-4bdd-abea-0eff32a6d869",
+      "name": "Input",
+      "type": "n8n-nodes-base.executeWorkflowTrigger",
+      "typeVersion": 1.2,
+      "position": [
+        0,
+        0
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "const lead = $input.first().json;\nconst s = $('Settings Loader').first().json;\n\nconst CONFIG = {\n  COMPANY_NAME: s.business_name,\n  APPOINTMENT_TERM: s.appointment_term,\n  OWNER_PHONE: s.owner_phone_e164,\n  OWNER_EMAIL: s.owner_email,\n  TWILIO_FROM_NUMBER: s.twilio_from_number,\n  EMAIL_ALERTS_ENABLED: s.email_alerts_enabled,\n  SMS_ALERTS_ENABLED: s.sms_owner_alerts_enabled,\n  DEFAULT_TIMEZONE: s.timezone,\n  SHEET_URL: s.crm_sheet_url\n};\n\nconst render = (tpl, vars) => tpl.replace(/\\{\\{(\\w+)\\}\\}/g, (_, k) => (vars[k] !== undefined && vars[k] !== null) ? vars[k] : '');\n\nconst name = [lead.firstName, lead.lastName].filter(Boolean).join(' ') || 'Unknown';\nconst firstName = lead.firstName || 'there';\nconst phone = lead.phone || 'Not provided';\nconst email = lead.email || 'Not provided';\nconst service = lead.serviceNeeded || 'Not specified';\nconst address = lead.address || 'Not provided';\nconst notes = lead.description || lead.notes || '';\nconst source = lead.source || 'Unknown';\nconst leadId = lead.leadId || '';\nconst schedulingFailed = !!lead.schedulingFailed;\nconst confirmedDate = lead.confirmedDate || '';\nconst confirmedTime = lead.confirmedTime || '';\n\nlet apptDisplay = 'Not yet scheduled — needs manual scheduling';\nif (!schedulingFailed && confirmedDate && confirmedTime) {\n  try {\n    const dm = String(confirmedDate).split('-').map(Number);\n    const dt = DateTime.fromObject({ year: dm[0], month: dm[1], day: dm[2] }, { zone: CONFIG.DEFAULT_TIMEZONE });\n    apptDisplay = dt.toFormat('cccc, LLLL d') + ' at ' + confirmedTime;\n  } catch (e) { apptDisplay = confirmedDate + ' ' + confirmedTime; }\n}\n\nlet submitted = 'Just now';\nif (lead.dateCreated) {\n  try {\n    submitted = DateTime.fromISO(lead.dateCreated).setZone(CONFIG.DEFAULT_TIMEZONE).toFormat(\"MMM d, yyyy 'at' h:mm a ZZZZ\");\n  } catch (e) { submitted = lead.dateCreated; }\n}\n\nconst smsMessage = schedulingFailed\n  ? render(s.sms_template_lead_alert_failed, { name, service, appointmentTerm: CONFIG.APPOINTMENT_TERM, phone })\n  : render(s.sms_template_lead_alert_success, { appointmentTerm: CONFIG.APPOINTMENT_TERM, name, service, apptDisplay, phone });\n\nconst emailSubject = CONFIG.COMPANY_NAME + ' - ' + (schedulingFailed ? 'ACTION NEEDED: ' : 'New ' + CONFIG.APPOINTMENT_TERM + ' booked: ') + name;\n\nconst rows = [\n  ['Name', name],\n  ['Phone', phone],\n  ['Email', email],\n  ['Address', address],\n  ['Service Requested', service],\n  [CONFIG.APPOINTMENT_TERM.charAt(0).toUpperCase() + CONFIG.APPOINTMENT_TERM.slice(1), apptDisplay],\n  ['Notes', notes || 'None'],\n  ['Lead Source', source],\n  ['Submitted', submitted]\n];\nif (leadId) rows.push(['Lead ID', leadId]);\n\nconst rowsHtml = rows.map(([label, value]) =>\n  '<tr><td style=\"padding:6px 12px 6px 0;font-weight:bold;color:#374151;white-space:nowrap;\">' + label + '</td><td style=\"padding:6px 0;color:#111827;\">' + value + '</td></tr>'\n).join('');\n\nconst noteHtml = schedulingFailed\n  ? '<p style=\"color:#b91c1c;font-weight:bold;\">This lead could not be auto-scheduled. Please call them to set up their ' + CONFIG.APPOINTMENT_TERM + '.</p>'\n  : '<p style=\"color:#6b7280;font-size:12px;margin-top:24px;\">This ' + CONFIG.APPOINTMENT_TERM + ' was booked automatically. Reply to the text alert: <strong>1</strong> to keep it, <strong>2</strong> to reschedule, or <strong>3</strong> to cancel. No login or sheet access needed.</p>';\n\nconst emailHtml =\n  '<div style=\"font-family:Arial,Helvetica,sans-serif;max-width:560px;margin:0 auto;color:#111827;\">' +\n  '<h2 style=\"color:#111827;border-bottom:2px solid #e5e7eb;padding-bottom:8px;\">' + (schedulingFailed ? 'Lead Needs Manual Scheduling' : 'New ' + CONFIG.APPOINTMENT_TERM.charAt(0).toUpperCase() + CONFIG.APPOINTMENT_TERM.slice(1) + ' Booked') + '</h2>' +\n  '<table style=\"width:100%;border-collapse:collapse;margin-top:12px;\">' + rowsHtml + '</table>' +\n  '<p style=\"margin-top:20px;\">' +\n  '<a href=\"tel:' + phone + '\" style=\"background:#111827;color:#ffffff;padding:10px 18px;border-radius:6px;text-decoration:none;font-weight:bold;display:inline-block;\">Call ' + firstName + '</a>' +\n  '&nbsp;&nbsp;' +\n  '<a href=\"' + CONFIG.SHEET_URL + '\" style=\"background:#374151;color:#ffffff;padding:10px 18px;border-radius:6px;text-decoration:none;font-weight:bold;display:inline-block;\">View in Sheet</a>' +\n  '</p>' +\n  noteHtml +\n  '</div>';\n\nreturn [{ json: {\n  ...lead,\n  emailEnabled: CONFIG.EMAIL_ALERTS_ENABLED,\n  smsEnabled: CONFIG.SMS_ALERTS_ENABLED,\n  ownerEmail: CONFIG.OWNER_EMAIL,\n  ownerPhone: CONFIG.OWNER_PHONE,\n  twilioFrom: CONFIG.TWILIO_FROM_NUMBER,\n  emailSubject,\n  emailHtml,\n  smsMessage\n}}];"
+      },
+      "id": "df685acf-ab72-443c-9cc7-9c3b3718b1bc",
+      "name": "Build Alert Content",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        224,
+        0
+      ]
+    },
+    {
+      "parameters": {
+        "from": "={{ $('Build Alert Content').first().json.twilioFrom }}",
+        "to": "={{ $('Build Alert Content').first().json.ownerPhone }}",
+        "message": "={{ $('Build Alert Content').first().json.smsMessage }}",
+        "options": {}
+      },
+      "id": "d17bc9bf-5b58-41c8-b3cc-13e5123448b4",
+      "name": "Send Owner SMS",
+      "type": "n8n-nodes-base.twilio",
+      "typeVersion": 1,
+      "position": [
+        1120,
+        -120
+      ],
+      "retryOnFail": true,
+      "maxTries": 3,
+      "waitBetweenTries": 3000
+    },
+    {
+      "parameters": {
+        "jsCode": "const s = $('Settings Loader').first().json;\nreturn [{ json: { alerted: true, alertedAt: DateTime.now().setZone(s.timezone || 'America/New_York').toISO() } }];"
+      },
+      "id": "76d6b5be-1816-4911-99e4-3aca3faff52c",
+      "name": "Return",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1344,
+        0
+      ]
+    },
+    {
+      "parameters": {
+        "content": "Every Lead Alert: receives lead + appointment data from any intake workflow, builds an HTML email and SMS summary showing the auto-booked appointment time, then sends an email and SMS to the owner (both default ON, since SMS is how the owner triggers a reschedule). The owner never needs to open Google Sheets.",
+        "height": 220,
+        "width": 320
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        -320,
+        -272
+      ],
+      "id": "120a3dc8-edfc-4d1d-8716-ef035d1e5b1f",
+      "name": "Sticky Note"
+    },
+    {
+      "id": "c54806ff-ead4-4a69-9ffa-6649929499c2",
+      "name": "Check Email Enabled",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.3,
+      "position": [
+        448,
+        0
+      ],
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict"
+          },
+          "conditions": [
+            {
+              "id": "email-enabled",
+              "leftValue": "={{ $json.emailEnabled }}",
+              "rightValue": true,
+              "operator": {
+                "type": "boolean",
+                "operation": "true"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      }
+    },
+    {
+      "id": "3aa6ccbf-b6bb-48aa-99dd-c038677ff615",
+      "name": "Send Owner Email",
+      "type": "n8n-nodes-base.gmail",
+      "typeVersion": 2.2,
+      "position": [
+        672,
+        -120
+      ],
+      "parameters": {
+        "resource": "message",
+        "operation": "send",
+        "sendTo": "={{ $json.ownerEmail }}",
+        "subject": "={{ $json.emailSubject }}",
+        "emailType": "html",
+        "message": "={{ $json.emailHtml }}",
+        "options": {
+          "appendAttribution": false
+        }
+      },
+      "webhookId": "a779bf5a-4739-479d-b7e6-c5d8b741cc01"
+    },
+    {
+      "id": "70a0a854-8426-4b1b-b5f0-05cc89b8e705",
+      "name": "Check SMS Enabled",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.3,
+      "position": [
+        896,
+        0
+      ],
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict"
+          },
+          "conditions": [
+            {
+              "id": "sms-enabled",
+              "leftValue": "={{ $('Build Alert Content').first().json.smsEnabled }}",
+              "rightValue": true,
+              "operator": {
+                "type": "boolean",
+                "operation": "true"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      }
+    },
+    {
+      "id": "d73fb538-3c7c-4302-963d-f736de994292",
+      "name": "Settings Loader",
+      "type": "n8n-nodes-base.executeWorkflow",
+      "typeVersion": 1.3,
+      "position": [
+        224,
+        -200
+      ],
+      "parameters": {
+        "source": "database",
+        "workflowId": {
+          "__rl": true,
+          "mode": "id",
+          "value": "HaFQg1kGR5tWd6Y9"
+        },
+        "mode": "each",
+        "workflowInputs": {
+          "mappingMode": "defineBelow",
+          "value": {},
+          "matchingColumns": [],
+          "schema": []
+        },
+        "options": {}
+      }
+    }
+  ],
+  "tags": [],
+  "description": "Every Lead Alert sub-workflow - called by Form Capture/Missed-Call workflows for every new lead. Sends a professional email to the owner (default ON) and an optional SMS (default OFF), both centrally configurable via the CONFIG block."
+}
