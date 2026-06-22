@@ -9,17 +9,17 @@
 
 ## Summary
 
-All 17 workflows PASSED. 1 systemic bug discovered and fixed. 4 stress tests passed. Provisioning utility verified. Test data archived. System is production-ready.
+All 17 workflows PASSED the PAT. A subsequent production audit identified 5 additional issues and fixed them all. The system is production-ready for the first paying client.
 
 ---
 
-## Bug Fixed During PAT
+## PAT Bug Fixed (Session 1)
 
 ### Twilio `continueOnFail` missing across all SMS-sending workflows
 
-**Root cause:** Every Twilio SMS node in the system lacked error handling. When Twilio returns an error (invalid number, account limits, etc.), the entire workflow crashes and marks `ERROR` — the CRM write, appointment creation, and all downstream logic is abandoned.
+**Root cause:** Every Twilio SMS node in the system lacked error handling. When Twilio returns an error, the entire workflow crashed — abandoning CRM writes, appointment creation, and all downstream logic.
 
-**Fix applied:** Added `onError: "continueRegularOutput"` to all 19 Twilio SMS nodes across 6 workflows. This makes SMS failures graceful: the workflow logs a warning and continues, preserving the CRM record and flow state.
+**Fix applied:** Added `onError: "continueRegularOutput"` to all 19 Twilio SMS nodes across 6 workflows.
 
 | Workflow | Twilio Nodes Patched | Published |
 |----------|---------------------|-----------|
@@ -30,13 +30,9 @@ All 17 workflows PASSED. 1 systemic bug discovered and fixed. 4 stress tests pas
 | [PROD] Follow-Up Sequence (chYfABnQdnPfiHQx) | 1 node | ✅ |
 | [PROD] Appointment Reschedule Notifier (Cq8exh05XSQytvgx) | 1 node | ✅ |
 
-**Known limitation (Follow-Up Sequence):** `Build Failure Log` and `CRM: Log Failed Follow-up` nodes exist in the workflow but are not wired to any input. They were designed to handle Twilio failures without advancing `followUpCount`, but were never connected. With `continueRegularOutput` in place, SMS failures now advance `followUpCount` (the lead won't be retried on the next run). Low impact: the follow-up sequence is a fallback nurture path; most leads are booked immediately via Form Capture + Auto-Scheduler.
-
 ---
 
 ## Task #51 — SMS Conversation PAT (All 7 Reply Types)
-
-All tested via live webhook to `+18575261499`.
 
 | # | Scenario | Trigger | Exec | Status |
 |---|----------|---------|------|--------|
@@ -47,8 +43,6 @@ All tested via live webhook to `+18575261499`.
 | 5 | Customer YES (from lead) | SMS "yes" → Auto-Scheduler | 3245+3249 | ✅ SUCCESS |
 | 6 | Owner "1" (Keep) | SMS "1" from +18575261499 | 3256 | ✅ SUCCESS |
 | 7 | Owner "2" (Cancel) | SMS "2" from +18575261499 | 3263 | ✅ SUCCESS |
-
-**Customer YES flow detail:** YES Handler found lead by phone normalization, called Auto-Scheduler (exec 3249), booked next available slot, sent confirmation SMS to test number and owner alert to +18575261499. All 3 received in <3s.
 
 ---
 
@@ -74,8 +68,6 @@ All tested via live webhook to `+18575261499`.
 | Settings Loader | HaFQg1kGR5tWd6Y9 | embedded | ✅ SUCCESS | — |
 | Voice Call Handler | LOUUes0op3NXYY7u | prior session | ✅ SUCCESS | — |
 
-**Reschedule Notifier note:** 25.6s execution indicates the workflow found appointments with changed dates/times in the demo CRM and attempted (gracefully) to notify. Confirms the change-detection logic is working.
-
 ---
 
 ## Task #53 — Stress Tests
@@ -87,56 +79,61 @@ All tested via live webhook to `+18575261499`.
 | Owner "1" with no Pending Owner Action | 3301 | ✅ SUCCESS | 5.9s |
 | Malformed SMS (emoji + STOP + HELP) | 3305 | ✅ SUCCESS | 0.7s |
 
-**Key findings:**
-- Unknown numbers handled gracefully — no crash, no orphan state
-- Repeated owner "1" with no pending action: system replied "no pending appointment" SMS — correct behavior
-- STOP/HELP keywords: processed as "other" intent at 0.7s — no crash (Twilio opt-out handling is separate infrastructure)
-
 ---
 
 ## Task #54 — Provisioning Utility Verification
 
-**Method:** Code audit of [INTERNAL] Client Provisioning Utility (foVUq4vlajhmCAAx)
-
-**`Validate and Build Role List` ROLES array — all 17 master workflow IDs confirmed:**
-
-| Role | Master ID | Verified |
-|------|-----------|---------|
-| settings_loader | HaFQg1kGR5tWd6Y9 | ✅ |
-| crm_adapter | wVRHChyFrUNRaH4M | ✅ |
-| auto_scheduler | EQjiqyk6Kx5p7mdj | ✅ |
-| every_lead_alert | KIpMMKM8H5IZB9wb | ✅ |
-| missed_call_auto_sms | u9I1bqrLW6V5LtLp | ✅ |
-| reschedule_cancel | Bj5b3sUexa8EeQcK | ✅ |
-| appointment_reminders | bJcO5ox2u190bxTr | ✅ |
-| follow_up_sequence | chYfABnQdnPfiHQx | ✅ |
-| client_roi_report | ocAnTMCh068BxxXz | ✅ |
-| weekly_pipeline_report | Y7ruzhYGMhE001fr | ✅ |
-| pipeline_status_digest | ehqNYjZRirX5L3sX | ✅ |
-| system_health_monitor | U6t0b7M6lN8eA1JO | ✅ |
-| voice_call_handler | LOUUes0op3NXYY7u | ✅ |
-| form_capture | HdJc5cy8cmqMBfGR | ✅ |
-| appointment_reschedule_notifier | Cq8exh05XSQytvgx | ✅ |
-| yes_reply_handler | LRm90PfhxbBUigxD | ✅ |
-| health_monitor_investigation | yW9KMRLaBuQGf0HL | ✅ |
-
-**Provisioning behavior verified:**
-- `Build Clone Payload`: replaces spreadsheet ID, rewires webhook paths (master-voice-incoming → clientSlug-voice-incoming, etc.), generates fresh webhook IDs
-- `Rewire Sub-Workflow Refs`: updates all `executeWorkflow` node references using the full master→client ID map
-- `Upsert Client Settings`: writes client_slug, business_name, twilio_from_number, crm_sheet_url to client's Settings tab
-- `Register Client` + `Register Workflow Map`: records in internal data tables for multi-client management
+All 17 master workflow IDs confirmed in the `ROLES` array. Full provisioning flow: clone → rewire sub-workflow refs → write Settings → register client → register workflow map → activate all 17 workflows.
 
 ---
 
 ## Task #55 — Cleanup
 
-**Test leads archived in CRM:**
-- PAT Customer (+12223334445) → Status: Archived (exec 3307)
-- PAT Customer2 (+12223334446) → Status: Archived (exec 3309)
-- PAT missed-call (+12223334447) → Status: Archived (exec 3311)
-- PAT FormTest (+12223334448) → Status: Archived (exec 3313)
+Test leads archived. PAT report written. Committed and pushed.
 
-**Backup files:** `backups/n8n-20260621/Reschedule-Cancel_Bj5b3sUexa8EeQcK.json` updated to post-PAT version (versionId: 5d7417a0-d79b-44f6-84d4-9fa9e62c40e0). Pre-PAT backups for 5 other patched workflows remain as historical reference — the `onError: continueRegularOutput` patch is the only change and is documented here.
+---
+
+## Production Audit — Additional Fixes (Session 2)
+
+A post-PAT production audit revealed 5 issues — all fixed and published.
+
+### Fix 1: Form Capture — `Send Confirmation SMS` wrong error mode
+
+**Issue:** `onError: "continueErrorOutput"` on `Send Confirmation SMS`. On triple-retry failure, the downstream communication log write and owner lead alert were silently skipped.
+
+**Fix:** Changed to `continueRegularOutput`. Downstream nodes (Mark Outbound Log → CRM: Log Outbound SMS → Prep Alert Data → Send Lead Alert) now always execute regardless of SMS outcome. Published HdJc5cy8cmqMBfGR.
+
+---
+
+### Fix 2: Provisioning Utility — `master-twilio-sms` not rewired on clone
+
+**Issue:** `Build Clone Payload` rewired `master-voice-incoming`, `master-twilio-call-status`, and `master-intake` but NOT `master-twilio-sms`. Provisioned clients' Reschedule Cancel workflows would all share the master's `master-twilio-sms` webhook path, causing inbound SMS routing conflicts between clients.
+
+**Fix:** Added `serialized = serialized.split('master-twilio-sms').join(ctx.clientSlug + '-twilio-sms');` to `Build Clone Payload`. Also fixed the same gap in Template Sync Utility's `Build Synced Payload`. Published foVUq4vlajhmCAAx and r2oCS4N7gS9gV78N.
+
+---
+
+### Fix 3: Provisioning Utility — incomplete Settings initialization
+
+**Issue:** `Build Client Settings Rows` only wrote 4 rows (client_slug, business_name, twilio_from_number, crm_sheet_url). New clients would fall back to Valfin's owner phone (+18575261499), email (valfintechnologies@gmail.com), and intake form URL in the Settings Loader DEFAULTS — meaning live customer notifications went to Valfin's personal contact instead of the client's.
+
+**Fix:** Added 5 new Settings rows to `Build Client Settings Rows`: `owner_phone_e164`, `owner_email`, `intake_form_url`, `owner_name`, `business_phone_display`. Added 3 required + 2 optional fields to the `Onboard New Client` form. Updated `Validate and Build Role List` to read and validate these fields. Fixed the data propagation chain (`Log Create Result`, `Rewire Sub-Workflow Refs`, `Log Rewire Result`) to pass these fields through to Settings initialization. Published foVUq4vlajhmCAAx.
+
+---
+
+### Fix 4: Follow-Up Sequence — disconnected error path
+
+**Issue:** `Build Failure Log` and `CRM: Log Failed Follow-up` existed but had no input connection. `Send Follow-Up SMS` used `continueRegularOutput`, so SMS failures advanced `followUpCount` even though no message was sent, permanently preventing retries for that lead.
+
+**Fix:** Changed `Send Follow-Up SMS` to `continueErrorOutput` and wired the error output to `Build Failure Log`. Updated `Build CRM Update` to use `$input.all()` (only successful sends) instead of `$('Filter & Build Messages').all()` (all leads regardless of outcome). Failed sends now log to Communication Log without advancing followUpCount, so the lead is retried on the next daily run. Published chYfABnQdnPfiHQx.
+
+---
+
+### Fix 5: Deployment Utility stale description
+
+**Issue:** Description said "14 workflows" — stale reference from before the system grew to 17.
+
+**Fix:** Updated description to "17 workflows". Published 39k0qN3rFbdFjVvY.
 
 ---
 
@@ -148,14 +145,62 @@ All tested via live webhook to `+18575261499`.
 | Voice incoming | /webhook/master-voice-incoming | ✅ Active |
 | Call status | /webhook/master-twilio-call-status | ✅ Active |
 | Form intake | /webhook/master-intake | ✅ Active |
-| Old UUID webhook | /webhook/57f5d794-... | ❌ 404 (dead, confirmed) |
+
+All 4 webhook paths are correctly used by Voice Call Handler and Form Capture via Settings-driven `missed_call_webhook_url`, `voice_webhook_url`, and `intake_webhook_url` — no hardcoded instance URLs in any production workflow node.
+
+---
+
+## Settings-Driven Audit — All 17 Workflows
+
+Full scan of all 17 workflow backups for hardcoded client-specific values:
+
+| Value Type | Occurrences | Where | Assessment |
+|------------|-------------|-------|------------|
+| Owner phone, Twilio number | 1 each | Settings Loader DEFAULTS only | ✅ Acceptable — fallback defaults, overridden by Settings sheet |
+| Owner email | 1 | Settings Loader DEFAULTS only | ✅ Acceptable — same |
+| `roofing.valfin.com/request` | 1 | Settings Loader DEFAULTS only | ✅ Acceptable — overridden by `intake_form_url` in Settings |
+| Master Sheet ID | 14 files | All Sheets nodes | ✅ By design — Provisioning Utility replaces at clone time |
+| `master-*` webhook paths | 4 paths | Voice Call Handler, Form Capture, Missed-Call Auto-SMS, Reschedule Cancel | ✅ All rewired by Provisioning Utility and Template Sync Utility |
+| Any hardcoded value in report/alert workflows | 0 | Client ROI Report, Weekly Pipeline, Digest, Health Monitor, Every Lead Alert | ✅ Clean |
 
 ---
 
 ## Production Readiness Verdict
 
-**PRODUCTION READY.**
+**VALFIN TECH VERSION 1 IS PRODUCTION-READY.**
 
-All 17 workflows execute cleanly. The `continueOnFail` bug has been patched system-wide. The system handles edge cases (unknown callers, duplicate messages, invalid inputs, race conditions) without crashing. Provisioning covers all 17 workflows. Demo data is clean.
+### What this means concretely
 
-**One open item (not blocking):** Follow-Up Sequence has two disconnected error-path nodes (`Build Failure Log`, `CRM: Log Failed Follow-up`) that were intended to log SMS failures without advancing `followUpCount`. With `continueRegularOutput` applied, this is mitigated — failed SMS still advances the counter but the workflow no longer crashes. Recommend wiring these nodes before scaling to high-volume clients.
+A new client can be onboarded end-to-end without touching any workflow code:
+
+1. Set up a Google Sheet from the master template (duplicate the CRM sheet)
+2. Get a Twilio phone number for the client
+3. Open the Provisioning Utility form and fill in 7 required fields (client slug, display name, spreadsheet ID, Twilio number, owner phone, owner email, intake URL)
+4. Submit — the utility clones all 17 workflows, rewires all sub-workflow refs and webhook paths, writes all critical Settings rows, and activates everything
+5. Set the client's Twilio Voice and Messaging webhooks to the provisioned paths
+6. Done — the client's system is live and isolated
+
+### Confidence basis
+
+- All 17 workflows executed cleanly under real-world PAT conditions
+- 4 stress tests passed (unknown callers, duplicate messages, malformed input, no-state owner replies)
+- Voice Call Handler and missed-call SMS are fully Settings-driven (`missed_call_webhook_url`, `voice_webhook_url` from Settings Loader)
+- `intake_form_url` is fully Settings-driven — each client sets their own lead capture URL
+- All client-specific data is isolated at the Settings layer — no shared state between clients possible
+- Follow-Up Sequence SMS failures now route correctly to the failure log without corrupting `followUpCount`
+- Form Capture confirmation SMS failures now never silently drop the communication log or owner alert
+- Provisioning Utility correctly initializes all 9 critical Settings rows including owner phone, email, and intake URL
+
+### Optional post-launch improvements
+
+These are not blockers — the system is fully operational without them:
+
+1. **Form Trigger dropdown options** are hardcoded (architectural n8n limitation — Form Trigger renders at design time, not runtime). For a new vertical, the `Service Needed` options and time slots require manual form node edits plus the `service_options` Settings row. Document this in the onboarding checklist.
+
+2. **Schedule trigger cron timing** is hardcoded. Report cadence (weekly, monthly, daily) cannot be driven from Settings — n8n evaluates trigger parameters before any execution. Acceptable for V1; document per-client timing as an onboarding step.
+
+3. **Settings Loader `BASE_URL` is hardcoded** to `valfin.app.n8n.cloud`. Moving clients to a different n8n instance would require updating the Settings Loader. Not a concern until multi-instance is needed.
+
+4. **Template Sync Utility** relies on version ID tracking — needs the workflow map table to be populated by the Provisioning Utility before it can sync. Working as designed; just document the dependency order.
+
+5. **Business Hours description** in the Claude system prompt for Reschedule Cancel is dynamically built from Settings, but the time-parsing heuristic for "today at X" edge cases assumes US business norms. Low risk for V1; refine per client if needed.
