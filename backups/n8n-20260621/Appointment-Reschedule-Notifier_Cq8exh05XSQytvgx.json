@@ -1,1 +1,260 @@
-{"id":"Cq8exh05XSQytvgx","name":"[PROD] Appointment Reschedule Notifier","active":true,"isArchived":false,"versionId":"3ef06c08-ba72-4aba-aa20-96ec7a3f3a3c","activeVersionId":"3ef06c08-ba72-4aba-aa20-96ec7a3f3a3c","createdAt":"2026-06-21T17:53:09.136Z","updatedAt":"2026-06-21T20:33:35.135Z","settings":{"executionOrder":"v1","availableInMCP":true},"description":"WF13 Appointment Reschedule Notifier — hourly, notifies customers of owner-changed appointment times","connections":{"Hourly Reschedule Check":{"main":[[{"node":"Settings Loader","type":"main","index":0}]]},"Settings Loader":{"main":[[{"node":"Get All Appointments","type":"main","index":0}]]},"Get All Appointments":{"main":[[{"node":"Build Notify Batch","type":"main","index":0}]]},"Build Notify Batch":{"main":[[{"node":"Send Reschedule Notification SMS","type":"main","index":0}]]},"Send Reschedule Notification SMS":{"main":[[{"node":"Update Notified Columns","type":"main","index":0}]]},"Update Notified Columns":{"main":[[{"node":"CRM: Log Reschedule Notification","type":"main","index":0}]]}},"nodes":[{"id":"60ececef-7978-4815-b3d6-7ca29fbe1476","name":"Hourly Reschedule Check","type":"n8n-nodes-base.scheduleTrigger","typeVersion":1.2,"position":[0,0],"parameters":{"rule":{"interval":[{"field":"hours","minutesInterval":1}]}}},{"id":"1804dc32-0f38-4723-a91c-bfc74bd3d0c5","name":"Settings Loader","type":"n8n-nodes-base.executeWorkflow","typeVersion":1.3,"position":[224,0],"parameters":{"source":"database","workflowId":{"__rl":true,"mode":"id","value":"HaFQg1kGR5tWd6Y9"},"mode":"each","workflowInputs":{"mappingMode":"defineBelow","value":{},"matchingColumns":[],"schema":[]},"options":{}}},{"id":"c7289aaa-acc4-41f4-8a9a-3fd6b6954d26","name":"Get All Appointments","type":"n8n-nodes-base.googleSheets","typeVersion":4.7,"position":[448,0],"parameters":{"documentId":{"__rl":true,"mode":"id","value":"={{ $(\"Settings Loader\").first().json.crm_sheet_id || \"1MxmJouteZhi1K_-KOwgBlJtBFAXtm2G_0H555otTHBQ\" }}"},"sheetName":{"__rl":true,"mode":"name","value":"={{ $(\"Settings Loader\").first().json.sheet_tab_appointments }}"},"options":{}},"alwaysOutputData":true},{"id":"59e622e0-f4c2-4d16-ad54-3136ca469967","name":"Build Notify Batch","type":"n8n-nodes-base.code","typeVersion":2,"position":[672,0],"parameters":{"mode":"runOnceForAllItems","language":"javaScript","jsCode":"const s = $('Settings Loader').first().json;\nconst render = (tpl, vars) => tpl.replace(/\\{\\{(\\w+)\\}\\}/g, (_, k) => (vars[k] !== undefined && vars[k] !== null) ? vars[k] : '');\nconst appts = $input.all().map(i => i.json);\nconst toNotify = [];\nfor (const a of appts) {\n  const status = String(a['Status'] || '').trim();\n  if (status !== 'Scheduled') continue;\n  const apptDate = String(a['Appt Date'] || '').trim();\n  const apptTime = String(a['Appt Time'] || '').trim();\n  const notifiedDate = String(a['Notified Appt Date'] || '').trim();\n  const notifiedTime = String(a['Notified Appt Time'] || '').trim();\n  if (!apptDate || !apptTime) continue;\n  const dateChanged = apptDate !== notifiedDate;\n  const timeChanged = apptTime.toUpperCase() !== notifiedTime.toUpperCase();\n  if (!dateChanged && !timeChanged) continue;\n  const phone = String(a['Phone'] || '').trim();\n  if (!phone) continue;\n  const raw = phone.replace(/\\D/g, '');\n  const e164 = raw.length === 11 && raw.startsWith('1') ? '+' + raw : raw.length === 10 ? '+1' + raw : (phone.startsWith('+') ? phone : null);\n  if (!e164) continue;\n  let displayDate = apptDate;\n  try { const dm = apptDate.split('-').map(Number); const dt = DateTime.fromObject({ year: dm[0], month: dm[1], day: dm[2] }, { zone: s.timezone }); displayDate = dt.toFormat('cccc, LLLL d'); } catch (e) {}\n  const nameParts = String(a['Customer Name'] || '').trim().split(/\\s+/);\n  const firstName = nameParts[0] || '';\n  const fullName = String(a['Customer Name'] || '').trim();\n  const svc = String(a['Service Type'] || s.appointment_term || 'appointment').trim();\n  const tpl = s.sms_template_reschedule_update || 'Hi {{firstName}}, your {{service}} appointment with {{businessName}} has been updated to {{date}} at {{time}}. Questions? Call {{businessPhoneDisplay}}.';\n  const smsBody = render(tpl, { firstName, fullName, service: svc, appointmentTerm: s.appointment_term || 'appointment', businessName: s.business_name, businessPhoneDisplay: s.business_phone_display || '', date: displayDate, time: apptTime });\n  toNotify.push({ apptId: a['Appt ID'], leadId: a['Lead ID'] || '', customerName: fullName, customerPhone: e164, smsBody, newApptDate: apptDate, newApptTime: apptTime, from: s.twilio_from_number });\n}\nif (toNotify.length === 0) return [];\nreturn toNotify.map(r => ({ json: r }));"}},{"id":"70db52ad-fdde-4f2f-9f53-3272c73b377c","name":"Send Reschedule Notification SMS","type":"n8n-nodes-base.twilio","typeVersion":1,"position":[896,0],"parameters":{"from":"={{ $('Build Notify Batch').item.json.from }}","to":"={{ $('Build Notify Batch').item.json.customerPhone }}","message":"={{ $('Build Notify Batch').item.json.smsBody }}","options":{}}},{"id":"5ab05f29-3d64-4f25-9275-186e12a7e76a","name":"Update Notified Columns","type":"n8n-nodes-base.googleSheets","typeVersion":4.7,"position":[1120,0],"parameters":{"operation":"update","documentId":{"__rl":true,"mode":"id","value":"={{ $(\"Settings Loader\").first().json.crm_sheet_id || \"1MxmJouteZhi1K_-KOwgBlJtBFAXtm2G_0H555otTHBQ\" }}"},"sheetName":{"__rl":true,"mode":"name","value":"={{ $(\"Settings Loader\").first().json.sheet_tab_appointments }}"},"columns":{"mappingMode":"defineBelow","value":{"Appt ID":"={{ $('Build Notify Batch').item.json.apptId }}","Notified Appt Date":"={{ $('Build Notify Batch').item.json.newApptDate }}","Notified Appt Time":"={{ $('Build Notify Batch').item.json.newApptTime }}","Reminder 24h":"","Reminder 2h":"","Notify Customer":"Yes"},"matchingColumns":["Appt ID"],"schema":[]},"options":{}}},{"id":"6d8ce8e8-9ec0-44cd-a825-02afe71fee02","name":"CRM: Log Reschedule Notification","type":"n8n-nodes-base.executeWorkflow","typeVersion":1.3,"position":[1344,0],"parameters":{"source":"database","workflowId":{"__rl":true,"mode":"id","value":"wVRHChyFrUNRaH4M"},"mode":"each","workflowInputs":{"mappingMode":"defineBelow","value":{"leadId":"={{ $('Build Notify Batch').item.json.leadId }}","logChannel":"SMS","logDirection":"Outbound","logHandler":"System","logSummary":"={{ 'Reschedule notification sent: new time ' + $('Build Notify Batch').item.json.newApptDate + ' ' + $('Build Notify Batch').item.json.newApptTime }}"},"matchingColumns":[],"schema":[],"attemptToConvertTypes":false,"convertFieldsToString":true},"options":{}}}],"tags":[]}
+{
+  "id": "Cq8exh05XSQytvgx",
+  "name": "[PROD] Appointment Reschedule Notifier",
+  "active": true,
+  "isArchived": false,
+  "versionId": "3ef06c08-ba72-4aba-aa20-96ec7a3f3a3c",
+  "activeVersionId": "3ef06c08-ba72-4aba-aa20-96ec7a3f3a3c",
+  "createdAt": "2026-06-21T17:53:09.136Z",
+  "updatedAt": "2026-06-21T20:33:35.135Z",
+  "settings": {
+    "executionOrder": "v1",
+    "availableInMCP": true
+  },
+  "description": "WF13 Appointment Reschedule Notifier — hourly, notifies customers of owner-changed appointment times",
+  "connections": {
+    "Hourly Reschedule Check": {
+      "main": [
+        [
+          {
+            "node": "Settings Loader",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Settings Loader": {
+      "main": [
+        [
+          {
+            "node": "Get All Appointments",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Get All Appointments": {
+      "main": [
+        [
+          {
+            "node": "Build Notify Batch",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Build Notify Batch": {
+      "main": [
+        [
+          {
+            "node": "Send Reschedule Notification SMS",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Send Reschedule Notification SMS": {
+      "main": [
+        [
+          {
+            "node": "Update Notified Columns",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Update Notified Columns": {
+      "main": [
+        [
+          {
+            "node": "CRM: Log Reschedule Notification",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "nodes": [
+    {
+      "id": "60ececef-7978-4815-b3d6-7ca29fbe1476",
+      "name": "Hourly Reschedule Check",
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.2,
+      "position": [
+        0,
+        0
+      ],
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "field": "hours",
+              "minutesInterval": 1
+            }
+          ]
+        }
+      }
+    },
+    {
+      "id": "1804dc32-0f38-4723-a91c-bfc74bd3d0c5",
+      "name": "Settings Loader",
+      "type": "n8n-nodes-base.executeWorkflow",
+      "typeVersion": 1.3,
+      "position": [
+        224,
+        0
+      ],
+      "parameters": {
+        "source": "database",
+        "workflowId": {
+          "__rl": true,
+          "mode": "id",
+          "value": "HaFQg1kGR5tWd6Y9"
+        },
+        "mode": "each",
+        "workflowInputs": {
+          "mappingMode": "defineBelow",
+          "value": {},
+          "matchingColumns": [],
+          "schema": []
+        },
+        "options": {}
+      }
+    },
+    {
+      "id": "c7289aaa-acc4-41f4-8a9a-3fd6b6954d26",
+      "name": "Get All Appointments",
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.7,
+      "position": [
+        448,
+        0
+      ],
+      "parameters": {
+        "documentId": {
+          "__rl": true,
+          "mode": "id",
+          "value": "={{ $(\"Settings Loader\").first().json.crm_sheet_id || \"1MxmJouteZhi1K_-KOwgBlJtBFAXtm2G_0H555otTHBQ\" }}"
+        },
+        "sheetName": {
+          "__rl": true,
+          "mode": "name",
+          "value": "={{ $(\"Settings Loader\").first().json.sheet_tab_appointments }}"
+        },
+        "options": {}
+      },
+      "alwaysOutputData": true
+    },
+    {
+      "id": "59e622e0-f4c2-4d16-ad54-3136ca469967",
+      "name": "Build Notify Batch",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        672,
+        0
+      ],
+      "parameters": {
+        "mode": "runOnceForAllItems",
+        "language": "javaScript",
+        "jsCode": "const s = $('Settings Loader').first().json;\nconst render = (tpl, vars) => tpl.replace(/\\{\\{(\\w+)\\}\\}/g, (_, k) => (vars[k] !== undefined && vars[k] !== null) ? vars[k] : '');\n\nfunction formatTime(t) {\n  const s = String(t || '').trim();\n  if (/AM|PM/i.test(s)) return s;\n  const m = s.match(/^(\\d{1,2}):(\\d{2})/);\n  if (m) {\n    let h = parseInt(m[1], 10);\n    const min = m[2];\n    const period = h >= 12 ? 'PM' : 'AM';\n    if (h === 0) h = 12;\n    else if (h > 12) h -= 12;\n    return h + ':' + min + ' ' + period;\n  }\n  return s;\n}\n\nconst appts = $input.all().map(i => i.json);\nconst toNotify = [];\nfor (const a of appts) {\n  const status = String(a['Status'] || '').trim();\n  if (status !== 'Scheduled') continue;\n  const apptDate = String(a['Appt Date'] || '').trim();\n  const apptTime = String(a['Appt Time'] || '').trim();\n  const notifiedDate = String(a['Notified Appt Date'] || '').trim();\n  const notifiedTime = String(a['Notified Appt Time'] || '').trim();\n  if (!apptDate || !apptTime) continue;\n  const dateChanged = apptDate !== notifiedDate;\n  const timeChanged = apptTime.toUpperCase() !== notifiedTime.toUpperCase();\n  if (!dateChanged && !timeChanged) continue;\n  const phone = String(a['Phone'] || '').trim();\n  if (!phone) continue;\n  const raw = phone.replace(/\\D/g, '');\n  const e164 = raw.length === 11 && raw.startsWith('1') ? '+' + raw : raw.length === 10 ? '+1' + raw : (phone.startsWith('+') ? phone : null);\n  if (!e164) continue;\n  let displayDate = apptDate;\n  try { const dm = apptDate.split('-').map(Number); const dt = DateTime.fromObject({ year: dm[0], month: dm[1], day: dm[2] }, { zone: s.timezone }); displayDate = dt.toFormat('cccc, LLLL d'); } catch (e) {}\n  const nameParts = String(a['Customer Name'] || '').trim().split(/\\s+/);\n  const firstName = nameParts[0] || '';\n  const fullName = String(a['Customer Name'] || '').trim();\n  const svc = String(a['Service Type'] || s.appointment_term || 'appointment').trim();\n  const tpl = s.sms_template_reschedule_update || 'Hi {{firstName}}, your {{service}} appointment with {{businessName}} has been updated to {{date}} at {{time}}. Questions? Call {{businessPhoneDisplay}}.';\n  const smsBody = render(tpl, { firstName, fullName, service: svc, appointmentTerm: s.appointment_term || 'appointment', businessName: s.business_name, businessPhoneDisplay: s.business_phone_display || '', date: displayDate, time: formatTime(apptTime) });\n  toNotify.push({ apptId: a['Appt ID'], leadId: a['Lead ID'] || '', customerName: fullName, customerPhone: e164, smsBody, newApptDate: apptDate, newApptTime: apptTime, from: s.twilio_from_number });\n}\nif (toNotify.length === 0) return [];\nreturn toNotify.map(r => ({ json: r }));"
+      }
+    },
+    {
+      "id": "70db52ad-fdde-4f2f-9f53-3272c73b377c",
+      "name": "Send Reschedule Notification SMS",
+      "type": "n8n-nodes-base.twilio",
+      "typeVersion": 1,
+      "position": [
+        896,
+        0
+      ],
+      "parameters": {
+        "from": "={{ $('Build Notify Batch').item.json.from }}",
+        "to": "={{ $('Build Notify Batch').item.json.customerPhone }}",
+        "message": "={{ $('Build Notify Batch').item.json.smsBody }}",
+        "options": {}
+      }
+    },
+    {
+      "id": "5ab05f29-3d64-4f25-9275-186e12a7e76a",
+      "name": "Update Notified Columns",
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.7,
+      "position": [
+        1120,
+        0
+      ],
+      "parameters": {
+        "operation": "update",
+        "documentId": {
+          "__rl": true,
+          "mode": "id",
+          "value": "={{ $(\"Settings Loader\").first().json.crm_sheet_id || \"1MxmJouteZhi1K_-KOwgBlJtBFAXtm2G_0H555otTHBQ\" }}"
+        },
+        "sheetName": {
+          "__rl": true,
+          "mode": "name",
+          "value": "={{ $(\"Settings Loader\").first().json.sheet_tab_appointments }}"
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "Appt ID": "={{ $('Build Notify Batch').item.json.apptId }}",
+            "Notified Appt Date": "={{ $('Build Notify Batch').item.json.newApptDate }}",
+            "Notified Appt Time": "={{ $('Build Notify Batch').item.json.newApptTime }}",
+            "Reminder 24h": "",
+            "Reminder 2h": "",
+            "Notify Customer": "Yes"
+          },
+          "matchingColumns": [
+            "Appt ID"
+          ],
+          "schema": []
+        },
+        "options": {}
+      }
+    },
+    {
+      "id": "6d8ce8e8-9ec0-44cd-a825-02afe71fee02",
+      "name": "CRM: Log Reschedule Notification",
+      "type": "n8n-nodes-base.executeWorkflow",
+      "typeVersion": 1.3,
+      "position": [
+        1344,
+        0
+      ],
+      "parameters": {
+        "source": "database",
+        "workflowId": {
+          "__rl": true,
+          "mode": "id",
+          "value": "wVRHChyFrUNRaH4M"
+        },
+        "mode": "each",
+        "workflowInputs": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "leadId": "={{ $('Build Notify Batch').item.json.leadId }}",
+            "logChannel": "SMS",
+            "logDirection": "Outbound",
+            "logHandler": "System",
+            "logSummary": "={{ 'Reschedule notification sent: new time ' + $('Build Notify Batch').item.json.newApptDate + ' ' + $('Build Notify Batch').item.json.newApptTime }}"
+          },
+          "matchingColumns": [],
+          "schema": [],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": true
+        },
+        "options": {}
+      }
+    }
+  ],
+  "tags": []
+}
