@@ -71,7 +71,7 @@ async function failsafeEmail(payload: object): Promise<void> {
       },
       body: JSON.stringify({
         from: "noreply@valfintech.com",
-        to: "hello@valfintech.com",
+        to: "contact@valfintech.com",
         subject: "[FAILSAFE] Valfin lead — n8n was unreachable at submission time",
         text: `A lead arrived but the n8n webhook could not be reached.\n\nLead data:\n\n${JSON.stringify(payload, null, 2)}\n\nAction required: manually enter this lead into the Valfin Leads Google Sheet.`,
       }),

@@ -76,7 +76,7 @@ export const privacyPolicy: LegalDocument = {
       heading: "SMS Communications & Consent",
       paragraphs: [
         "If you provide a phone number and submit the contact form, you consent to receive communications from Valfin Tech related to your inquiry, which may include SMS messages.",
-        "Message frequency varies based on your inquiry. Message and data rates may apply. You can opt out of SMS communications at any time by replying STOP, or by contacting us at valfintechnologies@gmail.com. Consent to receive SMS messages is not a condition of any purchase.",
+        "Message frequency varies based on your inquiry. Message and data rates may apply. You can opt out of SMS communications at any time by replying STOP, or by contacting us at contact@valfintech.com. Consent to receive SMS messages is not a condition of any purchase.",
       ],
     },
     {
@@ -94,7 +94,7 @@ export const privacyPolicy: LegalDocument = {
     {
       heading: "Your Rights & Choices",
       paragraphs: [
-        "You can ask us to access, correct, or delete the personal information we hold about you, or to stop contacting you, at any time by emailing valfintechnologies@gmail.com. We will respond promptly.",
+        "You can ask us to access, correct, or delete the personal information we hold about you, or to stop contacting you, at any time by emailing contact@valfintech.com. We will respond promptly.",
       ],
     },
     {
@@ -118,7 +118,7 @@ export const privacyPolicy: LegalDocument = {
     {
       heading: "Contact Us",
       paragraphs: [
-        "Questions about this Privacy Policy or your information? Email us at valfintechnologies@gmail.com.",
+        "Questions about this Privacy Policy or your information? Email us at contact@valfintech.com.",
       ],
     },
   ],
@@ -183,7 +183,7 @@ export const termsAndConditions: LegalDocument = {
     {
       heading: "Contact Us",
       paragraphs: [
-        "Questions about these Terms? Email us at valfintechnologies@gmail.com.",
+        "Questions about these Terms? Email us at contact@valfintech.com.",
       ],
     },
   ],
