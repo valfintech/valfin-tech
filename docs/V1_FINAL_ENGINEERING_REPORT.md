@@ -1,5 +1,5 @@
 # Valfin Tech — V1 Final Engineering Report
-**Date:** 2026-06-22  
+**Date:** 2026-06-22 (updated 2026-06-23)  
 **Engineer:** Claude (QA Lead / Release Engineer)  
 **Status:** APPROVED FOR PRODUCTION RELEASE
 
@@ -7,7 +7,7 @@
 
 ## Executive Summary
 
-This report documents the comprehensive final engineering and quality pass conducted on the Valfin Tech V1 automation platform prior to freezing the codebase for the first paying client deployment. A total of **12 production defects** were identified and resolved, covering critical correctness bugs (double-booking, silent reminder skips, malformed E.164 phone numbers), architectural gaps (missing DEFAULTS keys, incorrect template keys), and code quality improvements (standardized `formatTime()` across all workflows). Following all fixes, **21 distinct test scenarios** were executed against the live production environment — all 21 passed with zero failures.
+This report documents the comprehensive final engineering and quality pass conducted on the Valfin Tech V1 automation platform prior to freezing the codebase for the first paying client deployment. A total of **13 production defects** were identified and resolved, covering critical correctness bugs (double-booking, silent reminder skips, malformed E.164 phone numbers), architectural gaps (missing DEFAULTS keys, incorrect template keys), and code quality improvements (standardized `formatTime()` across all workflows). Following all fixes, **24 distinct test scenarios** were executed against the live production environment — all 24 passed with zero failures (21 original + 3 bannedSlots cycling regression tests).
 
 **Personal assessment:** I am confident this platform is production-ready for a paying customer. The critical double-booking vulnerability and all time-formatting inconsistencies that could have caused customer-visible failures at runtime have been corrected and tested under real workflow conditions.
 
@@ -114,6 +114,42 @@ const e164 = rawPhone.length === 11 && rawPhone.startsWith('1')
 
 ---
 
+### HIGH — bannedSlots Cycling Bug in Customer Reschedule Flow (Red Team Audit)
+
+**Root Cause:** `findNextSlot` accepted a `bannedSlots` array to prevent re-proposing rejected times, but this array was never persisted between SMS exchanges. Each invocation built `bannedSlots` only from the single current appointment — it had no memory of previously rejected slots.
+
+Concrete failure mode (proven by live Python simulation): Customer sends RESCHEDULE (moving from Slot 0 to Slot A), then says NO to Slot A. On the second search, `bannedSlots = [Slot A only]`. Slot 0 is no longer in `taken` (it was excluded via `excludeApptId` since the appointment row now holds Slot A). Slot 0 gets re-proposed. Customer receives their original appointment back after saying "no." The system then cycles: Slot 0 → Slot A → Slot 0 → Slot A until `MAX_AUTO_RESCHEDULE_ATTEMPTS` (4) is hit.
+
+**Fix (3 nodes in Reschedule Cancel):**
+
+*Node 1 — `Find Customer Appointment`:* Added `offeredAltSlots: appt['Offered Alt Slots'] || ''` to output. The `Offered Alt Slots` column already existed in the CRM schema (used by the owner path's `Set Awaiting Alt Selection` node) but was never passed downstream in the customer path.
+
+*Node 2 — `Build Reply Plan`:* At the top, parse the accumulated ban list:
+```javascript
+let parsedBanList = [];
+try {
+  const raw = String(d.offeredAltSlots || '').trim();
+  if (raw.startsWith('[')) parsedBanList = JSON.parse(raw);
+} catch (e) {}
+```
+Expand all `findNextSlot` calls: `findNextSlot(d.apptId, [...parsedBanList, { date: d.apptDate, time: d.apptTime }])`. After proposing a new slot, build the updated ban list: `newOfferedAltSlots = JSON.stringify([...parsedBanList, { date: d.apptDate, time: d.apptTime }])`. On CANCEL or YES (slot finalized), clear it: `newOfferedAltSlots = ''`. Include `newOfferedAltSlots` in the return object.
+
+*Node 3 — `Update Appointment Row`:* Added `'Offered Alt Slots': '={{ $json.newOfferedAltSlots }}'` to the columns written on every customer reply.
+
+**Verification (3 live executions, executions 3922, 3925, 3932):**
+
+| Round | Ban list entering | Current appt | Proposed |
+|---|---|---|---|
+| RESCHEDULE | `[]` | 9:00 | 8:00 AM |
+| NO #1 | `[9:00]` | 8:00 | 9:30 AM |
+| NO #2 | `[9:00, 8:00]` | 9:30 | 10:00 AM |
+
+Three consecutive distinct slots, zero cycling. Ban list persisted to Sheets correctly after each round.
+
+**Published version:** 87c9bdf6 (Reschedule Cancel)
+
+---
+
 ### MEDIUM — Wrong Template Key in WF13 First Deployment Attempt
 
 **Noted as process risk, not a live defect:** During deployment of the WF13 Build Notify Batch fix, an initial draft used `sms_template_customer_rebooked_by_owner` (the owner-initiated rebook template) instead of `sms_template_reschedule_update` (the correct appointment-change notification template). This was caught immediately by code review before verification, immediately reverted from backup, and never reached a production execution. The correct template was deployed on the second attempt.
@@ -181,7 +217,17 @@ All tests run against live production environment at `valfin.app.n8n.cloud` on 2
 | 20 | Pipeline Status Digest | execute_workflow | PASS | 3824 |
 | 21 | Missed-Call Auto-SMS | execute_workflow | PASS | 3826 |
 
-**Total: 21/21 tests passed. Zero failures.**
+**Total: 21/21 original tests passed. Zero failures.**
+
+### bannedSlots Cycling Regression Tests (Added 2026-06-23)
+
+| # | Scenario | Method | Result | Execution ID |
+|---|---|---|---|---|
+| 22 | Customer RESCHEDULE → first slot proposed (different from original) | POST /webhook/master-twilio-sms | PASS | 3922 |
+| 23 | Customer NO → second slot proposed (different from first AND original) | POST /webhook/master-twilio-sms | PASS | 3925 |
+| 24 | Customer NO again → third slot proposed (different from all previous) | POST /webhook/master-twilio-sms | PASS | 3932 |
+
+**Total: 24/24 tests passed. Zero failures.**
 
 ---
 
@@ -193,7 +239,8 @@ All tests run against live production environment at `valfin.app.n8n.cloud` on 2
 | Auto-Scheduler | EQjiqyk6Kx5p7mdj | Added `formatTime()`, normalized taken set for double-booking prevention | c7dd3d33 |
 | Appointment Reminders | bJcO5ox2u190bxTr | Dual-format `parseApptDateTime()`, `formatTime(timeDisplay)` | e1db4aec |
 | Appointment Reschedule Notifier | Cq8exh05XSQytvgx | Added `formatTime()`, changed `time: apptTime` → `time: formatTime(apptTime)` | 337cb7b5 |
-| Reschedule Cancel | Bj5b3sUexa8EeQcK | 4 nodes fixed: Build Reply Plan (double-booking), Resolve Availability (double-booking), Build Book Messages (E.164 + formatTime), Build Cancel Message (E.164 + formatTime) | 0d68117d |
+| Reschedule Cancel | Bj5b3sUexa8EeQcK | 4 nodes fixed (V1.0): Build Reply Plan (double-booking), Resolve Availability (double-booking), Build Book Messages (E.164 + formatTime), Build Cancel Message (E.164 + formatTime) | 0d68117d |
+| Reschedule Cancel | Bj5b3sUexa8EeQcK | 3 nodes fixed (V1.0.1): Find Customer Appointment (offeredAltSlots), Build Reply Plan (parsedBanList + accumulation), Update Appointment Row (Offered Alt Slots write) | 87c9bdf6 |
 
 ---
 
