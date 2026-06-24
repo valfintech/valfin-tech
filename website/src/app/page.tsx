@@ -21,8 +21,8 @@ export default function HomePage() {
     <>
       <JsonLd data={faqPageSchema(faq.items)} />
       <Hero />
-      <Wound />
       <ResponseTimeline />
+      <Wound />
       <HowItWorks />
       <CalculatorCta />
       <Faq />
