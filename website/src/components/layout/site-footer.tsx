@@ -1,5 +1,6 @@
 import Image from "next/image";
 import Link from "next/link";
+import { InstagramIcon } from "@/components/icons/instagram";
 import { siteConfig } from "@/lib/site-config";
 
 const footerLinks = [
@@ -80,7 +81,18 @@ export function SiteFooter() {
               Terms &amp; Conditions
             </Link>
           </div>
-          <p className="text-ink-600">Built in the field. Proven before promised.</p>
+          <div className="flex items-center gap-4">
+            <a
+              href={siteConfig.social.instagram}
+              target="_blank"
+              rel="noopener noreferrer"
+              aria-label="Valfin on Instagram"
+              className="text-ink-600 transition-colors hover:text-ink-300 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent-500 rounded-sm"
+            >
+              <InstagramIcon className="size-4" />
+            </a>
+            <p className="text-ink-600">Built in the field. Proven before promised.</p>
+          </div>
         </div>
       </div>
     </footer>

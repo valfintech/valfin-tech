@@ -36,6 +36,7 @@ export const siteConfig = {
   social: {
     linkedin: "https://www.linkedin.com/company/valfin",
     twitter: "https://x.com/valfin",
+    instagram: "https://www.instagram.com/valfintech/",
   },
 } as const;
 

@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import { Mail } from "lucide-react";
+import { InstagramIcon } from "@/components/icons/instagram";
 import { ContactForm } from "@/components/company/contact-form";
 import { ButtonLink } from "@/components/ui/button-link";
 import { SectionHeader } from "@/components/sections/section-header";
@@ -125,13 +126,22 @@ export default function CompanyPage() {
               </h2>
               <p className="mt-4 max-w-md text-base leading-relaxed text-ink-400">{contact.subheadline}</p>
 
-              <div className="mt-7 flex flex-col gap-3 sm:flex-row sm:items-center">
+              <div className="mt-7 flex flex-col gap-3">
                 <a
                   href={`mailto:${contact.email}`}
                   className="inline-flex items-center gap-2 text-sm font-medium text-accent-400 transition-colors hover:text-accent-300"
                 >
                   <Mail className="size-4" aria-hidden="true" />
                   {contact.email}
+                </a>
+                <a
+                  href="https://www.instagram.com/valfintech/"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="inline-flex items-center gap-2 text-sm text-ink-400 transition-colors hover:text-ink-200"
+                >
+                  <InstagramIcon className="size-4" />
+                  @valfintech on Instagram
                 </a>
               </div>
 
