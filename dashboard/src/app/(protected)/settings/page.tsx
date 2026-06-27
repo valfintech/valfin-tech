@@ -4,18 +4,26 @@ import { redirect } from 'next/navigation'
 interface ConfigRow { key: string; value: string; description: string | null }
 
 const EDITABLE_KEYS: { key: string; label: string; type: string; hint: string }[] = [
-  { key: 'company_name',   label: 'Company Name',               type: 'text',     hint: 'Your company name (e.g. Valfin Tech)' },
-  { key: 'founder_name',   label: 'Founder Name',               type: 'text',     hint: 'Your name as it appears in email signatures' },
-  { key: 'from_email',     label: 'Sending Email',              type: 'email',    hint: 'Gmail address used to send outreach (contact@valfintech.com)' },
-  { key: 'website',        label: 'Website',                    type: 'text',     hint: 'Your website domain without https:// (e.g. valfintech.com)' },
-  { key: 'calendly_url',   label: 'Google Calendar Booking Link', type: 'url',   hint: 'Your booking link sent to prospects who reply' },
-  { key: 'email_signature', label: 'Email Signature',           type: 'textarea', hint: 'Closing line appended to all outreach emails (e.g. "Kejsi — Valfin Tech")' },
-  { key: 'daily_send_limit', label: 'Daily Send Limit',         type: 'number',   hint: 'Max emails to send per day. Leave 0 for no limit.' },
+  { key: 'company_name',              label: 'Company Name',               type: 'text',     hint: 'Your company name (e.g. Valfin Tech)' },
+  { key: 'founder_name',              label: 'Founder Name',               type: 'text',     hint: 'Your name as it appears in email signatures' },
+  { key: 'from_email',                label: 'Sending Email',              type: 'email',    hint: 'Gmail address used to send outreach (contact@valfintech.com)' },
+  { key: 'website',                   label: 'Website',                    type: 'text',     hint: 'Your website domain without https:// (e.g. valfintech.com)' },
+  { key: 'calendly_url',              label: 'Booking Link',               type: 'url',      hint: 'Calendar booking link included in every outreach email' },
+  { key: 'email_signature',           label: 'Email Signature',            type: 'textarea', hint: 'Closing block appended to all emails — name, title, contact' },
+  { key: 'owner_notification_email',  label: 'Notification Email',         type: 'email',    hint: 'Where new-lead and reply alerts are sent (can be the same as Sending Email)' },
+  { key: 'daily_send_limit',          label: 'Daily Send Limit',           type: 'number',   hint: 'Max emails to send per day (WF-07 hard cap). Set 0 for no limit.' },
+  { key: 'send_delay_seconds',        label: 'Send Delay (seconds)',        type: 'number',   hint: 'Seconds WF-07 waits between each email send. 60–120 is safe for warm-up.' },
+  { key: 'sequence_max_position',     label: 'Max Follow-up Sequence',     type: 'number',   hint: 'How many follow-up emails to send before stopping (1 = initial only).' },
 ]
 
 export const dynamic = 'force-dynamic'
 
-export default async function SettingsPage() {
+export default async function SettingsPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ saved?: string; error?: string }>
+}) {
+  const { saved, error: saveError } = await searchParams
   const db = createAdminClient()
   const { data } = await db.from('platform_config').select('key, value')
   const config = Object.fromEntries(((data as ConfigRow[] | null) ?? []).map((r) => [r.key, r.value]))
@@ -28,8 +36,11 @@ export default async function SettingsPage() {
       value: (formData.get(key) as string) ?? '',
     }))
     const { error } = await db.from('platform_config').upsert(updates, { onConflict: 'key' })
-    if (error) console.error('[Settings] upsert failed:', error.message)
-    redirect('/settings')
+    if (error) {
+      console.error('[Settings] upsert failed:', error.message)
+      redirect('/settings?error=1')
+    }
+    redirect('/settings?saved=1')
   }
 
   return (
@@ -40,6 +51,17 @@ export default async function SettingsPage() {
           Platform configuration — changes take effect on the next workflow run
         </p>
       </div>
+
+      {saved === '1' && (
+        <div className="mb-5 px-4 py-3 rounded-lg text-sm font-medium" style={{ background: 'rgba(16,185,129,0.12)', border: '1px solid rgba(16,185,129,0.3)', color: '#10b981' }}>
+          ✓ Settings saved
+        </div>
+      )}
+      {saveError === '1' && (
+        <div className="mb-5 px-4 py-3 rounded-lg text-sm font-medium" style={{ background: 'rgba(239,68,68,0.12)', border: '1px solid rgba(239,68,68,0.3)', color: '#ef4444' }}>
+          ✗ Save failed — check server logs
+        </div>
+      )}
 
       <form action={save}>
         <div className="rounded-xl border overflow-hidden mb-6" style={{ borderColor: 'var(--border)', background: 'var(--surface)' }}>
